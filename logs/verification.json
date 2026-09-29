@@ -1,0 +1,20 @@
+{
+  "deployment_id": "dpl_BoxHXvrqgFAxmBL4DtBHDxVCViBM",
+  "team_id": "team_1hXCUKm8UftAa3LEvG3LKtLn",
+  "production_url": "https://tool.cv-by-design.com",
+  "source_dir": "/Users/jenny/Documents/Cursor/cvresume-production-recovered/source",
+  "file_count": 370,
+  "missing": [
+    "app/page.tsx",
+    "app/login/page.tsx",
+    "app/admin/page.tsx",
+    "app/app/workspace/[slug]/page.tsx",
+    "app/api/auth/login/route.ts",
+    "app/api/auth/logout/route.ts",
+    "app/api/auth/me/route.ts",
+    "app/api/folders/route.ts",
+    "app/api/linkedin/sync/route.ts",
+    "app/api/admin/accounts/route.ts"
+  ],
+  "verified_at": "2026-06-14T20:54:49.482684+00:00"
+}

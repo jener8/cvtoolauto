@@ -1,0 +1,114 @@
+/**
+ * EquitAI app chrome — illustration-aligned surfaces, motion, and accents.
+ * Does NOT apply to document / CV / cover-letter preview areas.
+ */
+
+/* —— Page & dashboard hero —— */
+.ai-career-dashboard > header,
+.career-brain-page__header {
+  background: var(--gradient-hero) !important;
+  border-color: var(--color-border-accent) !important;
+}
+
+/* —— Cards (shadcn) —— */
+[data-slot="card"] {
+  background: var(--gradient-card-shine), var(--color-card);
+  border-color: var(--color-border-accent);
+  box-shadow: var(--ds-shadow-card);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-slot="card"] {
+    transition:
+      box-shadow var(--motion-duration-normal) var(--motion-ease),
+      border-color var(--motion-duration-fast) var(--motion-ease),
+      transform var(--motion-duration-normal) var(--motion-ease);
+  }
+
+  [data-slot="card"]:hover {
+    box-shadow: var(--ds-shadow-md);
+    border-color: color-mix(in srgb, var(--color-primary-light) 30%, var(--color-border));
+  }
+}
+
+/* —— Buttons (shadcn default = brand gradient) —— */
+[data-slot="button"].bg-primary,
+button[data-slot="button"].bg-primary {
+  background-image: var(--gradient-brand);
+  border: none;
+}
+
+/* —— Form focus —— */
+[data-slot="input"]:focus-visible,
+[data-slot="textarea"]:focus-visible,
+textarea:focus-visible {
+  border-color: var(--color-focus) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus) 22%, transparent);
+}
+
+/* —— Empty states & hero cards —— */
+.equit-empty-state,
+.equit-hero-card {
+  border-color: var(--color-border-accent);
+}
+
+.equit-hero-card {
+  background: var(--gradient-hero);
+}
+
+.equit-empty-state {
+  background: linear-gradient(160deg, var(--color-surface-muted) 0%, var(--ds-brand-surface-soft) 100%);
+}
+
+/* —— Job search focus — tokens via utility overrides in component —— */
+
+/* —— Section icon tints (inherit via utility classes in components) —— */
+.equit-icon--career-brain { color: var(--icon-career-brain); }
+.equit-icon--progress { color: var(--icon-progress); }
+.equit-icon--qualifications { color: var(--icon-qualifications); }
+.equit-icon--applications { color: var(--icon-applications); }
+.equit-icon--interview { color: var(--icon-interview); }
+.equit-icon--resources { color: var(--icon-resources); }
+.equit-icon--settings { color: var(--icon-settings); }
+
+/* —— Card entrance motion —— */
+@media (prefers-reduced-motion: no-preference) {
+  .ai-career-dashboard [data-slot="card"],
+  .equit-hero-card,
+  .equit-empty-state,
+  .career-next-step--card {
+    animation: equit-surface-enter var(--motion-duration-normal) var(--motion-ease) both;
+  }
+}
+
+@keyframes equit-surface-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* —— Status badges (semantic) —— */
+.equit-status--success {
+  color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.equit-status--info {
+  color: var(--color-info);
+  background: var(--color-info-bg);
+}
+
+.equit-status--warning {
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+
+.equit-status--error {
+  color: var(--color-error);
+  background: var(--color-error-bg);
+}

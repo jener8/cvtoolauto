@@ -1,0 +1,471 @@
+/* Home dashboard — warm card grid */
+
+.home-dashboard {
+  min-height: 100%;
+  background: #f5f0eb;
+  padding: 1rem 1.25rem 0;
+}
+
+@media (min-width: 1024px) {
+  .home-dashboard {
+    padding: 1.25rem 2rem 0;
+  }
+}
+
+.home-dashboard__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding-bottom: 24px;
+}
+
+.home-dashboard__row {
+  display: grid;
+  gap: 14px;
+}
+
+.home-dashboard__row--two {
+  grid-template-columns: 1fr;
+  align-items: stretch;
+}
+
+@media (min-width: 768px) {
+  .home-dashboard__row--two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.home-dashboard__row--three {
+  grid-template-columns: 1fr;
+}
+
+.home-dashboard__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (min-width: 900px) {
+  .home-dashboard__row--three {
+    grid-template-columns: 1.5fr 1fr 1fr;
+    align-items: stretch;
+  }
+}
+
+/* Shared card shell */
+.home-card {
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  border: none;
+  box-shadow: none;
+  text-align: left;
+}
+
+.home-card__body {
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.home-card__body--flush {
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.home-card__body--support {
+  padding: 0.85rem 1.1rem 1rem;
+}
+
+.home-card__title {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #1e1b2e;
+}
+
+.home-card__title--inline {
+  margin-bottom: 0;
+}
+
+.home-card__title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.home-card__see-all {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #6d28d9;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.home-card__see-all:hover {
+  color: #4c1d95;
+}
+
+.home-card__see-all--cta {
+  display: inline-block;
+  margin-top: 0.85rem;
+}
+
+.home-card__copy {
+  margin: 0 0 0.85rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: #4a4563;
+}
+
+.home-card__copy--muted {
+  margin-bottom: 0;
+  color: #6b6580;
+}
+
+.home-card__loading {
+  margin: 0;
+}
+
+.home-card__illus {
+  display: block;
+  width: 100%;
+  /* Slot art is ~1024×850 — use a matching ratio so cover doesn’t crop into a thin strip */
+  aspect-ratio: 5 / 4;
+  object-fit: cover;
+  object-position: center center;
+}
+
+/* Taller cards in the top row */
+.home-card__illus--featured {
+  aspect-ratio: 4 / 3;
+  min-height: 11rem;
+}
+
+/* Compact header in the sidebar stack — still tall enough to read the scene */
+.home-card__illus--compact {
+  aspect-ratio: 16 / 11;
+  min-height: 9rem;
+}
+
+/* Hero card */
+.home-card--hero {
+  display: grid;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.25rem 1.35rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #2d7a5f 100%);
+  color: #fff;
+}
+
+@media (min-width: 640px) {
+  .home-card--hero {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 1.5rem 1.5rem 1.5rem 1.65rem;
+  }
+}
+
+.home-card--hero__copy {
+  min-width: 0;
+}
+
+.home-card--hero__eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgb(255 255 255 / 72%);
+}
+
+.home-card--hero__headline {
+  margin: 0.45rem 0 0;
+  max-width: 34rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.28;
+  color: #fff;
+}
+
+@media (min-width: 640px) {
+  .home-card--hero__headline {
+    font-size: 1.75rem;
+  }
+}
+
+.home-card--hero__subtext {
+  margin: 0.75rem 0 0;
+  max-width: 32rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: rgb(255 255 255 / 88%);
+}
+
+.home-card--hero__visual {
+  width: 10.5rem;
+  height: 10.5rem;
+  border-radius: 14px;
+  object-fit: cover;
+  object-position: center center;
+  justify-self: center;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .home-card--hero__visual {
+    width: 15rem;
+    height: 15rem;
+    justify-self: end;
+  }
+}
+
+/* Combined role matches card — search + teaser rows */
+.home-card--role-matches .home-role-match__search {
+  margin-top: 0;
+  margin-bottom: 0.85rem;
+  background: #faece7;
+}
+
+.home-card--role-matches .home-role-match__search-icon {
+  color: #d85a30;
+}
+
+.home-card--role-matches .home-role-match__search-btn {
+  background: #d85a30;
+}
+
+.home-card__loading--matches {
+  margin-top: 0.25rem;
+}
+
+.home-role-rows--in-card {
+  margin-top: 0.15rem;
+}
+
+.home-card__copy--after-search {
+  margin-top: 0;
+  margin-bottom: 0.65rem;
+}
+
+/* Find role — search sits inside card body (legacy alias) */
+.home-card--find-role .home-role-match__search {
+  margin-top: 0.15rem;
+  background: #faece7;
+}
+
+.home-card--find-role .home-role-match__search-icon {
+  color: #d85a30;
+}
+
+.home-card--find-role .home-role-match__search-btn {
+  background: #d85a30;
+}
+
+/* Qualifications button */
+.home-card__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: 0 1.1rem;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home-card__btn--qualifications {
+  background: #04342c;
+  color: #fff;
+}
+
+.home-card__btn--qualifications:hover {
+  filter: brightness(1.08);
+}
+
+.home-card--qualifications {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.home-card__body--qualifications {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.home-card--qualifications__motivation {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+  padding: 0.35rem 0;
+}
+
+.home-card--qualifications__motivation-heading {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #1e1b2e;
+}
+
+.home-card--qualifications__motivation-body {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: #6b6580;
+}
+
+.home-card__btn--qualifications-cta {
+  margin-top: auto;
+}
+
+/* Compact role match rows */
+.home-role-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.home-role-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
+  background: #f5f0eb;
+}
+
+.home-role-row__title {
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #1e1b2e;
+}
+
+.home-role-row__badge {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+
+.home-role-row__badge--strong {
+  background: #e1f5ee;
+  color: #085041;
+}
+
+.home-role-row__badge--growing {
+  background: #faeeda;
+  color: #854f0b;
+}
+
+/* Keyword chips */
+.home-keyword-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.home-keyword-chips__chip {
+  border: none;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 12px;
+  line-height: 1.35;
+  background: #f5f0eb;
+  color: #1e1b2e;
+  cursor: pointer;
+}
+
+.home-keyword-chips__chip:hover {
+  background: #ebe4dc;
+}
+
+/* Confidence card */
+.home-card--confidence {
+  background: #faece7;
+}
+
+.home-card__body--confidence {
+  padding: 0.85rem 1.1rem 1.1rem;
+}
+
+.home-card--confidence__title {
+  margin: 0 0 0.3rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #4a1b0c;
+}
+
+.home-card--confidence__copy {
+  margin: 0 0 0.85rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: #993c1d;
+}
+
+.home-card__btn--confidence {
+  background: #d85a30;
+  color: #faece7;
+}
+
+.home-card__btn--confidence:hover {
+  filter: brightness(1.05);
+}
+
+/* Find support — whole card clickable */
+.home-card--support {
+  display: block;
+  width: 100%;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.home-card--support:hover {
+  transform: translateY(-1px);
+}
+
+.home-card--support:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
+.home-card--support__title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e1b2e;
+}
+
+.home-card--support__subtitle {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 12px;
+  color: #6b6580;
+}
+
+/* Legacy aliases */
+.career-dashboard,
+.ai-career-dashboard {
+  min-height: 100%;
+}

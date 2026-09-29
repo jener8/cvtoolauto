@@ -1,0 +1,67 @@
+# Database Setup
+
+This project uses Supabase as the backend.
+
+## Required Environment Variables
+
+Create a `.env.local` file with:
+
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+
+---
+
+## Required Tables
+
+The app expects these tables:
+
+- resume_versions
+- job_applications
+- folders
+- cover_letters
+
+---
+
+## Required Columns (resume_versions)
+
+The following columns must exist:
+
+- id
+- name
+- resume_text
+- profile_image
+- company_logo
+- contact_info
+- accent_color
+- job_description
+- folder_id
+- profile_photo_border
+- target_box_bg_color
+- target_box_border_color
+- created_at
+- updated_at
+
+---
+
+## Important Notes
+
+- The database schema must match `lib/storage.ts`
+- If columns are missing, saving will fail with runtime errors
+- Add new columns via SQL scripts in `/scripts`
+- Do NOT rely on manual fixes in Supabase only — always record changes
+
+---
+
+## Known Migration
+
+Run this SQL if resume saving fails:
+
+```sql
+alter table resume_versions
+add column if not exists profile_photo_border boolean default true;
+
+alter table resume_versions
+add column if not exists target_box_bg_color text;
+
+alter table resume_versions
+add column if not exists target_box_border_color text;

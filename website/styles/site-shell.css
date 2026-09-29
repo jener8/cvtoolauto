@@ -1,0 +1,27 @@
+/**
+ * Global shell — smooth scrolling, anchor offset, Notion-like page rhythm.
+ */
+html {
+  scroll-behavior: smooth;
+}
+
+body.site-body {
+  font-family: var(--ds-font-sans);
+  background: var(--ds-page-bg);
+  color: var(--ds-text);
+  font-size: 16px;
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+
+.site-anchor,
+[id="who-its-for"],
+[id="process"],
+[id="pricing"],
+[id="contact"] {
+  scroll-margin-top: 5.5rem;
+}
+
+.section {
+  scroll-margin-top: 5.5rem;
+}

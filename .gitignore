@@ -1,0 +1,27 @@
+# Dependencies & build
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Secrets & local env (never commit)
+.env
+.env.*
+!.env.example
+**/.env.local
+**/.env*.local
+
+# Vercel local link metadata
+.vercel/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Local user-data backups (not schema)
+backups/*.json
+backups/*localStorage*

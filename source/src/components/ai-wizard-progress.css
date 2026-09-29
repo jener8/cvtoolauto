@@ -1,0 +1,213 @@
+@keyframes ai-wizard-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}
+
+@keyframes ai-wizard-pulse-ring {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ai-wizard-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(45 122 95 / 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgb(45 122 95 / 0);
+  }
+}
+
+.ai-wizard-banner {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  overflow: hidden;
+  border-bottom: 1px solid rgb(45 122 95 / 0.2);
+  background: linear-gradient(180deg, rgb(45 122 95 / 0.1), rgb(45 122 95 / 0.04));
+  backdrop-filter: blur(8px);
+}
+
+.ai-wizard-banner__track {
+  height: 4px;
+  overflow: hidden;
+  background: rgb(45 122 95 / 0.12);
+}
+
+.ai-wizard-banner__fill {
+  height: 100%;
+  width: 34%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--color-primary-light), #3d9a75, transparent);
+  animation: ai-wizard-indeterminate 1.7s ease-in-out infinite;
+}
+
+.ai-wizard-banner__body {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.ai-wizard-banner__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgb(45 122 95 / 0.14);
+  color: var(--color-primary-light);
+  flex-shrink: 0;
+  animation: ai-wizard-pulse-ring 1.6s ease-in-out infinite;
+}
+
+.ai-wizard-banner__text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.ai-wizard-banner__headline {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.ai-wizard-banner__phase {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-wizard-panel {
+  position: relative;
+  margin-top: 2rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgb(45 122 95 / 0.22);
+  background: linear-gradient(180deg, rgb(45 122 95 / 0.07), rgb(45 122 95 / 0.02));
+  padding: 2rem 1.5rem 2.25rem;
+  animation: ai-wizard-glow 2.4s ease-in-out infinite;
+}
+
+.ai-wizard-panel__track {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: rgb(45 122 95 / 0.1);
+}
+
+.ai-wizard-panel__fill {
+  height: 100%;
+  width: 38%;
+  background: linear-gradient(90deg, transparent, var(--color-primary-light), #3d9a75, transparent);
+  animation: ai-wizard-indeterminate 1.9s ease-in-out infinite;
+}
+
+.ai-wizard-panel__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.ai-wizard-panel__spinner {
+  position: relative;
+  width: 4.5rem;
+  height: 4.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-wizard-panel__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 3px solid rgb(45 122 95 / 0.15);
+  border-top-color: var(--color-primary-light);
+  animation: spin 1s linear infinite;
+}
+
+.ai-wizard-panel__sparkle {
+  color: var(--color-primary-light);
+}
+
+.ai-wizard-panel__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.ai-wizard-panel__detail {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  max-width: 28rem;
+}
+
+.ai-wizard-panel__footnote {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  opacity: 0.85;
+  padding-top: 0.25rem;
+}
+
+.ai-wizard-panel__dots {
+  display: flex;
+  gap: 0.4rem;
+  padding-top: 0.35rem;
+}
+
+.ai-wizard-panel__dot {
+  height: 0.4rem;
+  width: 1.6rem;
+  border-radius: 999px;
+  background: rgb(45 122 95 / 0.18);
+  transition: background-color 0.35s ease, width 0.35s ease;
+}
+
+.ai-wizard-panel__dot--active {
+  width: 2.25rem;
+  background: var(--color-primary-light);
+}
+
+.ai-wizard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgb(0 0 0 / 0.28);
+  backdrop-filter: blur(4px);
+}
+
+.ai-wizard-overlay--scoped {
+  position: absolute;
+  z-index: 30;
+  border-radius: inherit;
+}
+
+.ai-wizard-overlay .ai-wizard-panel {
+  margin-top: 0;
+  width: min(100%, 32rem);
+  box-shadow: 0 24px 48px rgb(0 0 0 / 0.12);
+}

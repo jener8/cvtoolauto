@@ -1,0 +1,319 @@
+/* EquitAI — editorial career illustrations */
+
+.equit-illustration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--ds-radius-md);
+  background: var(--color-surface-muted);
+  box-shadow: var(--ds-shadow-md);
+}
+
+.equit-illustration__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.equit-illustration--small {
+  width: 6rem;
+  height: 6rem;
+}
+
+.equit-illustration--medium {
+  width: 9rem;
+  height: 9rem;
+}
+
+.equit-illustration--large {
+  width: 12.5rem;
+  height: 12.5rem;
+}
+
+.equit-illustration--hero {
+  width: 100%;
+  max-width: 22rem;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.equit-illustration--featured {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  min-height: 16rem;
+}
+
+@media (min-width: 768px) {
+  .equit-illustration--hero {
+    max-width: 26rem;
+  }
+
+  .equit-illustration--featured {
+    min-height: 20rem;
+    aspect-ratio: 3 / 2;
+  }
+}
+
+/* Hero card layout */
+
+.equit-hero-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  padding: 1.35rem;
+  border-radius: var(--ds-radius-xl);
+  background: var(--gradient-hero);
+  border: 1px solid var(--color-border-accent);
+  overflow: hidden;
+  position: relative;
+}
+
+.equit-hero-card::after {
+  content: "";
+  position: absolute;
+  right: -3rem;
+  top: -3rem;
+  width: 12rem;
+  height: 12rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--ds-accent-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .equit-hero-card {
+    grid-template-columns: minmax(9rem, 34%) minmax(0, 1fr);
+    align-items: center;
+    padding: 1.5rem 1.75rem;
+    gap: 1.5rem;
+  }
+
+  .equit-hero-card--with-aside {
+    grid-template-columns: minmax(9rem, 30%) minmax(0, 1fr) auto;
+  }
+}
+
+.equit-hero-card__visual {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 640px) {
+  .equit-hero-card__visual {
+    justify-content: flex-start;
+  }
+}
+
+.equit-hero-card__body {
+  position: relative;
+  z-index: 1;
+}
+
+.equit-hero-card__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-forest);
+  line-height: 1.35;
+}
+
+.equit-hero-card__text {
+  margin-top: 0.45rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+  max-width: 36rem;
+}
+
+.equit-hero-card__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-success);
+  position: relative;
+  z-index: 1;
+}
+
+.equit-hero-card__check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.equit-hero-card__check-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: var(--color-card);
+  color: var(--color-primary-light);
+  flex-shrink: 0;
+  border: 1px solid var(--ds-brand-border-soft);
+}
+
+.equit-hero-card__actions {
+  margin-top: 1rem;
+}
+
+/* Empty state with illustration */
+
+.equit-empty-state {
+  border-radius: var(--ds-radius-xl);
+  border: 1px solid var(--color-border-accent);
+  background: linear-gradient(160deg, var(--color-surface-muted) 0%, var(--ds-brand-surface-soft) 100%);
+  overflow: hidden;
+}
+
+.equit-empty-state__inner {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  padding: 1.5rem 1.25rem;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .equit-empty-state__inner {
+    grid-template-columns: minmax(12rem, 44%) minmax(0, 1fr);
+    text-align: left;
+    align-items: center;
+    padding: 1.75rem 2rem;
+    gap: 1.75rem;
+  }
+
+  .equit-empty-state__visual {
+    justify-content: stretch;
+    align-self: stretch;
+  }
+
+  .equit-empty-state__visual .equit-illustration--hero {
+    width: 100%;
+    max-width: 100%;
+    min-height: 15rem;
+    aspect-ratio: 4 / 3;
+  }
+}
+
+.equit-empty-state--stacked .equit-empty-state__inner {
+  grid-template-columns: 1fr;
+  text-align: left;
+  padding: 1.25rem 1.25rem 1.5rem;
+  gap: 1.25rem;
+}
+
+.equit-empty-state--stacked .equit-empty-state__visual {
+  width: 100%;
+}
+
+.equit-empty-state--stacked .equit-empty-state__visual .equit-illustration--featured {
+  max-width: 100%;
+  min-height: 18rem;
+}
+
+@media (min-width: 640px) {
+  .equit-empty-state--stacked .equit-empty-state__visual .equit-illustration--featured {
+    min-height: 22rem;
+  }
+}
+
+/* Full-width integration pages — give the hero illustration more presence */
+.equit-empty-state--integration.equit-empty-state--stacked
+  .equit-empty-state__visual
+  .equit-illustration--featured {
+  min-height: 20rem;
+}
+
+@media (min-width: 768px) {
+  .equit-empty-state--integration.equit-empty-state--stacked
+    .equit-empty-state__visual
+    .equit-illustration--featured {
+    min-height: 24rem;
+  }
+}
+
+/* Things to take care of — smaller accent illustration beside the intro */
+.equit-empty-state--integration-compact .equit-empty-state__inner {
+  grid-template-columns: 1fr;
+  text-align: left;
+  padding: 1.25rem 1.5rem;
+  gap: 1rem;
+}
+
+.equit-empty-state--integration-compact .equit-empty-state__visual {
+  justify-content: flex-start;
+}
+
+.equit-empty-state--integration-compact .equit-empty-state__visual .equit-illustration--large {
+  width: 8rem;
+  height: 8rem;
+  min-height: 0;
+  aspect-ratio: 1;
+}
+
+@media (min-width: 640px) {
+  .equit-empty-state--integration-compact .equit-empty-state__inner {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .equit-empty-state--integration-compact .equit-empty-state__visual .equit-illustration--large {
+    width: 10rem;
+    height: 10rem;
+  }
+}
+
+.equit-empty-state__visual {
+  display: flex;
+  justify-content: center;
+}
+
+.equit-empty-state--stacked .equit-empty-state__visual {
+  justify-content: stretch;
+}
+
+.equit-empty-state__heading {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-forest);
+}
+
+.equit-empty-state__body {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+  max-width: 32rem;
+}
+
+.equit-empty-state__note {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-text-subtle);
+}
+
+.equit-empty-state__cta {
+  margin-top: 1.25rem;
+}
+
+.equit-card-illustration {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 8rem;
+  margin-bottom: 0.5rem;
+}

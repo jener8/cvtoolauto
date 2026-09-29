@@ -1,0 +1,10 @@
+{
+  "name": "equitai",
+  "private": true,
+  "description": "EquitAI — marketing website + career tool",
+  "scripts": {
+    "dev:tool": "npm run dev --prefix source/src",
+    "dev:website": "python3 -m http.server 8080 --directory website",
+    "sync:design-system": "npm run sync:design-system --prefix source/src"
+  }
+}

@@ -1,0 +1,551 @@
+/* Career progress page */
+
+.career-progress-page {
+  background: #f3f5f4;
+  padding: 1.25rem 1.25rem 0;
+}
+
+@media (min-width: 1024px) {
+  .career-progress-page {
+    padding: 1.5rem 2rem 0;
+  }
+}
+
+.career-progress-page__scroll-spacer {
+  height: calc(6rem + env(safe-area-inset-bottom, 0px));
+  flex-shrink: 0;
+}
+
+.career-progress-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.career-progress-page__title {
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-forest);
+  line-height: 1.2;
+}
+
+.career-progress-page__subtitle {
+  margin-top: 0.4rem;
+  max-width: 38rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #5c6f68;
+}
+
+.career-progress-page__month {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #d8e3de;
+  background: #fff;
+  font-size: 0.8125rem;
+  color: var(--color-forest);
+}
+
+.career-progress-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .career-progress-grid--top {
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  }
+
+  .career-progress-grid--middle {
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  }
+
+  .career-progress-grid--bottom {
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  }
+}
+
+.career-progress-card {
+  background: #fff;
+  border: 1px solid #e3ebe7;
+  border-radius: 1rem;
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
+}
+
+.career-progress-card__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-forest);
+  margin-bottom: 0.85rem;
+}
+
+.career-progress-journey {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .career-progress-journey {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.career-progress-journey__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.career-progress-journey__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.55rem;
+  background: #edf7f1;
+  color: var(--color-primary-light);
+  margin-bottom: 0.15rem;
+}
+
+.career-progress-journey__value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-forest);
+  line-height: 1.1;
+}
+
+.career-progress-journey__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-forest);
+}
+
+.career-progress-journey__sub {
+  font-size: 0.6875rem;
+  color: #6b8279;
+  line-height: 1.35;
+}
+
+.career-progress-journey__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin-top: 0.15rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--ds-brand-surface-soft);
+  color: var(--color-primary-light);
+  font-size: 0.625rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.career-progress-journey-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .career-progress-journey-card {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+}
+
+.career-progress-heart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.25rem 0.5rem;
+  min-width: 9rem;
+}
+
+.career-progress-heart__text {
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: #5c6f68;
+  max-width: 9.5rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+.career-progress-motivation.equit-hero-card {
+  min-height: 11rem;
+  margin: 0;
+}
+
+.career-progress-heart .equit-illustration--medium {
+  width: 4.5rem;
+  height: 4.5rem;
+}
+
+.career-progress-strengths__quote .equit-illustration--hero {
+  width: 9.5rem;
+  height: 9.5rem;
+  max-width: none;
+  flex-shrink: 0;
+  aspect-ratio: 1;
+}
+
+@media (min-width: 640px) {
+  .career-progress-strengths__quote .equit-illustration--hero {
+    width: 12rem;
+    height: 12rem;
+  }
+}
+
+.career-progress-chart-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .career-progress-chart-wrap {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    align-items: start;
+  }
+}
+
+.career-progress-chart-container {
+  width: 100%;
+}
+
+.career-progress-chart {
+  width: 100%;
+  height: 12.5rem;
+  display: block;
+}
+
+.career-progress-chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 10rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: #f7faf8;
+  border: 1px dashed var(--ds-brand-border-soft);
+  text-align: center;
+}
+
+.career-progress-chart-empty__art {
+  width: 10rem;
+  height: auto;
+  opacity: 0.85;
+}
+
+.career-progress-chart-empty p {
+  font-size: 0.8125rem;
+  color: #6b8279;
+  margin: 0;
+}
+
+.career-progress-chart-legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.6875rem;
+  color: #6b8279;
+}
+
+.career-progress-chart-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.career-progress-chart-legend__dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+}
+
+.career-progress-means {
+  background: #f7faf8;
+  border: 1px solid #e3ebe7;
+  border-radius: 0.75rem;
+  padding: 0.85rem 0.9rem;
+}
+
+.career-progress-means__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-forest);
+  margin-bottom: 0.55rem;
+}
+
+.career-progress-means__item {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #4a635a;
+  margin-bottom: 0.45rem;
+}
+
+.career-progress-means__item:last-child {
+  margin-bottom: 0;
+}
+
+.career-progress-pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.15rem;
+  margin-bottom: 0.85rem;
+}
+
+.career-progress-pipeline__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 3.5rem;
+  text-align: center;
+}
+
+.career-progress-pipeline__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: #edf7f1;
+  color: var(--color-primary-light);
+  margin-bottom: 0.2rem;
+}
+
+.career-progress-pipeline__count {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-forest);
+}
+
+.career-progress-pipeline__label {
+  font-size: 0.625rem;
+  color: #6b8279;
+  line-height: 1.2;
+  max-width: 4.5rem;
+}
+
+.career-progress-pipeline__arrow {
+  color: #b8ccc3;
+  font-size: 0.75rem;
+  padding: 0 0.1rem;
+  margin-top: -1rem;
+}
+
+.career-progress-pipeline__step--active .career-progress-pipeline__icon {
+  background: var(--color-primary-light);
+  color: #fff;
+  box-shadow: 0 0 0 3px rgb(45 122 95 / 18%);
+}
+
+.career-progress-pipeline__step--active .career-progress-pipeline__count {
+  color: var(--color-primary-light);
+}
+
+.career-progress-pipeline__step--past .career-progress-pipeline__icon {
+  background: #ede9fe;
+  color: var(--color-primary-light);
+}
+
+.career-progress-pipeline__arrow--past {
+  color: var(--color-primary-light);
+  font-weight: 600;
+}
+
+.career-progress-bar {
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #e8efeb;
+  overflow: hidden;
+  margin-bottom: 0.65rem;
+}
+
+.career-progress-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-primary-light) 0%, var(--ds-accent-teal) 70%, #8fd4b8 100%);
+  transition: width 0.5s ease;
+}
+
+.career-progress-pipeline__footer {
+  font-size: 0.75rem;
+  color: #6b8279;
+  line-height: 1.45;
+}
+
+.career-progress-strengths {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.career-progress-strengths__pill {
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  background: #edf7f1;
+  border: 1px solid var(--ds-brand-border-soft);
+  color: #2d5c4a;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.career-progress-strengths__quote {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.15rem 1.25rem;
+  margin-top: 0.25rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(135deg, #f7faf8 0%, #edf7f1 100%);
+  border: 1px solid #e3ebe7;
+}
+
+@media (min-width: 640px) {
+  .career-progress-strengths__quote {
+    gap: 1.5rem;
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+.career-progress-strengths__quote-text {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #3d5c52;
+  font-weight: 500;
+}
+
+.career-progress-focus__item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid #edf2ef;
+}
+
+.career-progress-focus__item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.career-progress-focus__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: #edf7f1;
+  color: var(--color-primary-light);
+}
+
+.career-progress-focus__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-forest);
+}
+
+.career-progress-focus__desc {
+  font-size: 0.6875rem;
+  color: #6b8279;
+  margin-top: 0.1rem;
+  line-height: 1.35;
+}
+
+.career-progress-focus__btn {
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  border: none;
+  background: var(--color-primary-light);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.career-progress-focus__btn:hover {
+  background: #256b52;
+}
+
+.career-progress-fab {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #7c5cbf 0%, #6a4fb0 100%);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgb(108 79 176 / 28%);
+  cursor: pointer;
+}
+
+.career-progress-fab:hover {
+  filter: brightness(1.05);
+}
+
+.career-progress-advanced {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e3ebe7;
+}
+
+.career-progress-rejection-card {
+  background: linear-gradient(135deg, #faf3e8 0%, #f5e8dc 100%);
+  border-color: #e8d4bc;
+}
+
+.career-progress-rejection-card__body {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #6b5344;
+}
+
+.career-progress-strengths--compact {
+  margin-bottom: 1rem;
+}
+
+.career-progress-rejection-card__cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: none;
+  background: #c97b5c;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.career-progress-rejection-card__cta:hover {
+  background: #b56a4d;
+}

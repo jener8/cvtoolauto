@@ -1,0 +1,134 @@
+/**
+ * EquitAI — shared design tokens
+ *
+ * SOURCE OF TRUTH: edit colours, type, spacing, radius, and shadows here.
+ * Sync to website/design-system/ via: npm run sync:design-system
+ *
+ * Tool: imported via app/globals.css
+ * Marketing site: <link rel="stylesheet" href="./design-system/tokens.css">
+ */
+
+:root {
+  /* Brand — EquitAI green */
+  --ds-brand: #2D7A5F;
+  --ds-brand-dark: #256952;
+  --ds-brand-strong: #2D7A5F;
+  --ds-brand-light: #4a9e7e;
+  --ds-brand-bg: #e8f3ee;
+  --ds-brand-text: #1e4d3d;
+
+  /* Surfaces */
+  --ds-page-bg: #f7f6f3;
+  --ds-surface: #ffffff;
+  --ds-surface-muted: #f1f0ee;
+  --ds-surface-inset: #efefeb;
+
+  /* Text */
+  --ds-text: #37352f;
+  --ds-text-muted: #9b9a97;
+  --ds-text-subtle: #787774;
+
+  /* Borders */
+  --ds-border: #e9e9e7;
+  --ds-border-strong: #d9d9d7;
+
+  /* Typography */
+  --ds-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --ds-font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --ds-text-xs: 0.6875rem;   /* 11px */
+  --ds-text-sm: 0.8125rem;   /* 13px */
+  --ds-text-base: 0.9375rem; /* 15px */
+  --ds-text-lg: 1.125rem;    /* 18px */
+  --ds-text-xl: 1.5rem;
+  --ds-text-2xl: 2rem;
+  --ds-text-3xl: 2.5rem;
+
+  --ds-weight-normal: 400;
+  --ds-weight-medium: 500;
+  --ds-weight-semibold: 600;
+  --ds-weight-bold: 700;
+
+  --ds-leading-tight: 1.2;
+  --ds-leading-normal: 1.55;
+  --ds-leading-relaxed: 1.7;
+
+  --ds-tracking-caps: 0.06em;
+
+  /* Spacing scale */
+  --ds-space-1: 0.25rem;
+  --ds-space-2: 0.5rem;
+  --ds-space-3: 0.75rem;
+  --ds-space-4: 1rem;
+  --ds-space-5: 1.25rem;
+  --ds-space-6: 1.5rem;
+  --ds-space-8: 2rem;
+  --ds-space-10: 2.5rem;
+  --ds-space-12: 3rem;
+  --ds-space-16: 4rem;
+  --ds-space-20: 5rem;
+
+  /* Radius */
+  --ds-radius-sm: 5px;
+  --ds-radius-md: 8px;
+  --ds-radius-lg: 12px;
+  --ds-radius-xl: 16px;
+  --ds-radius-full: 9999px;
+
+  /* Shadows */
+  --ds-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --ds-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --ds-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --ds-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  /* Component tokens */
+  --ds-btn-height: 2.25rem;
+  --ds-btn-height-lg: 2.75rem;
+  --ds-nav-height: 52px;
+
+  /* Legacy aliases — tool app (globals.css / Tailwind) */
+  --brand-teal-dark: var(--ds-brand-dark);
+  --brand-teal: var(--ds-brand);
+  --brand-teal-light: var(--ds-brand-light);
+  --brand-teal-bg: var(--ds-brand-bg);
+  --brand-teal-text: var(--ds-brand-text);
+  --page-bg: var(--ds-page-bg);
+  --card-bg: var(--ds-surface);
+  --border-subtle: var(--ds-border);
+  --text-primary: var(--ds-text);
+  --text-secondary: var(--ds-text-muted);
+  --text-meta: var(--ds-text-muted);
+  --radius: var(--ds-radius-md);
+
+  /* Shadcn / Tailwind */
+  --color-background-secondary: var(--ds-page-bg);
+  --color-background-primary: var(--ds-surface);
+  --color-border-tertiary: var(--ds-border);
+  --color-border-secondary: var(--ds-border);
+  --color-text-primary: var(--ds-text);
+  --color-text-secondary: var(--ds-text-muted);
+  --bg-page: var(--ds-page-bg);
+  --bg-card: var(--ds-surface);
+  --accent-primary: var(--ds-brand-strong);
+  --accent-soft: color-mix(in srgb, var(--ds-brand) 15%, transparent);
+  --border-warm: var(--ds-border);
+  --background: var(--ds-page-bg);
+  --foreground: var(--ds-text);
+  --card: var(--ds-surface);
+  --card-foreground: var(--ds-text);
+  --popover: var(--ds-surface);
+  --popover-foreground: var(--ds-text);
+  --primary: var(--ds-brand-strong);
+  --primary-foreground: #ffffff;
+  --secondary: var(--ds-surface-muted);
+  --secondary-foreground: var(--ds-text);
+  --muted: var(--ds-surface-muted);
+  --muted-foreground: var(--ds-text-muted);
+  --accent: var(--ds-brand-strong);
+  --accent-foreground: #ffffff;
+  --destructive: #c0392b;
+  --destructive-foreground: #ffffff;
+  --border: var(--ds-border);
+  --input: var(--ds-border);
+  --ring: var(--ds-brand-strong);
+}

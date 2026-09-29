@@ -1,0 +1,330 @@
+/**
+ * cv-by-design.com — aligns legacy markup with shared design-system tokens.
+ * Load after design-system/tokens.css and components.css in HTML.
+ */
+
+/* Map legacy custom properties → shared tokens */
+:root {
+  --ink: var(--ds-text);
+  --paper: var(--ds-page-bg);
+  --white: var(--ds-surface);
+  --yellow: var(--ds-brand-bg);
+  --pink: var(--ds-brand);
+  --cyan: var(--ds-brand-strong);
+  --muted: var(--ds-text-muted);
+  --muted-light: var(--ds-text-subtle);
+  --border: var(--ds-border);
+  --surface: var(--ds-surface-muted);
+  --deep: var(--ds-brand-dark);
+}
+
+/* Legacy pages used --ink / --deep as dark section fills */
+.hero,
+.hero-right,
+.use-card.dark,
+.pricing-note,
+section[style*="background:var(--deep)"],
+section[style*="background: var(--deep)"] {
+  background: linear-gradient(180deg, var(--ds-surface) 0%, var(--ds-page-bg) 100%) !important;
+  color: var(--ds-text) !important;
+}
+
+.hero-title,
+.hero-intro-name,
+.hero-intro-role,
+.hero-body,
+.hero-kicker {
+  color: inherit !important;
+}
+
+.hero-intro-role {
+  color: var(--ds-text-muted) !important;
+}
+
+.hero-photo-block,
+.hero-divider {
+  border-color: var(--ds-border) !important;
+}
+
+.hero-divider {
+  background: var(--ds-border) !important;
+}
+
+.hero-right-bg {
+  opacity: 0.15 !important;
+}
+
+.example-card.ink,
+.example-card.dark {
+  background: var(--ds-surface) !important;
+  border-color: var(--ds-border) !important;
+  color: var(--ds-text) !important;
+}
+
+body {
+  font-family: var(--ds-font-sans) !important;
+  background: var(--ds-page-bg) !important;
+  color: var(--ds-text) !important;
+}
+
+.nav-logo {
+  font-family: var(--ds-font-sans) !important;
+  font-weight: var(--ds-weight-semibold) !important;
+  font-size: var(--ds-text-sm) !important;
+}
+
+.nav-links a.nav-pillar {
+  color: var(--ds-brand) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+.nav-cta,
+.nav-cta:hover,
+.mobile-menu a.nav-cta-mobile,
+.mobile-menu a.nav-cta-mobile:hover {
+  background: var(--ds-brand-strong) !important;
+  color: #fff !important;
+  border-radius: var(--ds-radius-md) !important;
+}
+
+.btn-primary,
+.btn-dark {
+  background: var(--ds-brand-strong) !important;
+  color: #fff !important;
+  border-radius: var(--ds-radius-md) !important;
+}
+
+.btn-primary:hover,
+.btn-dark:hover {
+  background: var(--ds-brand-dark) !important;
+}
+
+.hero-title,
+.section-title,
+.price-amount,
+.proof-number,
+.about-photo-badge strong,
+.cta-text h2 {
+  font-family: var(--ds-font-sans) !important;
+  font-weight: var(--ds-weight-semibold) !important;
+}
+
+.hero-title em {
+  color: var(--ds-brand-text) !important;
+  font-style: normal !important;
+}
+
+.section-kicker {
+  color: var(--ds-text-muted) !important;
+  letter-spacing: var(--ds-tracking-caps) !important;
+}
+
+.audience-card,
+.process-card,
+.price-card {
+  border-radius: var(--ds-radius-lg) !important;
+  border-color: var(--ds-border) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.price-card.featured {
+  background: var(--ds-brand-dark) !important;
+  border-color: var(--ds-brand-dark) !important;
+}
+
+.price-card.featured .price-tag {
+  color: var(--ds-brand-light) !important;
+}
+
+/* Light hero — replaces dark editorial block */
+.marketing-hero-light {
+  background: linear-gradient(180deg, var(--ds-surface) 0%, var(--ds-page-bg) 100%) !important;
+  border-bottom: 0.5px solid var(--ds-border);
+  padding: var(--ds-space-16) var(--ds-space-6) var(--ds-space-10) !important;
+  text-align: center;
+  position: relative;
+}
+
+.marketing-hero-light .homepage-hero-title {
+  font-family: var(--ds-font-sans) !important;
+  color: var(--ds-text) !important;
+  font-style: normal !important;
+  font-weight: var(--ds-weight-bold) !important;
+}
+
+.marketing-hero-light .homepage-hero-title--accent {
+  color: var(--ds-brand-text) !important;
+}
+
+.marketing-hero-light .homepage-hero-sub {
+  color: var(--ds-text-muted) !important;
+  max-width: 36rem !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.marketing-hero-light mark {
+  background: var(--ds-brand-bg) !important;
+  color: var(--ds-brand-text) !important;
+  padding: 0 0.2em;
+  border-radius: 3px;
+}
+
+.marketing-hero-light .hero-cta-primary {
+  background: var(--ds-brand-strong) !important;
+  color: #fff !important;
+  padding: 0.75rem 1.75rem;
+  border-radius: var(--ds-radius-md);
+  font-weight: var(--ds-weight-medium);
+  text-decoration: none;
+}
+
+.marketing-hero-light .hero-cta-secondary {
+  color: var(--ds-text) !important;
+  border: 1.5px solid var(--ds-border) !important;
+  border-bottom: 1.5px solid var(--ds-border) !important;
+  padding: 0.7rem 1.5rem;
+  border-radius: var(--ds-radius-md);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: var(--ds-weight-medium);
+}
+
+.marketing-proof-band {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  max-width: 56rem;
+  margin: var(--ds-space-10) auto 0;
+  background: var(--ds-surface);
+  border: 0.5px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-sm);
+  overflow: hidden;
+}
+
+.marketing-proof-band .homepage-proof-cell {
+  padding: var(--ds-space-5) var(--ds-space-6) !important;
+  border-bottom: none !important;
+  border-right: 0.5px solid var(--ds-border);
+}
+
+.marketing-proof-band .homepage-proof-cell:last-child {
+  border-right: none;
+}
+
+.marketing-proof-band .homepage-proof-num {
+  font-family: var(--ds-font-sans) !important;
+  color: var(--ds-brand-strong) !important;
+}
+
+.marketing-proof-band .homepage-proof-copy {
+  color: var(--ds-text-muted) !important;
+}
+
+.marketing-proof-band .homepage-proof-intro .homepage-proof-copy,
+.marketing-proof-band .homepage-proof-intro div:first-child {
+  color: var(--ds-text) !important;
+  font-family: var(--ds-font-sans) !important;
+}
+
+/* AI section: light card band instead of dark editorial */
+.ai-section {
+  background: var(--ds-surface-muted) !important;
+  color: var(--ds-text) !important;
+  border-top: 0.5px solid var(--ds-border);
+  border-bottom: 0.5px solid var(--ds-border);
+}
+
+.ai-section .section-kicker {
+  color: var(--ds-brand) !important;
+}
+
+.ai-section .section-title {
+  color: var(--ds-text) !important;
+}
+
+.ai-section .ai-left p {
+  color: var(--ds-text-muted) !important;
+}
+
+.ai-section .ai-left p strong {
+  color: var(--ds-text) !important;
+}
+
+.ai-section .ai-fact {
+  background: var(--ds-surface) !important;
+  border-color: var(--ds-border) !important;
+}
+
+.ai-section .ai-fact-text h4 {
+  color: var(--ds-text) !important;
+}
+
+.ai-section .ai-fact-text p {
+  color: var(--ds-text-muted) !important;
+}
+
+/* CTA — product card, not yellow editorial */
+.cta-section {
+  background: var(--ds-page-bg) !important;
+  padding: var(--ds-space-16) var(--ds-space-6) !important;
+}
+
+.cta-section .cta-text h2 {
+  color: var(--ds-text) !important;
+}
+
+.cta-section .cta-text p {
+  color: var(--ds-text-muted) !important;
+}
+
+.cta-section .cta-text mark {
+  background: var(--ds-brand-bg) !important;
+  color: var(--ds-brand-text) !important;
+}
+
+  .marketing-hero-light .hero-cta-secondary {
+  color: var(--ds-text-muted) !important;
+  border-bottom-color: var(--ds-border) !important;
+}
+
+.site-header-mount {
+  min-height: 3.5rem;
+}
+
+/* Legacy section ids on alternate landing pages still scroll correctly */
+#who-its-for { scroll-margin-top: 5.5rem; }
+
+footer {
+  background: var(--ds-brand-dark) !important;
+}
+
+.homepage-hero-lead {
+  text-align: center;
+  padding: var(--ds-space-10) var(--ds-space-6) 0;
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.homepage-hero-visual {
+  padding: 0 var(--ds-space-6) var(--ds-space-8);
+  max-width: 60rem;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .marketing-proof-band {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing-proof-band .homepage-proof-cell {
+    border-right: none !important;
+    border-bottom: 0.5px solid var(--ds-border);
+  }
+
+  .marketing-proof-band .homepage-proof-cell:last-child {
+    border-bottom: none;
+  }
+}

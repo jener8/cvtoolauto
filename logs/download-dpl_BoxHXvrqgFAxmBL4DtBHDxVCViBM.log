@@ -1,0 +1,108 @@
+[2026-06-14T20:47:33.014580+00:00] Recovery root: /Users/jenny/Documents/Cursor/cvresume-production-recovered
+[2026-06-14T20:47:33.014955+00:00] Deployment ID: dpl_BoxHXvrqgFAxmBL4DtBHDxVCViBM
+[2026-06-14T20:47:33.014963+00:00] Production URL: https://tool.cv-by-design.com
+[2026-06-14T20:47:33.014971+00:00] Output dir: /Users/jenny/Documents/Cursor/cvresume-production-recovered/source
+[2026-06-14T20:47:34.348876+00:00] File tree entries at root: 2
+[2026-06-14T20:48:04.044125+00:00] Downloaded 25 files...
+[2026-06-14T20:48:33.697448+00:00] Downloaded 50 files...
+[2026-06-14T20:49:03.840552+00:00] Downloaded 75 files...
+[2026-06-14T20:49:33.695933+00:00] Downloaded 100 files...
+[2026-06-14T20:50:02.611428+00:00] Downloaded 125 files...
+[2026-06-14T20:50:27.182011+00:00] Downloaded 150 files...
+[2026-06-14T20:50:51.232083+00:00] Downloaded 175 files...
+[2026-06-14T20:51:20.736143+00:00] Downloaded 200 files...
+[2026-06-14T20:51:50.801140+00:00] Downloaded 225 files...
+[2026-06-14T20:52:20.999115+00:00] Downloaded 250 files...
+[2026-06-14T20:52:51.045942+00:00] Downloaded 275 files...
+[2026-06-14T20:53:20.865780+00:00] Downloaded 300 files...
+[2026-06-14T20:53:49.813570+00:00] Downloaded 325 files...
+[2026-06-14T20:54:25.031419+00:00] Downloaded 350 files...
+[2026-06-14T20:54:49.452096+00:00] SKIP non-file entry: out/_middleware (lambda)
+[2026-06-14T20:54:49.452318+00:00] SKIP non-file entry: out/index (lambda)
+[2026-06-14T20:54:49.452353+00:00] SKIP non-file entry: out/_global-error (lambda)
+[2026-06-14T20:54:49.452371+00:00] SKIP non-file entry: out/_global-error.rsc (lambda)
+[2026-06-14T20:54:49.452653+00:00] SKIP non-file entry: out/_global-error.segments/__PAGE__.segment.rsc (lambda)
+[2026-06-14T20:54:49.452683+00:00] SKIP non-file entry: out/_global-error.segments/_full.segment.rsc (lambda)
+[2026-06-14T20:54:49.452700+00:00] SKIP non-file entry: out/_global-error.segments/_head.segment.rsc (lambda)
+[2026-06-14T20:54:49.452716+00:00] SKIP non-file entry: out/_global-error.segments/_index.segment.rsc (lambda)
+[2026-06-14T20:54:49.452732+00:00] SKIP non-file entry: out/_global-error.segments/_tree.segment.rsc (lambda)
+[2026-06-14T20:54:49.452748+00:00] SKIP non-file entry: out/admin (lambda)
+[2026-06-14T20:54:49.452762+00:00] SKIP non-file entry: out/admin.rsc (lambda)
+[2026-06-14T20:54:49.452928+00:00] SKIP non-file entry: out/admin.segments/_full.segment.rsc (lambda)
+[2026-06-14T20:54:49.452952+00:00] SKIP non-file entry: out/admin.segments/_head.segment.rsc (lambda)
+[2026-06-14T20:54:49.452967+00:00] SKIP non-file entry: out/admin.segments/_index.segment.rsc (lambda)
+[2026-06-14T20:54:49.452981+00:00] SKIP non-file entry: out/admin.segments/_tree.segment.rsc (lambda)
+[2026-06-14T20:54:49.452994+00:00] SKIP non-file entry: out/admin.segments/admin.segment.rsc (lambda)
+[2026-06-14T20:54:49.453261+00:00] SKIP non-file entry: out/admin.segments/admin/__PAGE__.segment.rsc (lambda)
+[2026-06-14T20:54:49.453307+00:00] SKIP non-file entry: out/app (lambda)
+[2026-06-14T20:54:49.453329+00:00] SKIP non-file entry: out/app.rsc (lambda)
+[2026-06-14T20:54:49.453497+00:00] SKIP non-file entry: out/app.segments/_full.segment.rsc (lambda)
+[2026-06-14T20:54:49.453518+00:00] SKIP non-file entry: out/app.segments/_head.segment.rsc (lambda)
+[2026-06-14T20:54:49.453533+00:00] SKIP non-file entry: out/app.segments/_index.segment.rsc (lambda)
+[2026-06-14T20:54:49.453547+00:00] SKIP non-file entry: out/app.segments/_tree.segment.rsc (lambda)
+[2026-06-14T20:54:49.453565+00:00] SKIP non-file entry: out/app.segments/app.segment.rsc (lambda)
+[2026-06-14T20:54:49.453736+00:00] SKIP non-file entry: out/app.segments/app/__PAGE__.segment.rsc (lambda)
+[2026-06-14T20:54:49.453757+00:00] SKIP non-file entry: out/index (lambda)
+[2026-06-14T20:54:49.453771+00:00] SKIP non-file entry: out/index.rsc (lambda)
+[2026-06-14T20:54:49.453922+00:00] SKIP non-file entry: out/index.segments/_full.segment.rsc (lambda)
+[2026-06-14T20:54:49.453942+00:00] SKIP non-file entry: out/index.segments/__PAGE__.segment.rsc (lambda)
+[2026-06-14T20:54:49.453956+00:00] SKIP non-file entry: out/index.segments/_full.segment.rsc (lambda)
+[2026-06-14T20:54:49.453980+00:00] SKIP non-file entry: out/index.segments/_head.segment.rsc (lambda)
+[2026-06-14T20:54:49.453992+00:00] SKIP non-file entry: out/index.segments/_index.segment.rsc (lambda)
+[2026-06-14T20:54:49.454003+00:00] SKIP non-file entry: out/index.segments/_tree.segment.rsc (lambda)
+[2026-06-14T20:54:49.454020+00:00] SKIP non-file entry: out/login (lambda)
+[2026-06-14T20:54:49.454054+00:00] SKIP non-file entry: out/login.rsc (lambda)
+[2026-06-14T20:54:49.454186+00:00] SKIP non-file entry: out/login.segments/_full.segment.rsc (lambda)
+[2026-06-14T20:54:49.454202+00:00] SKIP non-file entry: out/login.segments/_head.segment.rsc (lambda)
+[2026-06-14T20:54:49.454214+00:00] SKIP non-file entry: out/login.segments/_index.segment.rsc (lambda)
+[2026-06-14T20:54:49.454224+00:00] SKIP non-file entry: out/login.segments/_tree.segment.rsc (lambda)
+[2026-06-14T20:54:49.454235+00:00] SKIP non-file entry: out/login.segments/login.segment.rsc (lambda)
+[2026-06-14T20:54:49.454387+00:00] SKIP non-file entry: out/login.segments/login/__PAGE__.segment.rsc (lambda)
+[2026-06-14T20:54:49.454403+00:00] SKIP non-file entry: out/_not-found (lambda)
+[2026-06-14T20:54:49.454415+00:00] SKIP non-file entry: out/_not-found.rsc (lambda)
+[2026-06-14T20:54:49.454683+00:00] SKIP non-file entry: out/api/admin/accounts (lambda)
+[2026-06-14T20:54:49.454706+00:00] SKIP non-file entry: out/api/admin/accounts.rsc (lambda)
+[2026-06-14T20:54:49.454827+00:00] SKIP non-file entry: out/api/auth/login (lambda)
+[2026-06-14T20:54:49.454844+00:00] SKIP non-file entry: out/api/auth/login.rsc (lambda)
+[2026-06-14T20:54:49.454856+00:00] SKIP non-file entry: out/api/auth/logout (lambda)
+[2026-06-14T20:54:49.454867+00:00] SKIP non-file entry: out/api/auth/logout.rsc (lambda)
+[2026-06-14T20:54:49.454879+00:00] SKIP non-file entry: out/api/auth/me (lambda)
+[2026-06-14T20:54:49.454890+00:00] SKIP non-file entry: out/api/auth/me.rsc (lambda)
+[2026-06-14T20:54:49.455033+00:00] SKIP non-file entry: out/api/diagnostics/openai (lambda)
+[2026-06-14T20:54:49.455048+00:00] SKIP non-file entry: out/api/diagnostics/openai.rsc (lambda)
+[2026-06-14T20:54:49.455060+00:00] SKIP non-file entry: out/api/folders (lambda)
+[2026-06-14T20:54:49.455073+00:00] SKIP non-file entry: out/api/folders.rsc (lambda)
+[2026-06-14T20:54:49.455208+00:00] SKIP non-file entry: out/api/linkedin/profile (lambda)
+[2026-06-14T20:54:49.455223+00:00] SKIP non-file entry: out/api/linkedin/profile.rsc (lambda)
+[2026-06-14T20:54:49.455236+00:00] SKIP non-file entry: out/api/linkedin/sync (lambda)
+[2026-06-14T20:54:49.455248+00:00] SKIP non-file entry: out/api/linkedin/sync.rsc (lambda)
+[2026-06-14T20:54:49.455509+00:00] SKIP non-file entry: out/api/pdf/resume/[id] (lambda)
+[2026-06-14T20:54:49.455525+00:00] SKIP non-file entry: out/api/pdf/resume/[id].rsc (lambda)
+[2026-06-14T20:54:49.456491+00:00] SKIP non-file entry: out/api/translate (lambda)
+[2026-06-14T20:54:49.456519+00:00] SKIP non-file entry: out/api/translate.rsc (lambda)
+[2026-06-14T20:54:49.456918+00:00] SKIP non-file entry: out/app/workspace/[slug] (lambda)
+[2026-06-14T20:54:49.456947+00:00] SKIP non-file entry: out/app/workspace/[slug].rsc (lambda)
+[2026-06-14T20:54:49.457210+00:00] SKIP non-file entry: out/export/resume/[id] (lambda)
+[2026-06-14T20:54:49.457233+00:00] SKIP non-file entry: out/export/resume/[id].rsc (lambda)
+[2026-06-14T20:54:49.457493+00:00] SKIP non-file entry: out/print/resume/[id] (lambda)
+[2026-06-14T20:54:49.457513+00:00] SKIP non-file entry: out/print/resume/[id].rsc (lambda)
+[2026-06-14T20:54:49.457546+00:00] === Download summary ===
+[2026-06-14T20:54:49.457566+00:00] downloaded: 370
+[2026-06-14T20:54:49.457581+00:00] failed: 0
+[2026-06-14T20:54:49.457594+00:00] skipped_non_file: 69
+[2026-06-14T20:54:49.457606+00:00] missing_uid: 0
+[2026-06-14T20:54:49.458267+00:00] Wrote /Users/jenny/Documents/Cursor/cvresume-production-recovered/logs/download-summary.json
+[2026-06-14T20:54:49.458302+00:00] === Verification: required production route files ===
+[2026-06-14T20:54:49.458383+00:00] MISS Landing links to /login: app/page.tsx
+[2026-06-14T20:54:49.458430+00:00] MISS Login page: app/login/page.tsx
+[2026-06-14T20:54:49.458457+00:00] MISS Admin page: app/admin/page.tsx
+[2026-06-14T20:54:49.458486+00:00] MISS Workspace route: app/app/workspace/[slug]/page.tsx
+[2026-06-14T20:54:49.458513+00:00] MISS Auth login API: app/api/auth/login/route.ts
+[2026-06-14T20:54:49.458540+00:00] MISS Auth logout API: app/api/auth/logout/route.ts
+[2026-06-14T20:54:49.458565+00:00] MISS Auth me API: app/api/auth/me/route.ts
+[2026-06-14T20:54:49.458589+00:00] MISS Folders API: app/api/folders/route.ts
+[2026-06-14T20:54:49.458614+00:00] MISS LinkedIn sync API: app/api/linkedin/sync/route.ts
+[2026-06-14T20:54:49.458638+00:00] MISS Admin accounts API: app/api/admin/accounts/route.ts
+[2026-06-14T20:54:49.482578+00:00] Total files under source/: 370
+[2026-06-14T20:54:49.484842+00:00] Wrote /Users/jenny/Documents/Cursor/cvresume-production-recovered/logs/verification.json
+[2026-06-14T20:54:49.484902+00:00] VERIFICATION FAILED (10 issue(s))

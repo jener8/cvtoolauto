@@ -1,0 +1,232 @@
+/**
+ * EquitAI — design tokens (illustration-aligned)
+ *
+ * Warm ivory surfaces, deep purple brand, crystal accents.
+ * All text/background pairs meet WCAG AA (4.5:1) for BITV compliance.
+ *
+ * SOURCE OF TRUTH — sync marketing copy via: npm run sync:design-system
+ */
+
+:root {
+  /* —— Core brand (deep purple) —— */
+  --color-primary: #4c1d95;
+  --color-primary-strong: #3b0764;
+  --color-primary-light: #6d28d9;
+  --color-primary-foreground: #ffffff;
+
+  --color-crystal-teal: #7c3aed;
+  --color-crystal-teal-bright: #a78bfa;
+  --color-crystal-blue: #5b21b6;
+  --color-forest: #1e1b2e;
+
+  /* —— Secondary palette —— */
+  --color-indigo: #4338ca;
+  --color-violet: #6d28d9;
+  --color-purple: #7c3aed;
+  --color-coral: #b4533c;
+  --color-amber: #b45309;
+  --color-golden: #ca8a04;
+
+  /* —— Surfaces (warm ivory / stone — not cold grey) —— */
+  --color-surface: #fffdf9;
+  --color-surface-muted: #faf6f0;
+  --color-page: #f7f3ec;
+  --color-card: #ffffff;
+  --color-card-hover: #fffdf9;
+  --color-inset: #f3efe8;
+
+  /* —— Text (tested ≥ 4.5:1 on --color-page / --color-card) —— */
+  --color-text: #1e1b2e;
+  --color-text-muted: #4a4563;
+  --color-text-subtle: #6b6580;
+
+  /* —— Borders —— */
+  --color-border: #e8e2d6;
+  --color-border-strong: #d9d0c4;
+  --color-border-accent: color-mix(in srgb, var(--color-primary-light) 22%, var(--color-border));
+
+  /* —— Gradients —— */
+  --gradient-brand: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-primary-light) 52%,
+    #8b5cf6 100%
+  );
+  --gradient-crystal: linear-gradient(
+    135deg,
+    var(--color-primary-light) 0%,
+    #a78bfa 55%,
+    #ddd6fe 100%
+  );
+  --gradient-aurora: linear-gradient(
+    135deg,
+    var(--color-violet) 0%,
+    var(--color-coral) 48%,
+    var(--color-amber) 100%
+  );
+  --gradient-hero: linear-gradient(145deg, #faf6f0 0%, #f5f3ff 55%, #ede9fe 100%);
+  --gradient-sidebar: linear-gradient(
+    180deg,
+    #5b21b6 0%,
+    #4c1d95 50%,
+    #3b0764 100%
+  );
+  --gradient-card-shine: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(250, 246, 240, 0.6) 100%
+  );
+
+  /* —— Semantic status —— */
+  --color-success: #1b6b52;
+  --color-success-bg: #e8f5ef;
+  --color-info: #5b21b6;
+  --color-info-bg: #f5f3ff;
+  --color-warning: #9a6700;
+  --color-warning-bg: #fef3dc;
+  --color-error: #a84838;
+  --color-error-bg: #fdeeea;
+  --color-focus: #7c3aed;
+
+  /* —— Section icon colours —— */
+  --icon-career-brain: var(--color-primary-light);
+  --icon-progress: #8b5cf6;
+  --icon-qualifications: var(--color-amber);
+  --icon-applications: var(--color-violet);
+  --icon-interview: var(--color-coral);
+  --icon-resources: #2563eb;
+  --icon-settings: var(--color-text-subtle);
+
+  /* —— Typography —— */
+  --ds-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
+    sans-serif;
+  --ds-font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --ds-text-xs: 0.6875rem;
+  --ds-text-sm: 0.8125rem;
+  --ds-text-base: 0.9375rem;
+  --ds-text-lg: 1.125rem;
+  --ds-text-xl: 1.5rem;
+  --ds-text-2xl: 2rem;
+  --ds-text-3xl: 2.5rem;
+
+  --ds-weight-normal: 400;
+  --ds-weight-medium: 500;
+  --ds-weight-semibold: 600;
+  --ds-weight-bold: 700;
+
+  --ds-leading-tight: 1.25;
+  --ds-leading-normal: 1.55;
+  --ds-leading-relaxed: 1.7;
+
+  --ds-tracking-caps: 0.02em;
+
+  /* —— Spacing (unchanged scale) —— */
+  --ds-space-1: 0.25rem;
+  --ds-space-2: 0.5rem;
+  --ds-space-3: 0.75rem;
+  --ds-space-4: 1rem;
+  --ds-space-5: 1.25rem;
+  --ds-space-6: 1.5rem;
+  --ds-space-8: 2rem;
+  --ds-space-10: 2.5rem;
+  --ds-space-12: 3rem;
+  --ds-space-16: 4rem;
+  --ds-space-20: 5rem;
+
+  /* —— Radius —— */
+  --ds-radius-sm: 6px;
+  --ds-radius-md: 10px;
+  --ds-radius-lg: 14px;
+  --ds-radius-xl: 18px;
+  --ds-radius-full: 9999px;
+
+  /* —— Shadows (warm tint) —— */
+  --ds-shadow-xs: 0 1px 2px rgba(26, 46, 40, 0.05);
+  --ds-shadow-sm: 0 1px 3px rgba(26, 46, 40, 0.06), 0 1px 2px rgba(26, 46, 40, 0.04);
+  --ds-shadow-md: 0 4px 20px rgba(30, 27, 46, 0.08), 0 2px 6px rgba(76, 29, 149, 0.05);
+  --ds-shadow-lg: 0 8px 28px rgba(30, 27, 46, 0.1), 0 4px 10px rgba(76, 29, 149, 0.06);
+  --ds-shadow-glow: 0 0 0 1px rgba(167, 139, 250, 0.22), 0 8px 24px rgba(76, 29, 149, 0.14);
+  --ds-shadow-card: 0 1px 0 rgba(255, 255, 255, 0.8) inset, var(--ds-shadow-sm);
+
+  /* —— Motion —— */
+  --motion-duration-fast: 150ms;
+  --motion-duration-normal: 220ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* —— Component —— */
+  --ds-btn-height: 2.25rem;
+  --ds-btn-height-lg: 2.75rem;
+  --ds-nav-height: 52px;
+
+  /* —— Soft accents (illustration harmony) —— */
+  --ds-brand-border-soft: #ddd6fe;
+  --ds-brand-surface-soft: #f5f3ff;
+  --ds-accent-teal: #c4b5fd;
+  --ds-accent-glow: rgba(167, 139, 250, 0.28);
+
+  /* —— Legacy aliases (tool app) —— */
+  --ds-brand: var(--color-primary-light);
+  --ds-brand-dark: var(--color-primary-strong);
+  --ds-brand-strong: var(--color-primary-light);
+  --ds-brand-light: #8b5cf6;
+  --ds-brand-bg: var(--ds-brand-surface-soft);
+  --ds-brand-text: var(--color-forest);
+
+  --ds-page-bg: var(--color-page);
+  --ds-surface: var(--color-card);
+  --ds-surface-muted: var(--color-surface-muted);
+  --ds-surface-inset: var(--color-inset);
+
+  --ds-text: var(--color-text);
+  --ds-text-muted: var(--color-text-muted);
+  --ds-text-subtle: var(--color-text-subtle);
+
+  --ds-border: var(--color-border);
+  --ds-border-strong: var(--color-border-strong);
+
+  --brand-teal-dark: var(--color-primary-strong);
+  --brand-teal: var(--color-primary-light);
+  --brand-teal-light: var(--ds-brand-light);
+  --brand-teal-bg: var(--ds-brand-bg);
+  --brand-teal-text: var(--ds-brand-text);
+  --page-bg: var(--color-page);
+  --card-bg: var(--color-card);
+  --border-subtle: var(--color-border);
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-text-muted);
+  --text-meta: var(--color-text-muted);
+  --radius: var(--ds-radius-md);
+
+  /* Shadcn / Tailwind */
+  --color-background-secondary: var(--color-page);
+  --color-background-primary: var(--color-card);
+  --color-border-tertiary: var(--color-border);
+  --color-border-secondary: var(--color-border);
+  --color-text-primary: var(--color-text);
+  --color-text-secondary: var(--color-text-muted);
+  --bg-page: var(--color-page);
+  --bg-card: var(--color-card);
+  --accent-primary: var(--color-primary-light);
+  --accent-soft: color-mix(in srgb, var(--color-primary-light) 14%, transparent);
+  --border-warm: var(--color-border-accent);
+  --background: var(--color-page);
+  --foreground: var(--color-text);
+  --card: var(--color-card);
+  --card-foreground: var(--color-text);
+  --popover: var(--color-card);
+  --popover-foreground: var(--color-text);
+  --primary: var(--color-primary-light);
+  --primary-foreground: var(--color-primary-foreground);
+  --secondary: var(--color-surface-muted);
+  --secondary-foreground: var(--color-text);
+  --muted: var(--color-surface-muted);
+  --muted-foreground: var(--color-text-muted);
+  --accent: var(--color-primary-light);
+  --accent-foreground: var(--color-primary-foreground);
+  --destructive: var(--color-error);
+  --destructive-foreground: #ffffff;
+  --border: var(--color-border-accent);
+  --input: var(--color-border);
+  --ring: var(--color-focus);
+}

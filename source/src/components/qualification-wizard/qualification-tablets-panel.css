@@ -1,0 +1,151 @@
+.qual-tablets {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.qual-tablets__collected {
+  padding: 1.1rem 1.15rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-primary-light) 6%, var(--color-card));
+}
+
+.qual-tablets__collected-header {
+  margin-bottom: 0.85rem;
+}
+
+.qual-tablets__collected-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.qual-tablets__collected-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.qual-tablets__collected-empty {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.qual-tablets__collected-grid,
+.qual-tablets__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.qual-tablet {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.35rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-card);
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.qual-tablet:hover {
+  background: var(--color-surface-muted);
+}
+
+.qual-tablet--selected,
+.qual-tablet--collected {
+  border-color: color-mix(in srgb, var(--color-primary-light) 55%, var(--color-border-strong));
+  background: color-mix(in srgb, var(--color-primary-light) 12%, var(--color-card));
+  color: var(--color-text);
+}
+
+.qual-tablet--collected {
+  padding-right: 0.65rem;
+}
+
+.qual-tablet__check {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex-shrink: 0;
+  color: var(--color-primary-strong);
+}
+
+.qual-tablet__remove {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex-shrink: 0;
+  margin-left: 0.15rem;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.qual-tablet--collected:hover .qual-tablet__remove {
+  opacity: 1;
+}
+
+.qual-tablets__group-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.qual-tablets__custom-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.qual-tablets__custom-input {
+  flex: 1;
+  min-width: min(100%, 14rem);
+  height: 2.5rem;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-card);
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+.qual-tablets__custom-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--color-primary-light) 40%, transparent);
+  outline-offset: 1px;
+}
+
+.qual-tablets__custom-btn {
+  border-radius: 999px;
+}
+
+.qual-tablets__custom-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.qual-tablets__formal {
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.qual-tablets__formal-copy {
+  margin: 0 0 0.85rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}

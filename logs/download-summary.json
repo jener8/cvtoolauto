@@ -1,0 +1,12 @@
+{
+  "deployment_id": "dpl_BoxHXvrqgFAxmBL4DtBHDxVCViBM",
+  "stats": {
+    "downloaded": 370,
+    "failed": 0,
+    "skipped_non_file": 69,
+    "missing_uid": 0
+  },
+  "log": "/Users/jenny/Documents/Cursor/cvresume-production-recovered/logs/download-dpl_BoxHXvrqgFAxmBL4DtBHDxVCViBM.log",
+  "source_dir": "/Users/jenny/Documents/Cursor/cvresume-production-recovered/source",
+  "finished_at": "2026-06-14T20:54:49.457619+00:00"
+}

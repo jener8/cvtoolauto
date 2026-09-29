@@ -1,0 +1,1531 @@
+/* Career Brain — My story page layout */
+
+.career-brain-page {
+  min-height: 100%;
+  background: #f0f4f2;
+}
+
+.career-brain-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.35rem 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid #e3ebe7;
+  box-shadow: 0 1px 0 rgb(45 122 95 / 4%);
+}
+
+@media (min-width: 1024px) {
+  .career-brain-page__header {
+    padding: 1.5rem 2rem;
+  }
+}
+
+.career-brain-page__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.career-brain-page__title-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(145deg, var(--ds-brand-surface-soft) 0%, #ede9fe 100%);
+  color: var(--color-primary-light);
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%);
+}
+
+.career-brain-page__title {
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--color-forest);
+}
+
+.career-brain-page__subtitle {
+  margin-top: 0.4rem;
+  max-width: 36rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #5c6f68;
+}
+
+.career-brain-page__how-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-primary-light);
+  white-space: nowrap;
+  background: #edf7f1;
+  border: 1px solid var(--ds-brand-border-soft);
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 0.4rem 0.75rem;
+}
+
+.career-brain-page__how-link:hover {
+  background: #e4f3ec;
+}
+
+.career-brain-page__body {
+  padding: 1.25rem 1.25rem 2rem;
+}
+
+@media (min-width: 1024px) {
+  .career-brain-page__body {
+    padding: 1.5rem 2rem 2.5rem;
+  }
+}
+
+.career-brain-intro {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding: 1.35rem 1.35rem;
+  border-radius: 1.15rem;
+  background: linear-gradient(135deg, #edf7f1 0%, #e2f3eb 45%, #d8eee5 100%);
+  border: 1px solid #c5e4d6;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 4px 20px rgb(45 122 95 / 8%);
+}
+
+.career-brain-intro::after {
+  content: "";
+  position: absolute;
+  right: -2rem;
+  top: -2rem;
+  width: 10rem;
+  height: 10rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgb(93 202 165 / 18%) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .career-brain-intro {
+    grid-template-columns: auto 1fr auto;
+    padding: 1.35rem 1.65rem;
+    gap: 1.35rem;
+  }
+}
+
+.career-brain-intro__illustration {
+  width: 5.5rem;
+  height: 5.5rem;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgb(45 122 95 / 12%));
+}
+
+.career-brain-intro__heading {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-forest);
+  line-height: 1.35;
+}
+
+.career-brain-intro__text {
+  margin-top: 0.4rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: #3d5c52;
+  max-width: 34rem;
+}
+
+.career-brain-intro__checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #2d5c4a;
+  position: relative;
+  z-index: 1;
+}
+
+.career-brain-intro__check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  padding: 0.2rem 0;
+}
+
+.career-brain-intro__check-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-primary-light);
+  flex-shrink: 0;
+}
+
+.career-brain-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 1024px) {
+  .career-brain-grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    align-items: start;
+  }
+}
+
+.career-brain-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: #fff;
+  border: 1px solid #e3ebe7;
+  border-radius: 1.15rem;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 4%);
+}
+
+.career-brain-form__progress {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  background: linear-gradient(90deg, #f7fbf9 0%, #fff 100%);
+  border-bottom: 1px solid #e8efeb;
+}
+
+.career-brain-form__progress-ring {
+  position: relative;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+}
+
+.career-brain-form__progress-ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--color-primary-light);
+}
+
+.career-brain-form__progress-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.career-brain-form__progress-ring-bg {
+  fill: none;
+  stroke: #e3ebe7;
+  stroke-width: 4;
+}
+
+.career-brain-form__progress-ring-fill {
+  fill: none;
+  stroke: var(--ds-accent-teal);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.career-brain-form__progress-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-forest);
+}
+
+.career-brain-form__progress-sub {
+  font-size: 0.6875rem;
+  color: #6b8279;
+  margin-top: 0.1rem;
+}
+
+.career-brain-form__progress-segments {
+  display: flex;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.career-brain-form__progress-segment {
+  width: 2rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: #e8efeb;
+}
+
+.career-brain-form__progress-segment--done {
+  background: linear-gradient(90deg, var(--color-primary-light), var(--ds-accent-teal));
+}
+
+.career-brain-field {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  padding: 1.15rem 1.2rem;
+  border-bottom: 1px solid #edf2ef;
+  transition: background-color 0.2s ease;
+}
+
+.career-brain-field--filled {
+  background: linear-gradient(90deg, rgb(93 202 165 / 6%) 0%, transparent 55%);
+}
+
+@media (min-width: 640px) {
+  .career-brain-field {
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    padding: 1.2rem 1.35rem;
+  }
+}
+
+.career-brain-field__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.65rem;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 70%);
+}
+
+.career-brain-field__icon-wrap--target {
+  background: linear-gradient(145deg, #fff3e8, #ffe8d4);
+  color: #c97b5c;
+}
+
+.career-brain-field__icon-wrap--star {
+  background: linear-gradient(145deg, #f3ecff, #e8dcff);
+  color: #7c5cbf;
+}
+
+.career-brain-field__icon-wrap--heart {
+  background: linear-gradient(145deg, #e8f2ff, #d8e8ff);
+  color: #4a7cbf;
+}
+
+.career-brain-field__icon-wrap--sprout {
+  background: linear-gradient(145deg, var(--ds-brand-surface-soft), #ede9fe);
+  color: var(--color-primary-light);
+}
+
+.career-brain-field__icon-wrap--message {
+  background: linear-gradient(145deg, #f3ecff, #ebe0ff);
+  color: #7c5cbf;
+}
+
+.career-brain-field__icon-wrap--calendar {
+  background: linear-gradient(145deg, #fff3e8, #ffe8d4);
+  color: #c97b5c;
+}
+
+.career-brain-field__label-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.career-brain-field__label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-forest);
+}
+
+.career-brain-field__why {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-primary-light);
+  background: #edf7f1;
+  border: 1px solid var(--ds-brand-border-soft);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+}
+
+.career-brain-field__why:hover {
+  background: #e4f3ec;
+}
+
+.career-brain-field__optional {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8a9e96;
+  background: #f3f6f4;
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
+}
+
+.career-brain-field__hint {
+  width: 100%;
+  font-size: 0.75rem;
+  color: #6b8279;
+  margin-top: 0.15rem;
+}
+
+.career-brain-field__input {
+  margin-top: 0.55rem;
+  width: 100%;
+  min-height: 5rem;
+  resize: vertical;
+  border-radius: 0.65rem;
+  border: 1px solid #dfe8e3;
+  background: #fafcf9;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-forest);
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.career-brain-field__input::placeholder {
+  color: #9aada5;
+}
+
+.career-brain-field__input:focus {
+  border-color: var(--ds-accent-teal);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgb(93 202 165 / 18%);
+}
+
+.career-brain-field--filled .career-brain-field__input {
+  border-color: #b8dcc8;
+  background: #fff;
+}
+
+.career-brain-field__input--single,
+.career-brain-field__select {
+  min-height: auto;
+  height: 2.65rem;
+}
+
+.career-brain-field__select {
+  margin-top: 0.55rem;
+  width: 100%;
+  border-radius: 0.65rem;
+  border: 1px solid #dfe8e3;
+  background: #fafcf9;
+  padding: 0 0.85rem;
+  font-size: 0.8125rem;
+  color: var(--color-forest);
+  outline: none;
+  cursor: pointer;
+}
+
+.career-brain-field__select:focus {
+  border-color: var(--ds-accent-teal);
+  box-shadow: 0 0 0 3px rgb(93 202 165 / 18%);
+}
+
+.career-brain-field__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.career-brain-field__chip {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #2d5c4a;
+  background: #edf7f1;
+  border: 1px solid var(--ds-brand-border-soft);
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.career-brain-field__chip:hover {
+  background: #ede9fe;
+  border-color: var(--ds-accent-teal);
+}
+
+.career-brain-field__chip--selected {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-light);
+  color: #ffffff;
+}
+
+.career-brain-field__chip--selected:hover {
+  background: #256b52;
+  border-color: #256b52;
+}
+
+.career-brain-field__hardship-chips {
+  padding: 0.85rem 1rem 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid #e3ebe7;
+  background: #fafcf9;
+}
+
+.career-brain-field__hardship-chips .career-brain-field__chips {
+  margin-top: 0.65rem;
+}
+
+.career-brain-field__hardship-chips .career-brain-field__chip {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.7rem;
+}
+
+.career-brain-field__examples {
+  margin-top: 0.5rem;
+}
+
+.career-brain-field__examples-toggle {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-primary-light);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.career-brain-field__examples-toggle:hover {
+  text-decoration: underline;
+}
+
+.career-brain-form__row-pair {
+  display: grid;
+  grid-template-columns: 1fr;
+  border-bottom: 1px solid #edf2ef;
+}
+
+@media (min-width: 640px) {
+  .career-brain-form__row-pair {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.career-brain-form__row-pair .career-brain-field {
+  border-bottom: none;
+}
+
+.career-brain-form__row-pair .career-brain-field:first-child {
+  border-right: 1px solid #edf2ef;
+}
+
+.career-brain-form__footer {
+  padding: 1.1rem 1.35rem 1.35rem;
+  border-top: 1px solid #e8efeb;
+  background: linear-gradient(180deg, #fafcf9 0%, #f5f8f6 100%);
+}
+
+.career-brain-form__privacy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: #6b8279;
+  margin-bottom: 0.9rem;
+}
+
+.career-brain-form__save {
+  width: 100%;
+  max-width: 22rem;
+  margin: 0 auto;
+  display: block;
+  height: 2.85rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgb(45 122 95 / 28%);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.career-brain-form__save:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgb(45 122 95 / 32%);
+}
+
+.career-brain-form__save--saved {
+  background: linear-gradient(180deg, #2a6b52 0%, #1f5a45 100%);
+}
+
+.career-brain-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.career-brain-card {
+  background: #fff;
+  border: 1px solid #e3ebe7;
+  border-radius: 1.15rem;
+  padding: 1.15rem 1.25rem;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 4%);
+}
+
+.career-brain-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.career-brain-card__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-forest);
+}
+
+.career-brain-card__link {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-primary-light);
+  background: #edf7f1;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.55rem;
+}
+
+.career-brain-card__link:hover {
+  background: #ede9fe;
+}
+
+.career-brain-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.55rem 0;
+  font-size: 0.8125rem;
+  border-bottom: 1px solid #f0f4f2;
+}
+
+.career-brain-stat:last-child {
+  border-bottom: none;
+}
+
+.career-brain-stat__left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6b8279;
+}
+
+.career-brain-stat__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 0.45rem;
+  background: #edf7f1;
+  color: var(--color-primary-light);
+  flex-shrink: 0;
+}
+
+.career-brain-stat__value {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--color-forest);
+}
+
+.career-brain-stat__value--good {
+  color: var(--color-primary-light);
+}
+
+.career-brain-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #edf7f1;
+  color: var(--color-primary-light);
+  border: 1px solid var(--ds-brand-border-soft);
+}
+
+.career-brain-status-pill--partial {
+  background: #fff3e8;
+  color: #a65f42;
+  border-color: #f0d4c4;
+}
+
+.career-brain-helps__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.career-brain-helps__item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-forest);
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.15s ease;
+}
+
+.career-brain-helps__item:hover {
+  background: #f7faf8;
+}
+
+.career-brain-helps__item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+.career-brain-helps__svg {
+  width: 100%;
+  max-width: 11rem;
+  height: auto;
+  margin: 0.25rem auto 0.5rem;
+  display: block;
+}
+
+.career-brain-privacy-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(135deg, #f5f0ff 0%, #ebe4f8 100%);
+  border: 1px solid #d8ccef;
+}
+
+.career-brain-privacy-box__icon {
+  color: #7c5cbf;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.career-brain-privacy-box__text {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #4a3d66;
+}
+
+.career-brain-privacy-box__arrow {
+  margin-left: auto;
+  color: #7c5cbf;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.career-brain-why-popover {
+  margin-top: 0.4rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.55rem;
+  background: #f4faf7;
+  border: 1px solid var(--ds-brand-border-soft);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #3d5c52;
+}
+
+.career-brain-insights__item {
+  border-radius: 0.65rem;
+  border: 1px solid #e3ebe7;
+  background: linear-gradient(135deg, #f7fbf9 0%, #fff 100%);
+  padding: 0.65rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.career-brain-insights__item p:first-child {
+  font-weight: 600;
+  color: var(--color-forest);
+  line-height: 1.4;
+}
+
+/* —— Story mode toggle, cards, voice —— */
+
+.career-story-mode-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.career-story-mode-toggle--type {
+  justify-content: flex-end;
+}
+
+.career-story-mode-toggle__voice-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-medium);
+  color: var(--color-primary-strong);
+}
+
+.career-story-mode-toggle__prefer-link {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: var(--ds-text-sm);
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.career-story-mode-toggle__prefer-link:hover {
+  color: var(--color-text);
+}
+
+.career-story-cards {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.career-story-card {
+  border-radius: 1.125rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  padding: 1.1rem 1.15rem;
+  box-shadow: var(--ds-shadow-sm);
+}
+
+.career-story-card--empty {
+  opacity: 0.58;
+}
+
+.career-story-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.career-story-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: var(--ds-radius-full);
+  flex-shrink: 0;
+}
+
+.career-story-card--teal .career-story-card__icon {
+  background: var(--ds-brand-surface-soft);
+  color: var(--color-primary-strong);
+}
+
+.career-story-card--rose .career-story-card__icon {
+  background: #fbeaf0;
+  color: #72243e;
+}
+
+.career-story-card--amber .career-story-card__icon {
+  background: var(--color-warning-bg);
+  color: var(--color-amber);
+}
+
+.career-story-card__label {
+  margin: 0;
+  flex: 1;
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-medium);
+  color: var(--color-text);
+}
+
+.career-story-card--empty .career-story-card__label {
+  color: var(--color-text-muted);
+}
+
+.career-story-card__edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: var(--ds-radius-full);
+  background: transparent;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.career-story-card__edit:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-primary-strong);
+}
+
+.career-story-card__narrative {
+  margin: 0;
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--color-text);
+}
+
+.career-story-card__placeholder {
+  margin: 0;
+  font-size: var(--ds-text-sm);
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.career-story-card__textarea {
+  width: 100%;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-card);
+  padding: 0.65rem 0.75rem;
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  resize: vertical;
+}
+
+.career-story-card__editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.career-story-card__editor-save,
+.career-story-voice__primary-btn {
+  height: 2.25rem;
+  padding: 0 1rem;
+  border: none;
+  border-radius: var(--ds-radius-full);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+}
+
+.career-story-card__editor-cancel,
+.career-story-voice__secondary-btn {
+  height: 2.25rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--ds-radius-full);
+  background: var(--color-card);
+  color: var(--color-text-muted);
+  font-size: var(--ds-text-sm);
+  cursor: pointer;
+}
+
+.career-story-type-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.career-story-voice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.career-story-voice__panel {
+  border-radius: 1.125rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background: var(--ds-brand-surface-soft);
+}
+
+.career-story-voice__progress {
+  margin: 0 0 0.5rem;
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-medium);
+  color: var(--color-primary-light);
+}
+
+.career-story-voice__question {
+  margin: 0 0 1.5rem;
+  max-width: 28rem;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 1.125rem;
+  line-height: 1.55;
+  color: var(--color-primary-strong);
+}
+
+.career-story-voice__mic-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.career-story-voice__mic {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: none;
+  border-radius: var(--ds-radius-full);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  cursor: pointer;
+}
+
+.career-story-voice__mic-ring {
+  position: absolute;
+  inset: -0.35rem;
+  border-radius: var(--ds-radius-full);
+  border: 2px solid color-mix(in srgb, var(--color-primary-light) 55%, transparent);
+  opacity: 0;
+}
+
+.career-story-voice__mic--listening .career-story-voice__mic-ring {
+  opacity: 1;
+  animation: career-story-mic-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes career-story-mic-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.9;
+  }
+}
+
+.career-story-voice__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-primary-light);
+}
+
+.career-story-voice__transcript-box {
+  border-radius: 1.125rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-inset);
+  padding: 0.9rem 1.1rem;
+}
+
+.career-story-voice__transcript-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: var(--ds-weight-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.career-story-voice__transcript {
+  margin: 0;
+  font-size: var(--ds-text-sm);
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+.career-story-voice__review {
+  text-align: left;
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+.career-story-voice__review-label {
+  margin: 0 0 0.5rem;
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-medium);
+  color: var(--color-text);
+}
+
+.career-story-voice__review-input {
+  min-height: 7rem;
+}
+
+.career-story-voice__review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.career-story-voice__follow-up {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.career-story-voice__error {
+  margin: 0;
+  font-size: var(--ds-text-sm);
+  line-height: 1.5;
+  color: var(--color-error);
+}
+
+.career-story-voice__privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 1.125rem;
+  background: var(--ds-brand-surface-soft);
+  border: 1px solid var(--ds-brand-border-soft);
+  color: var(--color-primary-strong);
+}
+
+.career-story-voice__privacy p {
+  margin: 0;
+  font-size: var(--ds-text-sm);
+  line-height: 1.55;
+}
+
+/* —— Focused single-question flow —— */
+
+.career-brain-page--focused {
+  background: var(--color-page);
+}
+
+.career-brain-page--focused .career-brain-page__header {
+  background: var(--color-card);
+  border-bottom-color: var(--color-border);
+  box-shadow: none;
+}
+
+.career-brain-page__header--compact {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.career-brain-page__body--focused {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 1.25rem 2.5rem;
+}
+
+.career-brain-focus {
+  width: 100%;
+  max-width: 40rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.career-story-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-bottom: 0.25rem;
+}
+
+.career-story-progress__dots {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.career-story-progress__dot {
+  width: 1.75rem;
+  height: 0.25rem;
+  border-radius: 999px;
+  background: var(--color-border-strong);
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+
+.career-story-progress__dot--done {
+  background: var(--color-primary);
+}
+
+.career-story-progress__dot--active {
+  background: var(--color-primary-light);
+  transform: scaleY(1.35);
+}
+
+.career-story-progress__label {
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+}
+
+.career-story-question-card__transition {
+  animation: career-story-card-enter 0.35s ease;
+}
+
+@keyframes career-story-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.career-story-question-card__surface {
+  border-radius: 1.25rem;
+  padding: 2.25rem 1.5rem 1.75rem;
+  text-align: center;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--ds-shadow-sm);
+}
+
+.career-story-question-card__question {
+  margin: 0 0 1.75rem;
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--color-text);
+}
+
+.career-story-question-card__mic-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.65rem;
+}
+
+.career-story-question-card__mic {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  cursor: pointer;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 28%, transparent);
+}
+
+.career-story-question-card__mic:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.career-story-question-card__mic-ring {
+  position: absolute;
+  inset: -0.5rem;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--color-primary-light) 45%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.career-story-question-card__mic-ring--idle {
+  opacity: 0.45;
+  animation: career-story-mic-idle-pulse 2.4s ease-in-out infinite;
+}
+
+.career-story-question-card__mic--listening .career-story-question-card__mic-ring {
+  opacity: 1;
+  animation: career-story-mic-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes career-story-mic-idle-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.55;
+  }
+}
+
+.career-story-question-card__mic-label {
+  margin: 0 0 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-primary-light);
+}
+
+.career-story-question-card__transcript {
+  margin: 0 auto 1rem;
+  max-width: 28rem;
+  min-height: 2.5rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-inset);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  text-align: left;
+}
+
+.career-story-question-card__transcript-label {
+  display: block;
+  margin: 0 0 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-align: left;
+}
+
+.career-story-question-card__mode-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  padding: 0 1.15rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-card);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.career-story-question-card__mode-pill:hover {
+  border-color: var(--color-border-accent);
+  color: var(--color-text);
+}
+
+.career-story-question-card__mode-link {
+  margin-top: 0.65rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.career-story-question-card__reassurance {
+  margin: 1rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+}
+
+.career-story-question-card__type,
+.career-story-question-card__review {
+  text-align: left;
+  max-width: 28rem;
+  margin: 0 auto;
+}
+
+.career-story-question-card__textarea {
+  width: 100%;
+  border-radius: 0.85rem;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-card);
+  padding: 0.75rem 0.85rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--color-text);
+  resize: vertical;
+  outline: none;
+}
+
+.career-story-question-card__textarea:focus {
+  border-color: var(--color-primary-light);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-light) 20%, transparent);
+}
+
+.career-story-question-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.career-story-question-card__chip {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.career-story-question-card__chip:hover {
+  border-color: var(--color-primary-light);
+  color: var(--color-primary-strong);
+}
+
+.career-story-question-card__confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 2.5rem;
+  margin-top: 1rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.career-story-question-card__confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.career-story-question-card__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 2.25rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.career-story-question-card__review-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.career-story-question-card__error {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-error);
+}
+
+.career-story-question-card__complete {
+  border-radius: 1.25rem;
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+}
+
+.career-story-question-card__complete-title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-forest);
+}
+
+.career-story-question-card__complete-text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.career-story-how {
+  margin: 0;
+}
+
+.career-story-how__summary {
+  list-style: none;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--color-primary-light);
+  cursor: pointer;
+}
+
+.career-story-how__summary::-webkit-details-marker {
+  display: none;
+}
+
+.career-story-how__body {
+  margin-top: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-radius: 1.125rem;
+  background: var(--color-inset);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.career-story-how__body p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.career-story-answered {
+  border-top: 1px solid var(--color-border);
+  padding-top: 1.25rem;
+}
+
+.career-story-answered__heading {
+  margin: 0 0 0.65rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+}
+
+.career-story-answered__empty {
+  border-radius: 1.125rem;
+  padding: 0.85rem 1rem;
+  text-align: center;
+  background: var(--color-inset);
+  opacity: 0.55;
+}
+
+.career-story-answered__empty p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.career-story-answered__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}

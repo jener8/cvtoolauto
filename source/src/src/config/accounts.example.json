@@ -1,0 +1,31 @@
+[
+  {
+    "username": "Jennifer",
+    "passwordHash": "0b5dccc460bd71f98105e6b8ff3dc7c8cc06d44bf7c1166a068115895321e484",
+    "surname": "Simonds",
+    "role": "admin",
+    "email": "jennifer@simondsresearch.com",
+    "created": "01/01/2026"
+  },
+  {
+    "username": "Test",
+    "passwordHash": "2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea",
+    "surname": "Demo",
+    "role": "demo",
+    "created": "01/01/2026"
+  },
+  {
+    "username": "Helena",
+    "passwordHash": "fb86fb757d1241d512865070e05ccb5d17dfaa11a4b2ca04b89bacad17530ad4",
+    "surname": "CHANGE_ME",
+    "role": "user",
+    "created": "01/01/2026"
+  },
+  {
+    "username": "Sarah",
+    "passwordHash": "fb86fb757d1241d512865070e05ccb5d17dfaa11a4b2ca04b89bacad17530ad4",
+    "surname": "CHANGE_ME",
+    "role": "user",
+    "created": "01/01/2026"
+  }
+]
