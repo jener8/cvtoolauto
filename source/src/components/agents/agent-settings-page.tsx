@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
-import { ArrowLeft, Loader2, Search, Save } from "lucide-react"
+import { ArrowLeft, Loader2, Search, Save, Trash2 } from "lucide-react"
 
 type RunResult = {
   fetched?: number
@@ -50,6 +50,8 @@ export function AgentSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [running, setRunning] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [keywords, setKeywords] = useState("")
   const [location, setLocation] = useState("Berlin")
   const [remote, setRemote] = useState(false)
@@ -124,7 +126,6 @@ export function AgentSettingsPage() {
     setRunning(true)
     setLastRun(null)
     try {
-      // Persist current form first so the run uses the latest criteria
       const saveRes = await fetch("/api/agents/settings", {
         method: "PUT",
         credentials: "same-origin",
@@ -159,6 +160,53 @@ export function AgentSettingsPage() {
     }
   }
 
+  const handleDeleteAllAgentData = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true)
+      return
+    }
+    setDeleting(true)
+    try {
+      const res = await fetch("/api/agents/data", {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "DELETE_AGENT_DATA" }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        total?: number
+        error?: string
+      }
+      if (!res.ok) throw new Error(data.error ?? "Delete failed")
+      setConfirmDelete(false)
+      applySettings({
+        id: "",
+        userId: "",
+        keywords: [],
+        location: "Berlin",
+        remote: false,
+        languages: [],
+        seniority: null,
+        createdAt: "",
+        updatedAt: "",
+      })
+      setLastRun(null)
+      toast({
+        title: "Agent data deleted",
+        description: `Removed ${data.total ?? 0} agent rows. Resumes and job applications were not touched.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Could not delete agent data",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div
       className="min-h-[70vh] px-4 py-10 sm:px-6"
@@ -188,7 +236,9 @@ export function AgentSettingsPage() {
           <Link href="/app/agents" className="font-medium text-[#2D7A5F] underline-offset-2 hover:underline">
             Review new jobs
           </Link>{" "}
-          on the queue for Claude fit explanations — no auto-apply.
+          on the queue for Claude fit explanations — no auto-apply. Daily cron +{" "}
+          <span className="font-medium text-stone-800">Run now</span> on the queue run search →
+          review → draft within the daily cap.
         </p>
 
         {loading ? (
@@ -262,7 +312,7 @@ export function AgentSettingsPage() {
               <Button
                 type="button"
                 onClick={() => void handleSave()}
-                disabled={saving || running}
+                disabled={saving || running || deleting}
                 variant="outline"
               >
                 {saving ? (
@@ -275,7 +325,7 @@ export function AgentSettingsPage() {
               <Button
                 type="button"
                 onClick={() => void handleRunSearch()}
-                disabled={saving || running}
+                disabled={saving || running || deleting}
                 style={{ backgroundColor: "#2D7A5F" }}
                 className="text-white hover:opacity-90"
               >
@@ -314,6 +364,47 @@ export function AgentSettingsPage() {
             )}
           </div>
         )}
+
+        <div className="mt-10 rounded-xl border border-red-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-stone-900">Delete all agent data</h2>
+          <p className="mt-2 text-sm leading-relaxed text-stone-600">
+            Permanently removes master-profile facts, search settings, companies, jobs, drafts, and
+            activity logs for this workspace. Does <span className="font-medium">not</span> delete
+            resumes or job applications. See{" "}
+            <span className="font-medium text-stone-800">docs/agents-data.md</span>.
+          </p>
+          {confirmDelete && (
+            <p className="mt-3 text-sm text-red-800">
+              Click again to confirm. This cannot be undone.
+            </p>
+          )}
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading || deleting || saving || running}
+              className="border-red-300 text-red-800 hover:bg-red-50"
+              onClick={() => void handleDeleteAllAgentData()}
+            >
+              {deleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              {confirmDelete ? "Confirm delete all agent data" : "Delete all agent data"}
+            </Button>
+            {confirmDelete && (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={deleting}
+                onClick={() => setConfirmDelete(false)}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -25,11 +25,13 @@ import { toast } from "@/components/ui/use-toast"
 import {
   AlertTriangle,
   ArrowLeft,
+  Briefcase,
   CheckCircle2,
   Download,
   ExternalLink,
   FileText,
   Loader2,
+  Play,
   RefreshCw,
   Search,
   Send,
@@ -77,6 +79,17 @@ type DraftResult = {
   flagsTotal?: number
   dailyCap?: number
   draftedTodayBefore?: number
+  errorMessages?: string[]
+  error?: string
+}
+
+type PipelineResult = {
+  fetched?: number
+  inserted?: number
+  relevant?: number
+  drafted?: number
+  errors?: number
+  dailyCap?: number
   errorMessages?: string[]
   error?: string
 }
@@ -472,18 +485,22 @@ export function AgentsHomePage() {
   const [loading, setLoading] = useState(true)
   const [reviewingAll, setReviewingAll] = useState(false)
   const [draftingAll, setDraftingAll] = useState(false)
+  const [runningPipeline, setRunningPipeline] = useState(false)
   const [reviewingId, setReviewingId] = useState<string | null>(null)
   const [draftingId, setDraftingId] = useState<string | null>(null)
   const [actionId, setActionId] = useState<string | null>(null)
+  const [addingAppId, setAddingAppId] = useState<string | null>(null)
   const [jobs, setJobs] = useState<JobItem[]>([])
   const [facts, setFacts] = useState<AgentProfileFact[]>([])
   const [draftsByJob, setDraftsByJob] = useState<Map<string, AgentDraft>>(new Map())
   const [tab, setTab] = useState<FilterTab>("all")
   const [lastReview, setLastReview] = useState<ReviewResult | null>(null)
   const [lastDraft, setLastDraft] = useState<DraftResult | null>(null)
+  const [lastPipeline, setLastPipeline] = useState<PipelineResult | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState("")
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set())
+  const [linkedAppIds, setLinkedAppIds] = useState<Set<string>>(new Set())
 
   const factById = useMemo(() => {
     const map = new Map<string, AgentProfileFact>()
@@ -688,6 +705,75 @@ export function AgentsHomePage() {
     }
   }
 
+  const runPipelineNow = async () => {
+    setRunningPipeline(true)
+    setLastPipeline(null)
+    try {
+      const res = await fetch("/api/agents/pipeline/run", {
+        method: "POST",
+        credentials: "same-origin",
+      })
+      const data = (await res.json()) as PipelineResult
+      if (!res.ok) throw new Error(data.error ?? "Pipeline failed")
+      setLastPipeline(data)
+      toast({
+        title: copy.toast.pipelineComplete,
+        description: copy.lastPipeline({
+          fetched: data.fetched ?? 0,
+          relevant: data.relevant ?? 0,
+          drafted: data.drafted ?? 0,
+          cap: data.dailyCap ?? 5,
+          errors: data.errors ?? 0,
+        }),
+      })
+      await refresh()
+    } catch (error) {
+      toast({
+        title: copy.toast.actionFailed,
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      })
+    } finally {
+      setRunningPipeline(false)
+    }
+  }
+
+  const addToApplications = async (jobId: string) => {
+    setAddingAppId(jobId)
+    try {
+      const res = await fetch(`/api/agents/jobs/${jobId}/add-to-applications`, {
+        method: "POST",
+        credentials: "same-origin",
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        created?: boolean
+        applicationId?: string
+        reason?: string
+        error?: string
+      }
+      if (!res.ok) throw new Error(data.error ?? "Could not add to applications")
+      if (data.applicationId) {
+        setLinkedAppIds((prev) => new Set(prev).add(jobId))
+      }
+      toast({
+        title:
+          data.created === false
+            ? copy.toast.alreadyInApplications
+            : copy.toast.addedToApplications,
+        description: copy.addToApplicationsHint,
+      })
+    } catch (error) {
+      toast({
+        title: copy.toast.actionFailed,
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      })
+    } finally {
+      setAddingAppId(null)
+    }
+  }
+
   const runReviewOne = async (jobId: string) => {
     setReviewingId(jobId)
     try {
@@ -800,7 +886,7 @@ export function AgentsHomePage() {
   ]
 
   const empty = emptyMessageForTab(tab, copy)
-  const busyGlobal = reviewingAll || draftingAll || loading
+  const busyGlobal = reviewingAll || draftingAll || runningPipeline || loading
 
   return (
     <div
@@ -852,10 +938,24 @@ export function AgentsHomePage() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Button
             type="button"
-            onClick={() => void runReviewAll()}
-            disabled={busyGlobal || counts.new === 0}
+            onClick={() => void runPipelineNow()}
+            disabled={busyGlobal}
             style={{ backgroundColor: AGENTS_ACCENT }}
             className={`text-white hover:opacity-90 ${focusRing}`}
+          >
+            {runningPipeline ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Play className="mr-2 h-4 w-4" aria-hidden />
+            )}
+            {copy.runNow}
+          </Button>
+          <Button
+            type="button"
+            onClick={() => void runReviewAll()}
+            disabled={busyGlobal || counts.new === 0}
+            variant="outline"
+            className={`border-[#2D7A5F] text-[#2D7A5F] hover:bg-[#2D7A5F]/10 ${focusRing}`}
           >
             {reviewingAll ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
@@ -906,8 +1006,19 @@ export function AgentsHomePage() {
           </Button>
         </div>
 
-        {lastReview && (
+        {lastPipeline && (
           <p className="mt-4 text-sm text-stone-600">
+            {copy.lastPipeline({
+              fetched: lastPipeline.fetched ?? 0,
+              relevant: lastPipeline.relevant ?? 0,
+              drafted: lastPipeline.drafted ?? 0,
+              cap: lastPipeline.dailyCap ?? 5,
+              errors: lastPipeline.errors ?? 0,
+            })}
+          </p>
+        )}
+        {lastReview && (
+          <p className="mt-1 text-sm text-stone-600">
             {copy.lastReview({
               reviewed: lastReview.reviewed ?? 0,
               relevant: lastReview.relevant ?? 0,
@@ -991,6 +1102,7 @@ export function AgentsHomePage() {
                 actionId === job.id ||
                 reviewingId === job.id ||
                 draftingId === job.id ||
+                addingAppId === job.id ||
                 busyGlobal
 
               return (
@@ -1115,6 +1227,25 @@ export function AgentsHomePage() {
                           className={focusRing}
                         >
                           {copy.markAsSent}
+                        </Button>
+                      )}
+                      {(job.status === "approved" || job.status === "sent") && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busyRow || linkedAppIds.has(job.id)}
+                          onClick={() => void addToApplications(job.id)}
+                          className={`border-[#2D7A5F] text-[#2D7A5F] ${focusRing}`}
+                          title={copy.addToApplicationsHint}
+                        >
+                          {addingAppId === job.id ? (
+                            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
+                          ) : (
+                            <Briefcase className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                          )}
+                          {linkedAppIds.has(job.id)
+                            ? copy.toast.alreadyInApplications
+                            : copy.addToApplications}
                         </Button>
                       )}
                       {canReject && rejectingId !== job.id && (

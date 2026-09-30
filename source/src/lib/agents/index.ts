@@ -16,6 +16,12 @@ export {
   runDraftGeneration,
   requestDraftChanges,
 } from "@/lib/agents/run-draft"
+export { runDailyPipeline } from "@/lib/agents/run-pipeline"
+export type { PipelineTrigger, RunPipelineResult } from "@/lib/agents/run-pipeline"
+export { deleteAllAgentData, AGENT_DATA_TABLES } from "@/lib/agents/delete-agent-data"
+export type { DeleteAgentDataResult } from "@/lib/agents/delete-agent-data"
+export { addAgentJobToApplications } from "@/lib/agents/add-to-applications"
+export type { AddToApplicationsResult } from "@/lib/agents/add-to-applications"
 export {
   approveAgentJob,
   rejectAgentJob,

@@ -19,6 +19,7 @@ type AgentsCopyTree = {
   searchSettings: string
   reviewNewJobs: string
   draftApplications: string
+  runNow: string
   refresh: string
   loadingQueue: string
   lastReview: (v: {
@@ -35,6 +36,15 @@ type AgentsCopyTree = {
     already: number
     errors: number
   }) => string
+  lastPipeline: (v: {
+    fetched: number
+    relevant: number
+    drafted: number
+    cap: number
+    errors: number
+  }) => string
+  addToApplications: string
+  addToApplicationsHint: string
   tabs: {
     all: (n: number) => string
     new: (n: number) => string
@@ -109,6 +119,9 @@ type AgentsCopyTree = {
     gmailStub: string
     loadFailed: string
     actionFailed: string
+    pipelineComplete: string
+    addedToApplications: string
+    alreadyInApplications: string
   }
   a11y: {
     filterTabs: string
@@ -128,12 +141,18 @@ const en: AgentsCopyTree = {
   searchSettings: "Search settings",
   reviewNewJobs: "Review new jobs",
   draftApplications: "Draft applications",
+  runNow: "Run now",
   refresh: "Refresh",
   loadingQueue: "Loading queue…",
   lastReview: (v) =>
     `Last review: ${v.reviewed} reviewed · ${v.relevant} fits · ${v.notRelevant} not a fit · ${v.manual} manual · ${v.errors} errors`,
   lastDraft: (v) =>
     `Last draft run: ${v.drafted} drafted · flags ${v.flags} · cap ${v.cap} (already today ${v.already}) · ${v.errors} errors`,
+  lastPipeline: (v) =>
+    `Last run: fetched ${v.fetched} · relevant ${v.relevant} · drafted ${v.drafted} (cap ${v.cap}) · ${v.errors} errors`,
+  addToApplications: "Add to my applications",
+  addToApplicationsHint:
+    "Creates a new tracker row from this job and draft. Does not change existing applications or submit to employers.",
   tabs: {
     all: (n) => `All (${n})`,
     new: (n) => `New (${n})`,
@@ -224,6 +243,9 @@ const en: AgentsCopyTree = {
     gmailStub: "Gmail not connected — send skipped",
     loadFailed: "Could not load job queue",
     actionFailed: "Action failed",
+    pipelineComplete: "Pipeline complete",
+    addedToApplications: "Added to your applications",
+    alreadyInApplications: "Already in your applications",
   },
   a11y: {
     filterTabs: "Filter jobs by status",
@@ -243,12 +265,18 @@ const de: AgentsCopyTree = {
   searchSettings: "Sucheinstellungen",
   reviewNewJobs: "Neue Jobs prüfen",
   draftApplications: "Bewerbungen entwerfen",
+  runNow: "Jetzt ausführen",
   refresh: "Aktualisieren",
   loadingQueue: "Warteschlange wird geladen…",
   lastReview: (v) =>
     `Letzte Prüfung: ${v.reviewed} geprüft · ${v.relevant} Passungen · ${v.notRelevant} nicht passend · ${v.manual} manuell · ${v.errors} Fehler`,
   lastDraft: (v) =>
     `Letzter Entwurfslauf: ${v.drafted} entworfen · Hinweise ${v.flags} · Limit ${v.cap} (heute schon ${v.already}) · ${v.errors} Fehler`,
+  lastPipeline: (v) =>
+    `Letzter Lauf: geholt ${v.fetched} · relevant ${v.relevant} · entworfen ${v.drafted} (Limit ${v.cap}) · ${v.errors} Fehler`,
+  addToApplications: "Zu meinen Bewerbungen hinzufügen",
+  addToApplicationsHint:
+    "Erstellt eine neue Tracker-Zeile aus diesem Job und Entwurf. Ändert keine bestehenden Bewerbungen und sendet nichts an Arbeitgeber.",
   tabs: {
     all: (n) => `Alle (${n})`,
     new: (n) => `Neu (${n})`,
@@ -340,6 +368,9 @@ const de: AgentsCopyTree = {
     gmailStub: "Gmail nicht verbunden — Versand übersprungen",
     loadFailed: "Warteschlange konnte nicht geladen werden",
     actionFailed: "Aktion fehlgeschlagen",
+    pipelineComplete: "Pipeline abgeschlossen",
+    addedToApplications: "Zu Bewerbungen hinzugefügt",
+    alreadyInApplications: "Bereits in Ihren Bewerbungen",
   },
   a11y: {
     filterTabs: "Jobs nach Status filtern",

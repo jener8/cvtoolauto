@@ -1,8 +1,10 @@
-# Agent jobs → `job_applications` field mapping (Phase 7 readiness)
+# Agent jobs → `job_applications` field mapping
 
-**Status:** Proposal only. Phase 6 does **not** auto-write into `job_applications`. Any sync should be **opt-in / manual** (e.g. “Add to applications”) after `approved` or `sent`.
+**Status:** Implemented (Phase 7) as **optional manual** “Add to my applications”. Never auto-writes. Creates a **new** `job_applications` row only; never modifies existing tracker records.
 
-**Goal:** When a human-approved agent job reaches `sent` (or optionally `approved`), create or link a workspace `job_applications` row so the existing EquitAI tracker stays the source of truth for pipeline stages, interviews, etc.
+**API:** `POST /api/agents/jobs/[id]/add-to-applications` (statuses `approved` | `sent`). Idempotent via `job_description.agentJobId`.
+
+**Goal:** When a human-approved agent job reaches `sent` (or optionally `approved`), create a workspace `job_applications` row so the existing EquitAI tracker stays the source of truth for pipeline stages, interviews, etc.
 
 ---
 
@@ -96,15 +98,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_job_applications_agent_job_id
 
 ---
 
-## Out of scope for this note
+## Out of scope
 
-- Vercel / Supabase cron (Phase 7)
-- Automatic Gmail send
-- Portal auto-submit
-- Writing `job_applications` from the Phase 6 review UI
+- Automatic Gmail send / portal auto-submit
+- Auto-sync on approve or sent (manual button only)
+- Creating `resume_versions` from `agent_drafts.cv_text`
+- Adding `agent_job_id` column (deferred — JSON pointer is enough for v2)
 
----
-
-## Phase 6 delivery note
-
-Review queue implements human decisions on `agent_jobs` only. Use this doc when designing the optional “Add to my applications” action in Phase 7+.
+See also: [agents-data.md](./agents-data.md) for storage, retention, and delete-all.
