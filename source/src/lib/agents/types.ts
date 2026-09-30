@@ -37,6 +37,25 @@ export type CitedFactSnapshot = {
   text: string
 }
 
+/** Fact Checker flags stored on agent_drafts.fabrication_flags */
+export type FabricationFlag = {
+  claim: string
+  location: "cv" | "cover" | "both"
+  reason: string
+}
+
+export type AgentDraft = {
+  id: string
+  jobId: string
+  cvText: string | null
+  coverText: string | null
+  citedFactsSnapshot: CitedFactSnapshot[]
+  fabricationFlags: FabricationFlag[]
+  version: number
+  createdAt: string
+  updatedAt: string
+}
+
 export type AgentJobKind = "listing" | "initiative"
 export type AgentApplyMethod = "email" | "portal"
 

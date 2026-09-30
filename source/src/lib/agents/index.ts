@@ -13,6 +13,11 @@ export {
   isJobAgentAutoReviewEnabled,
 } from "@/lib/agents/run-relevance"
 export {
+  runDraftGeneration,
+  requestDraftChanges,
+} from "@/lib/agents/run-draft"
+export { getJobAgentDailyCap } from "@/lib/agents/draft-schema"
+export {
   getAgentsAnthropicModelId,
   isAgentsAnthropicConfigured,
   resolveAgentsAnthropicModel,
@@ -23,6 +28,8 @@ export type {
   AgentFactSource,
   AgentFactCategory,
   CitedFactSnapshot,
+  FabricationFlag,
+  AgentDraft,
   AgentJobStatus,
   AgentJobKind,
   AgentApplyMethod,

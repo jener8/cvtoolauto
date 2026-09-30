@@ -37,7 +37,13 @@ export async function GET(request: Request) {
         .filter((s): s is AgentJobStatus =>
           (AGENT_JOB_STATUSES as string[]).includes(s),
         )
-    : (["new", "reviewing", "not_relevant", "needs_manual_review"] as AgentJobStatus[])
+    : ([
+        "new",
+        "reviewing",
+        "not_relevant",
+        "needs_manual_review",
+        "changes_requested",
+      ] as AgentJobStatus[])
 
   try {
     const { data, error } = await ctx.supabase
