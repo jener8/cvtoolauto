@@ -62,6 +62,50 @@ export const AGENT_JOB_STATUSES: AgentJobStatus[] = [
   "rejected",
 ]
 
+/** Known automated job listing sources (Phase 3) */
+export type AgentJobSource = "arbeitsagentur" | "arbeitnow" | "adzuna"
+
+export type AgentSearchSettings = {
+  id: string
+  userId: string
+  keywords: string[]
+  location: string
+  remote: boolean
+  languages: string[]
+  seniority: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type AgentSearchSettingsInput = {
+  keywords?: string[]
+  location?: string
+  remote?: boolean
+  languages?: string[]
+  seniority?: string | null
+}
+
+/**
+ * Normalized listing shape before upsert into agent_jobs + agent_companies.
+ * applyMethod: email when a mailto/email is found in listing text; portal when a URL
+ * exists; otherwise left null (schema allows).
+ */
+export type NormalizedJob = {
+  source: AgentJobSource
+  sourceKey: string
+  title: string
+  companyName: string
+  companyWebsite?: string | null
+  location: string | null
+  language: string | null
+  description: string | null
+  url: string | null
+  postedAt: string | null
+  rawListingText: string
+  applyMethod: AgentApplyMethod | null
+  emailTo: string | null
+}
+
 export type AgentProfileFactInsert = {
   category: AgentFactCategory | string
   factText: string

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, UserCheck } from "lucide-react"
+import { ArrowLeft, Search, UserCheck } from "lucide-react"
 
 export function AgentsHomePage() {
   return (
@@ -28,11 +28,11 @@ export function AgentsHomePage() {
           Job agents
         </h1>
         <p className="mt-3 text-base leading-relaxed text-stone-600">
-          Build a confirmed master profile first. Later phases will search listings, draft
-          applications, and queue sends — never auto-apply without your approval.
+          Confirm your master profile, then run listing searches from allowed job APIs. Drafting and
+          sends come later — never auto-apply without your approval.
         </p>
 
-        <div className="mt-10">
+        <div className="mt-10 space-y-4">
           <Link
             href="/app/agents/profile"
             className="group flex items-start gap-4 rounded-xl border border-stone-200 bg-white p-5 transition hover:border-[#2D7A5F]/40 hover:shadow-md"
@@ -50,6 +50,27 @@ export function AgentsHomePage() {
               <span className="mt-1 block text-sm text-stone-600">
                 Seed facts from your resume and qualifications, then confirm, edit, or delete each
                 one.
+              </span>
+            </span>
+          </Link>
+
+          <Link
+            href="/app/agents/settings"
+            className="group flex items-start gap-4 rounded-xl border border-stone-200 bg-white p-5 transition hover:border-[#2D7A5F]/40 hover:shadow-md"
+          >
+            <span
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white"
+              style={{ backgroundColor: "#2D7A5F" }}
+            >
+              <Search className="h-5 w-5" />
+            </span>
+            <span>
+              <span className="block text-lg font-semibold text-stone-900 group-hover:text-[#2D7A5F]">
+                Search settings
+              </span>
+              <span className="mt-1 block text-sm text-stone-600">
+                Keywords, location, remote, languages, seniority — then Run search to fetch and
+                de-duplicate listings.
               </span>
             </span>
           </Link>
