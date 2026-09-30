@@ -155,14 +155,18 @@ export async function addAgentJobToApplications(input: {
   const emailTo =
     typeof job.email_to === "string" && job.email_to.trim() ? job.email_to.trim() : null
 
+  // Tracker has no separate "to apply" stage; both approved and sent use status=applied.
+  // applied_date / pipeline stage only when agent job is already sent (see mapping doc).
+  const isSent = status === "sent"
+
   const row = {
     id: applicationId,
     user_id: input.userId,
     role,
     company,
-    status: status === "sent" ? "applied" : "applied",
+    status: "applied",
     folder_id: null,
-    applied_date: nowIso,
+    applied_date: isSent ? nowIso : null,
     updated_at: nowIso,
     resume_version_id: null,
     cover_letter_id: null,
@@ -183,7 +187,9 @@ export async function addAgentJobToApplications(input: {
       cvTextPreview: draft?.cv_text
         ? String(draft.cv_text).slice(0, 500)
         : undefined,
-      pipeline: [{ stage: "applied", outcome: "pending", date: nowIso }],
+      pipeline: isSent
+        ? [{ stage: "applied", outcome: "pending", date: nowIso }]
+        : [],
     },
     why_content: {
       text: relevance?.summary ?? "",
