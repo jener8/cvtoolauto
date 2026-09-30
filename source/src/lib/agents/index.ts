@@ -7,6 +7,16 @@ export {
   mapSearchSettingsRow,
 } from "@/lib/agents/search-settings"
 export { runJobSearch } from "@/lib/agents/run-search"
+export {
+  runRelevanceReview,
+  reviewJobRelevance,
+  isJobAgentAutoReviewEnabled,
+} from "@/lib/agents/run-relevance"
+export {
+  getAgentsAnthropicModelId,
+  isAgentsAnthropicConfigured,
+  resolveAgentsAnthropicModel,
+} from "@/lib/agents/anthropic-client"
 export type {
   AgentProfileFact,
   AgentFactStatus,
@@ -19,5 +29,7 @@ export type {
   AgentJobSource,
   AgentSearchSettings,
   AgentSearchSettingsInput,
+  AgentRelevancePayload,
+  AgentRelevanceMetRequirement,
   NormalizedJob,
 } from "@/lib/agents/types"

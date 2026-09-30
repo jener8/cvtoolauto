@@ -138,13 +138,15 @@ export function AgentSettingsPage() {
       const res = await fetch("/api/agents/search/run", {
         method: "POST",
         credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       })
       const data = (await res.json()) as RunResult
       if (!res.ok) throw new Error(data.error ?? "Search failed")
       setLastRun(data)
       toast({
         title: "Search complete",
-        description: `Fetched ${data.fetched ?? 0} · inserted ${data.inserted ?? 0} · skipped ${data.duplicates ?? 0} duplicates`,
+        description: `Fetched ${data.fetched ?? 0} · inserted ${data.inserted ?? 0} · skipped ${data.duplicates ?? 0} duplicates. Review fits on the job agents queue.`,
       })
     } catch (error) {
       toast({
@@ -182,7 +184,11 @@ export function AgentSettingsPage() {
         <p className="mt-3 text-base leading-relaxed text-stone-600">
           Configure keywords and location, then run a manual fetch from Arbeitsagentur, Arbeitnow,
           and Adzuna (when keyed). Listings are normalized, de-duplicated, and stored as{" "}
-          <span className="font-medium text-stone-800">new</span> — no auto-apply.
+          <span className="font-medium text-stone-800">new</span>. Use{" "}
+          <Link href="/app/agents" className="font-medium text-[#2D7A5F] underline-offset-2 hover:underline">
+            Review new jobs
+          </Link>{" "}
+          on the queue for Claude fit explanations — no auto-apply.
         </p>
 
         {loading ? (

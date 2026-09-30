@@ -45,6 +45,7 @@ export type AgentJobStatus =
   | "new"
   | "needs_manual_review"
   | "reviewing"
+  | "not_relevant"
   | "changes_requested"
   | "approved"
   | "sending"
@@ -55,12 +56,30 @@ export const AGENT_JOB_STATUSES: AgentJobStatus[] = [
   "new",
   "needs_manual_review",
   "reviewing",
+  "not_relevant",
   "changes_requested",
   "approved",
   "sending",
   "sent",
   "rejected",
 ]
+
+/** Phase 4 Claude relevance payload stored on agent_jobs.relevance (no scores). */
+export type AgentRelevanceMetRequirement = {
+  requirement: string
+  evidence_fact_ids: string[]
+}
+
+export type AgentRelevancePayload = {
+  relevant: boolean
+  requirements_met: AgentRelevanceMetRequirement[]
+  requirements_not_met: string[]
+  summary: string
+  listing_language: "de" | "en"
+  reviewed_at?: string
+  model?: string
+  error?: string
+}
 
 /** Known automated job listing sources (Phase 3) */
 export type AgentJobSource = "arbeitsagentur" | "arbeitnow" | "adzuna"
