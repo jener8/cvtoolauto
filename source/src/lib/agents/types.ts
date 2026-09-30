@@ -111,6 +111,8 @@ export type AgentSearchSettings = {
   remote: boolean
   languages: string[]
   seniority: string | null
+  /** Company Scout watchlist (Phase 9) — names only; no scraping. */
+  targetCompanies: string[]
   createdAt: string
   updatedAt: string
 }
@@ -121,6 +123,7 @@ export type AgentSearchSettingsInput = {
   remote?: boolean
   languages?: string[]
   seniority?: string | null
+  targetCompanies?: string[]
 }
 
 /**

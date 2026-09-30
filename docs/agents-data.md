@@ -2,7 +2,7 @@
 
 EquitAI Job Agents store candidate and listing data in **Supabase** (Postgres), not in application logs or the git repository.
 
-Feature gate: `JOB_AGENT_ENABLED` / `NEXT_PUBLIC_JOB_AGENT_ENABLED` (default **false**). With the flag off, agent UI and `/api/agents/*` behave as at tag `pre-job-agents-v2` (404 / hidden).
+Feature gate: `JOB_AGENT_ENABLED` (server/API — alone) / `NEXT_PUBLIC_JOB_AGENT_ENABLED` (client UI). Default **false**. With the server flag off, `/api/agents/*` returns 404 even if the public flag is true.
 
 ---
 
@@ -11,7 +11,8 @@ Feature gate: `JOB_AGENT_ENABLED` / `NEXT_PUBLIC_JOB_AGENT_ENABLED` (default **f
 | Table | Purpose | Personal data |
 |-------|---------|----------------|
 | `agent_profile_facts` | Master-profile facts (confirmed / unconfirmed) | Fact text, category, source |
-| `agent_search_settings` | Keywords, location, languages, seniority | Search preferences |
+| `agent_search_settings` | Keywords, location, languages, seniority, company watchlist | Search preferences |
+| `agent_agent_controls` | Per-agent pause flags (job_scout, company_scout, assessor, writer) | Boolean pause state only |
 | `agent_companies` | Deduped company names / websites from listings | Company metadata (public) |
 | `agent_jobs` | Queue of listings / initiative targets | Title, location, description, URL, email_to, relevance JSON, status |
 | `agent_drafts` | Tailored CV/cover text + cited-facts snapshot | Draft text, fabrication flags, cited fact snapshot |
@@ -52,7 +53,14 @@ Every drafted claim is expected to be traceable via `agent_drafts.cited_facts_sn
 
 ## Scheduling
 
-Daily cron (`vercel.json` → `GET/POST /api/agents/cron` at 06:00 UTC) runs search → relevance → draft when `JOB_AGENT_ENABLED=true`, authenticated with `JOB_AGENT_CRON_SECRET`. Drafts respect `JOB_AGENT_DAILY_CAP` (default 5). Each pipeline run also writes an `agent_activity` row (`kind: cron` or `pipeline`).
+Phase 9 crons (`source/src/vercel.json`), authenticated with `JOB_AGENT_CRON_SECRET`, only when `JOB_AGENT_ENABLED=true`:
+
+| Agent | Schedule (UTC) | Pipeline |
+|-------|----------------|----------|
+| Job Scout | 06:00, 12:00, 18:00 daily | search → assess → draft |
+| Company Scout | Monday 07:00 | watchlist/known companies → assess → draft |
+
+Drafts respect `JOB_DRAFTS_DAILY_CAP` (alias `JOB_AGENT_DAILY_CAP`, default 5). Company Scout respects `COMPANY_SCOUT_WEEKLY_CAP` (default 5). Pause state lives in `agent_agent_controls`. Each run writes `agent_activity` with agent kind and counts only (no PII).
 
 ---
 

@@ -192,6 +192,7 @@ export function sanitizeSearchSettingsInput(
   remote: boolean
   languages: string[]
   seniority: string | null
+  targetCompanies: string[]
 } {
   const keywords = Array.isArray(body.keywords)
     ? body.keywords.map((k) => String(k).trim()).filter(Boolean).slice(0, 40)
@@ -208,5 +209,8 @@ export function sanitizeSearchSettingsInput(
     typeof body.seniority === "string" && body.seniority.trim()
       ? body.seniority.trim().slice(0, 60)
       : null
-  return { keywords, location, remote, languages, seniority }
+  const targetCompanies = Array.isArray(body.targetCompanies)
+    ? body.targetCompanies.map((c) => String(c).trim()).filter(Boolean).slice(0, 40)
+    : []
+  return { keywords, location, remote, languages, seniority, targetCompanies }
 }

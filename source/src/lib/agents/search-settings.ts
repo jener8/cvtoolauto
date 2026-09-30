@@ -10,6 +10,7 @@ type SearchSettingsRow = {
   remote: boolean | null
   languages: string[] | null
   seniority: string | null
+  target_companies?: string[] | null
   created_at: string
   updated_at: string
 }
@@ -23,6 +24,7 @@ export function mapSearchSettingsRow(row: SearchSettingsRow): AgentSearchSetting
     remote: Boolean(row.remote),
     languages: Array.isArray(row.languages) ? row.languages : [],
     seniority: row.seniority,
+    targetCompanies: Array.isArray(row.target_companies) ? row.target_companies : [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -55,6 +57,7 @@ export async function getOrCreateSearchSettings(input: {
     remote: false,
     languages: [],
     seniority: null,
+    target_companies: [],
     updated_at: new Date().toISOString(),
   })
   if (input.signal) insertQuery = insertQuery.abortSignal(input.signal)
@@ -92,6 +95,7 @@ export async function upsertSearchSettings(input: {
       remote: sanitized.remote,
       languages: sanitized.languages,
       seniority: sanitized.seniority,
+      target_companies: sanitized.targetCompanies,
       updated_at: now,
     },
     { onConflict: "user_id" },

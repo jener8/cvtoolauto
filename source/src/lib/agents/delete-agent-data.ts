@@ -5,13 +5,14 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-/** Tables owned by the job agents feature (delete order respects FKs). */
+/** AGENT_DATA_TABLES owned by the job agents feature (delete order respects FKs). */
 export const AGENT_DATA_TABLES = [
   "agent_drafts",
   "agent_jobs",
   "agent_companies",
   "agent_activity",
   "agent_profile_facts",
+  "agent_agent_controls",
   "agent_search_settings",
 ] as const
 

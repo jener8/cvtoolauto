@@ -440,18 +440,17 @@ export async function runDraftGeneration(input: {
     }
   }
 
-  // Batch: at most remaining slots (and optional maxJobs). Single jobId: fetch one row.
+  // Batch: fetch a wider pool, then prefer strongest + freshest (Phase 9).
   const fetchLimit = input.jobId
     ? 1
-    : Math.min(Math.max(input.maxJobs ?? remaining, 1), remaining, 50)
+    : Math.min(Math.max(input.maxJobs ?? remaining * 3, remaining, 1), 50)
 
   let jobsQuery = input.client
     .from("agent_jobs")
     .select(
-      "id, title, location, language, description, raw_listing_text, url, source, status, company_id, relevance",
+      "id, title, location, language, description, raw_listing_text, url, source, status, company_id, relevance, posted_at, updated_at",
     )
     .eq("user_id", input.userId)
-    .order("updated_at", { ascending: true })
     .limit(fetchLimit)
 
   if (input.jobId) {
@@ -476,7 +475,50 @@ export async function runDraftGeneration(input: {
     }
   }
 
-  const jobs = ((rows as JobRow[] | null) ?? []).filter((j) =>
+  type JobRowWithMeta = JobRow & {
+    posted_at?: string | null
+    updated_at?: string | null
+    relevance?: AgentRelevancePayload | Record<string, unknown> | null
+  }
+
+  const eligible = ((rows as JobRowWithMeta[] | null) ?? []).filter((j) =>
+    DRAFT_ELIGIBLE.includes(j.status as AgentJobStatus),
+  )
+
+  function relevanceStrength(rel: JobRowWithMeta["relevance"]): number {
+    if (!rel || typeof rel !== "object") return 0
+    const met = Array.isArray((rel as AgentRelevancePayload).requirements_met)
+      ? (rel as AgentRelevancePayload).requirements_met.length
+      : 0
+    const unmet = Array.isArray((rel as AgentRelevancePayload).requirements_not_met)
+      ? (rel as AgentRelevancePayload).requirements_not_met.length
+      : 0
+    return met * 10 - unmet
+  }
+
+  function postedMs(posted: string | null | undefined, fallback: string | null | undefined): number {
+    if (posted) {
+      const t = Date.parse(posted)
+      if (!Number.isNaN(t)) return t
+    }
+    if (fallback) {
+      const t = Date.parse(fallback)
+      if (!Number.isNaN(t)) return t
+    }
+    return 0
+  }
+
+  const sorted = input.jobId
+    ? eligible
+    : [...eligible].sort((a, b) => {
+        const strengthDelta = relevanceStrength(b.relevance) - relevanceStrength(a.relevance)
+        if (strengthDelta !== 0) return strengthDelta
+        return (
+          postedMs(b.posted_at, b.updated_at) - postedMs(a.posted_at, a.updated_at)
+        )
+      })
+
+  const jobs = (input.jobId ? sorted : sorted.slice(0, remaining)).filter((j) =>
     DRAFT_ELIGIBLE.includes(j.status as AgentJobStatus),
   )
 
@@ -631,6 +673,7 @@ export async function runDraftGeneration(input: {
       drafted: counts.drafted,
       errors: errorMessages.slice(0, 50),
       details: {
+        agent: "writer",
         drafted: counts.drafted,
         skipped_cap: counts.skippedCap,
         errors: counts.errors,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getServerCvUser } from "@/lib/cv-auth-session-server"
-import { isJobAgentEnabled } from "@/lib/agents/feature-flag"
+import { isJobAgentApiEnabled } from "@/lib/agents/feature-flag"
 import { getSupabaseEnv, SUPABASE_REQUEST_TIMEOUT_MS } from "@/lib/supabase/config"
 import {
   getSupabaseServerAuthStatus,
@@ -27,7 +27,7 @@ export async function requireAgentsApi(): Promise<
   | { ok: true; ctx: AgentsApiContext }
   | { ok: false; response: NextResponse }
 > {
-  if (!isJobAgentEnabled()) {
+  if (!isJobAgentApiEnabled()) {
     return {
       ok: false,
       response: NextResponse.json({ error: "Not found" }, { status: 404 }),

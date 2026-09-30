@@ -51,9 +51,19 @@ export function buildCitedFactsSnapshot(
   return snapshot
 }
 
-export function getJobAgentDailyCap(): number {
-  const raw = process.env.JOB_AGENT_DAILY_CAP?.trim()
+/**
+ * Max tailored drafts per UTC day.
+ * Primary: JOB_DRAFTS_DAILY_CAP. Alias: JOB_AGENT_DAILY_CAP (legacy Phase 5–7 name).
+ */
+export function getJobDraftsDailyCap(): number {
+  const raw =
+    process.env.JOB_DRAFTS_DAILY_CAP?.trim() || process.env.JOB_AGENT_DAILY_CAP?.trim()
   const n = raw ? Number.parseInt(raw, 10) : 5
   if (!Number.isFinite(n) || n < 1) return 5
   return Math.min(n, 50)
+}
+
+/** @deprecated Prefer getJobDraftsDailyCap — kept as alias for call sites. */
+export function getJobAgentDailyCap(): number {
+  return getJobDraftsDailyCap()
 }

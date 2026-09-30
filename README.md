@@ -44,25 +44,33 @@ Branch: `feature/job-agents-v2`. Default **off** — matches tags `pre-job-agent
 
 ### Setup
 
-1. Apply SQL in Supabase: `source/src/scripts/020_agent_tables.sql` (plus `021_*`, `022_*` if not already applied).
+1. Apply SQL in a **dev** Supabase project (not live): `020_agent_tables.sql` … `023_agent_controls_scheduling.sql`. See `docs/agents-local-dev.md`.
 2. In Vercel / `.env.local` set:
-   - `JOB_AGENT_ENABLED=true`
-   - `NEXT_PUBLIC_JOB_AGENT_ENABLED=true` (nav + client UI)
+   - `JOB_AGENT_ENABLED=true` (server — gates **all** `/api/agents/*`)
+   - `NEXT_PUBLIC_JOB_AGENT_ENABLED=true` (nav + client UI only)
    - `ANTHROPIC_API_KEY` (relevance + drafts)
    - Optional sources: `BA_JOBSUCHE_API_KEY`, `ADZUNA_APP_ID` / `ADZUNA_APP_KEY`
-   - Optional: `JOB_AGENT_DAILY_CAP=5`, `JOB_AGENT_AUTO_REVIEW=false`, `JOB_AGENT_GMAIL_CONNECTED=false`
+   - Caps: `JOB_DRAFTS_DAILY_CAP=5` (alias `JOB_AGENT_DAILY_CAP`), `COMPANY_SCOUT_WEEKLY_CAP=5`
+   - Optional: `JOB_AGENT_AUTO_REVIEW=false`, `JOB_AGENT_GMAIL_*` for email send
    - Cron: `JOB_AGENT_CRON_SECRET` and Vercel `CRON_SECRET` (same value)
-3. Redeploy. Open **Job agents** from the profile menu → confirm master-profile facts → Search settings → **Run now** on the queue (or wait for daily cron).
+3. Redeploy only when ready (Phase 9 does not deploy). Open **Job agents** → confirm facts → Search settings (pause / Run now per agent).
 
-`source/src/vercel.json` schedules `GET /api/agents/cron` daily at **06:00 UTC** (search → relevance → draft; respects daily cap). Manual **Run now** hits `POST /api/agents/pipeline/run`.
+`source/src/vercel.json` schedules:
+
+- **Job Scout** 3× daily UTC **06:00 / 12:00 / 18:00** → scout → assess → draft
+- **Company Scout** weekly **Mon 07:00 UTC** → company discovery → assess → draft
+
+Manual full Job Scout pipeline: `POST /api/agents/pipeline/run`. Per-agent: `POST /api/agents/run`.
 
 ### Env vars (agents)
 
 | Variable | Default | Role |
 |----------|---------|------|
-| `JOB_AGENT_ENABLED` | `false` | Server/API gate |
+| `JOB_AGENT_ENABLED` | `false` | Server/API + cron gate (alone) |
 | `NEXT_PUBLIC_JOB_AGENT_ENABLED` | `false` | Client nav/UI |
-| `JOB_AGENT_DAILY_CAP` | `5` | Max drafts per UTC day |
+| `JOB_DRAFTS_DAILY_CAP` | `5` | Max drafts per UTC day (primary) |
+| `JOB_AGENT_DAILY_CAP` | — | Legacy alias for `JOB_DRAFTS_DAILY_CAP` |
+| `COMPANY_SCOUT_WEEKLY_CAP` | `5` | Max new initiative jobs per UTC week |
 | `JOB_AGENT_AUTO_REVIEW` | `false` | Auto-review after search |
 | `JOB_AGENT_CRON_SECRET` | — | Auth for `/api/agents/cron` |
 | `CRON_SECRET` | — | Vercel cron Bearer (set equal to `JOB_AGENT_CRON_SECRET`) |
@@ -78,6 +86,7 @@ See `source/src/.env.example`, `docs/agents-local-dev.md`, `docs/agents-data.md`
 
 - No LinkedIn scraping. No portal auto-apply. Gmail send requires OAuth env (or legacy stub flag for local testing only).
 - Claude receives **confirmed** master-profile facts + listing text only; drafts keep `cited_facts_snapshot`.
+- Draft selection prefers **strongest relevance + freshest `posted_at`**.
 - **Delete all agent data** (Search settings) clears `agent_*` only — not resumes / `job_applications`.
 
 ### Rollback

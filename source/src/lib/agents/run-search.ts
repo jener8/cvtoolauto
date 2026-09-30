@@ -141,6 +141,7 @@ export async function runJobSearch(input: {
       drafted: 0,
       errors: errors.slice(0, 50),
       details: {
+        agent: "job_scout",
         inserted,
         duplicates: duplicatesTotal,
         bySource,

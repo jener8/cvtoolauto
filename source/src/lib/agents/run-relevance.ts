@@ -366,6 +366,7 @@ export async function runRelevanceReview(input: {
       drafted: 0,
       errors: errorMessages.slice(0, 50),
       details: {
+        agent: "assessor",
         reviewed: counts.reviewed,
         relevant: counts.relevant,
         not_relevant: counts.notRelevant,

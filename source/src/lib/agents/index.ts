@@ -1,4 +1,4 @@
-export { isJobAgentEnabled, isJobAgentEnabledClient } from "@/lib/agents/feature-flag"
+export { isJobAgentEnabled, isJobAgentEnabledClient, isJobAgentApiEnabled } from "@/lib/agents/feature-flag"
 export { getConfirmedFacts, listProfileFacts, mapAgentProfileFactRow } from "@/lib/agents/profile-facts"
 export { buildSeedFacts, pickSeedResume } from "@/lib/agents/seed-facts"
 export {
@@ -7,6 +7,14 @@ export {
   mapSearchSettingsRow,
 } from "@/lib/agents/search-settings"
 export { runJobSearch } from "@/lib/agents/run-search"
+export { runCompanyScout, getCompanyScoutWeeklyCap } from "@/lib/agents/run-company-scout"
+export {
+  getAgentControls,
+  setAgentPaused,
+  isAgentPaused,
+  AGENT_CONTROL_KEYS,
+} from "@/lib/agents/agent-controls"
+export type { AgentControlKey, AgentControlsMap } from "@/lib/agents/agent-controls"
 export {
   runRelevanceReview,
   reviewJobRelevance,
@@ -16,8 +24,13 @@ export {
   runDraftGeneration,
   requestDraftChanges,
 } from "@/lib/agents/run-draft"
-export { runDailyPipeline } from "@/lib/agents/run-pipeline"
-export type { PipelineTrigger, RunPipelineResult } from "@/lib/agents/run-pipeline"
+export {
+  runDailyPipeline,
+  runJobScoutPipeline,
+  runCompanyScoutPipeline,
+  runSingleAgent,
+} from "@/lib/agents/run-pipeline"
+export type { PipelineTrigger, RunPipelineResult, CronAgent } from "@/lib/agents/run-pipeline"
 export { deleteAllAgentData, AGENT_DATA_TABLES } from "@/lib/agents/delete-agent-data"
 export type { DeleteAgentDataResult } from "@/lib/agents/delete-agent-data"
 export { addAgentJobToApplications } from "@/lib/agents/add-to-applications"
@@ -38,7 +51,7 @@ export {
 } from "@/lib/agents/gmail-send"
 export { getAgentsCopy, detectAgentsLocale, SEND_UNDO_MS, AGENTS_ACCENT } from "@/lib/agents/copy"
 export type { AgentsLocale, AgentsCopy } from "@/lib/agents/copy"
-export { getJobAgentDailyCap } from "@/lib/agents/draft-schema"
+export { getJobAgentDailyCap, getJobDraftsDailyCap } from "@/lib/agents/draft-schema"
 export {
   getAgentsAnthropicModelId,
   isAgentsAnthropicConfigured,

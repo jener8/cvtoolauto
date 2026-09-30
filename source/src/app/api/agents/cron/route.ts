@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
-import { isJobAgentEnabled } from "@/lib/agents/feature-flag"
+import { isJobAgentApiEnabled } from "@/lib/agents/feature-flag"
 import { isAuthorizedCronRequest, getJobAgentCronSecret } from "@/lib/agents/cron-auth"
-import { runDailyPipeline } from "@/lib/agents/run-pipeline"
+import {
+  runCompanyScoutPipeline,
+  runJobScoutPipeline,
+  type CronAgent,
+} from "@/lib/agents/run-pipeline"
 import { getSupabaseEnv } from "@/lib/supabase/config"
 import {
   SUPABASE_SERVER_AUTH_SETUP_HINT,
@@ -21,13 +25,20 @@ export const maxDuration = 300
 
 const PIPELINE_TIMEOUT_MS = 280_000
 
+function resolveCronAgent(request: Request): CronAgent {
+  const url = new URL(request.url)
+  const raw = (url.searchParams.get("agent") || "job_scout").trim().toLowerCase()
+  if (raw === "company_scout" || raw === "company") return "company_scout"
+  return "job_scout"
+}
+
 /**
- * GET/POST /api/agents/cron
- * Vercel Cron (daily) — search → relevance → draft behind JOB_AGENT_ENABLED.
+ * GET/POST /api/agents/cron?agent=job_scout|company_scout
+ * Vercel Cron — gated by JOB_AGENT_ENABLED alone (not NEXT_PUBLIC_*).
  * Auth: Authorization: Bearer $JOB_AGENT_CRON_SECRET (set CRON_SECRET to the same value on Vercel).
  */
 async function handleCron(request: Request) {
-  if (!isJobAgentEnabled()) {
+  if (!isJobAgentApiEnabled()) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
@@ -83,19 +94,30 @@ async function handleCron(request: Request) {
     )
   }
 
+  const agent = resolveCronAgent(request)
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), PIPELINE_TIMEOUT_MS)
   try {
-    const result = await runDailyPipeline({
-      userId: authData.user.id,
-      client: supabase,
-      trigger: "cron",
-      signal: controller.signal,
-    })
+    const result =
+      agent === "company_scout"
+        ? await runCompanyScoutPipeline({
+            userId: authData.user.id,
+            client: supabase,
+            trigger: "cron",
+            signal: controller.signal,
+          })
+        : await runJobScoutPipeline({
+            userId: authData.user.id,
+            client: supabase,
+            trigger: "cron",
+            signal: controller.signal,
+          })
 
     return NextResponse.json({
       ok: true,
+      agent: result.agent,
       trigger: result.trigger,
+      skippedPaused: result.skippedPaused,
       fetched: result.fetched,
       inserted: result.inserted,
       relevant: result.relevant,

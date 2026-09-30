@@ -1,8 +1,20 @@
 {
   "crons": [
     {
-      "path": "/api/agents/cron",
+      "path": "/api/agents/cron?agent=job_scout",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/agents/cron?agent=job_scout",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/agents/cron?agent=job_scout",
+      "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/agents/cron?agent=company_scout",
+      "schedule": "0 7 * * 1"
     }
   ]
 }
