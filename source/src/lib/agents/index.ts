@@ -30,6 +30,12 @@ export {
   completeEmailSend,
   markAgentJobSent,
 } from "@/lib/agents/review-actions"
+export {
+  getGmailCredentials,
+  hasGmailApiCredentials,
+  isGmailConnected,
+  sendApplicationEmailViaGmail,
+} from "@/lib/agents/gmail-send"
 export { getAgentsCopy, detectAgentsLocale, SEND_UNDO_MS, AGENTS_ACCENT } from "@/lib/agents/copy"
 export type { AgentsLocale, AgentsCopy } from "@/lib/agents/copy"
 export { getJobAgentDailyCap } from "@/lib/agents/draft-schema"

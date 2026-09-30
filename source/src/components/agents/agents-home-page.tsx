@@ -23,6 +23,16 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   AlertTriangle,
   ArrowLeft,
   Briefcase,
@@ -501,6 +511,8 @@ export function AgentsHomePage() {
   const [rejectReason, setRejectReason] = useState("")
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set())
   const [linkedAppIds, setLinkedAppIds] = useState<Set<string>>(new Set())
+  /** Per-item email send confirmation — never batch. */
+  const [confirmSendJobId, setConfirmSendJobId] = useState<string | null>(null)
 
   const factById = useMemo(() => {
     const map = new Map<string, AgentProfileFact>()
@@ -601,6 +613,7 @@ export function AgentsHomePage() {
         error?: string
         status?: AgentJobStatus
         gmailConnected?: boolean
+        gmailMessageId?: string | null
         message?: string
       }
       if (!res.ok) throw new Error(data.error ?? "Action failed")
@@ -616,13 +629,25 @@ export function AgentsHomePage() {
             title: copy.toast.gmailStub,
             description: data.message ?? copy.gmailNotConnected,
           })
+        } else if (data.status === "sent" && data.gmailMessageId?.startsWith("stub-")) {
+          toast({
+            title: copy.toast.markedSent,
+            description: data.message,
+          })
+        } else if (data.status === "sent") {
+          toast({ title: copy.toast.emailSent })
         } else {
-          toast({ title: copy.toast.markedSent })
+          toast({
+            title: copy.toast.gmailSendFailed,
+            description: data.message,
+            variant: "destructive",
+          })
         }
       }
 
       setRejectingId(null)
       setRejectReason("")
+      setConfirmSendJobId(null)
       await refresh()
     } catch (error) {
       toast({
@@ -1211,7 +1236,7 @@ export function AgentsHomePage() {
                           size="sm"
                           variant="outline"
                           disabled={busyRow}
-                          onClick={() => void runJobAction(job.id, "start_send")}
+                          onClick={() => setConfirmSendJobId(job.id)}
                           className={`border-[#2D7A5F] text-[#2D7A5F] ${focusRing}`}
                         >
                           <Send className="mr-1.5 h-3.5 w-3.5" aria-hidden />
@@ -1416,6 +1441,43 @@ export function AgentsHomePage() {
           </ul>
         )}
       </div>
+
+      <AlertDialog
+        open={confirmSendJobId != null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmSendJobId(null)
+        }}
+      >
+        <AlertDialogContent busy={actionId === confirmSendJobId}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{copy.confirmSendTitle}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {copy.confirmSendDescription(
+                jobs.find((j) => j.id === confirmSendJobId)?.emailTo ?? null,
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionId === confirmSendJobId}>
+              {copy.confirmSendCancel}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={actionId === confirmSendJobId || !confirmSendJobId}
+              className="bg-[#2D7A5F] text-white hover:bg-[#2D7A5F]/90"
+              onClick={(e) => {
+                e.preventDefault()
+                if (!confirmSendJobId) return
+                void runJobAction(confirmSendJobId, "start_send")
+              }}
+            >
+              {actionId === confirmSendJobId ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : null}
+              {copy.confirmSendConfirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

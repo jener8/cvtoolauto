@@ -1,11 +1,17 @@
 /**
- * Phase 6 human review actions on agent_jobs.
- * Never auto-submits to employer portals. Gmail send is stubbed until connected.
+ * Phase 6–8 human review actions on agent_jobs.
+ * Never auto-submits to employer portals.
+ * Email finalize: Gmail API when OAuth env is set; otherwise safe stub / no-send.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { AgentApplyMethod, AgentJobKind, AgentJobStatus } from "@/lib/agents/types"
 import { SEND_UNDO_MS } from "@/lib/agents/copy"
+import {
+  hasGmailApiCredentials,
+  isGmailConnected,
+  sendApplicationEmailViaGmail,
+} from "@/lib/agents/gmail-send"
 
 export type AgentJobRow = {
   id: string
@@ -16,6 +22,7 @@ export type AgentJobRow = {
   reject_reason: string | null
   gmail_message_id: string | null
   sending_started_at: string | null
+  title?: string | null
 }
 
 export type ReviewActionResult = {
@@ -28,11 +35,6 @@ export type ReviewActionResult = {
   message?: string
 }
 
-function isGmailConnected(): boolean {
-  // Phase 6: no Gmail OAuth yet — always stubbed.
-  return process.env.JOB_AGENT_GMAIL_CONNECTED === "true"
-}
-
 async function loadJob(input: {
   client: SupabaseClient
   userId: string
@@ -42,7 +44,7 @@ async function loadJob(input: {
   let query = input.client
     .from("agent_jobs")
     .select(
-      "id, status, kind, apply_method, email_to, reject_reason, gmail_message_id, sending_started_at",
+      "id, status, kind, apply_method, email_to, reject_reason, gmail_message_id, sending_started_at, title",
     )
     .eq("user_id", input.userId)
     .eq("id", input.jobId)
@@ -68,7 +70,7 @@ async function updateJob(input: {
     .eq("user_id", input.userId)
     .eq("id", input.jobId)
     .select(
-      "id, status, kind, apply_method, email_to, reject_reason, gmail_message_id, sending_started_at",
+      "id, status, kind, apply_method, email_to, reject_reason, gmail_message_id, sending_started_at, title",
     )
   if (input.signal) query = query.abortSignal(input.signal)
 
@@ -96,6 +98,30 @@ async function hasDraft(input: {
 
   if (error) throw new Error(error.message)
   return Boolean(data?.id)
+}
+
+async function loadLatestDraft(input: {
+  client: SupabaseClient
+  userId: string
+  jobId: string
+  signal?: AbortSignal
+}): Promise<{ cover_text: string | null; cv_text: string | null } | null> {
+  let query = input.client
+    .from("agent_drafts")
+    .select("cover_text, cv_text, version")
+    .eq("user_id", input.userId)
+    .eq("job_id", input.jobId)
+    .order("version", { ascending: false })
+    .limit(1)
+  if (input.signal) query = query.abortSignal(input.signal)
+
+  const { data, error } = await query.maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!data) return null
+  return {
+    cover_text: (data.cover_text as string | null) ?? null,
+    cv_text: (data.cv_text as string | null) ?? null,
+  }
 }
 
 /** reviewing (+ draft) → approved */
@@ -167,6 +193,7 @@ export async function rejectAgentJob(input: {
 /**
  * Email / initiative: approved → sending (starts 30s undo).
  * Portal must never use this path.
+ * Caller UI must show a per-item confirmation dialog before invoking.
  */
 export async function startEmailSend(input: {
   client: SupabaseClient
@@ -202,12 +229,13 @@ export async function startEmailSend(input: {
     },
   })
 
+  const connected = isGmailConnected()
   return {
     jobId: updated.id,
     status: updated.status,
     sendingStartedAt: updated.sending_started_at,
-    gmailConnected: isGmailConnected(),
-    message: isGmailConnected()
+    gmailConnected: connected,
+    message: connected
       ? undefined
       : "Gmail not connected — after the undo window, send will be skipped; you can mark as sent manually.",
   }
@@ -241,8 +269,9 @@ export async function undoEmailSend(input: {
 }
 
 /**
- * After undo window: attempt Gmail (stub) → sent, or stay approved with not-connected.
- * Client should only call once remaining <= 0.
+ * After undo window: Gmail API send (if credentials) → sent + gmail_message_id.
+ * Legacy JOB_AGENT_GMAIL_CONNECTED stub marks sent with stub id (local/dev only).
+ * Otherwise revert to approved (no employer email).
  */
 export async function completeEmailSend(input: {
   client: SupabaseClient
@@ -284,7 +313,91 @@ export async function completeEmailSend(input: {
     }
   }
 
-  // Stub success path when env says connected (local/dev toggle only)
+  // Real Gmail API path
+  if (hasGmailApiCredentials()) {
+    const to = job.email_to?.trim()
+    if (!to) {
+      const updated = await updateJob({
+        ...input,
+        patch: {
+          status: "approved",
+          sending_started_at: null,
+        },
+      })
+      return {
+        jobId: updated.id,
+        status: updated.status,
+        sendingStartedAt: null,
+        gmailConnected: true,
+        message: "No recipient email on this job — send skipped. Add email_to or mark as sent manually.",
+      }
+    }
+
+    const draft = await loadLatestDraft(input)
+    const cover = draft?.cover_text?.trim() ?? ""
+    if (!cover) {
+      const updated = await updateJob({
+        ...input,
+        patch: {
+          status: "approved",
+          sending_started_at: null,
+        },
+      })
+      return {
+        jobId: updated.id,
+        status: updated.status,
+        sendingStartedAt: null,
+        gmailConnected: true,
+        message: "Cover letter is empty — edit the draft, then start send again.",
+      }
+    }
+
+    const title = job.title?.trim() || "Application"
+    try {
+      const sent = await sendApplicationEmailViaGmail({
+        to,
+        subject: `Application: ${title}`,
+        bodyText: cover,
+        cvText: draft?.cv_text ?? null,
+        signal: input.signal,
+      })
+
+      const updated = await updateJob({
+        ...input,
+        patch: {
+          status: "sent",
+          gmail_message_id: sent.messageId,
+          sending_started_at: null,
+        },
+      })
+
+      return {
+        jobId: updated.id,
+        status: updated.status,
+        gmailMessageId: updated.gmail_message_id,
+        gmailConnected: true,
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Gmail send failed"
+      // Stay in sending? Better revert to approved so user can retry after fixing credentials.
+      const updated = await updateJob({
+        ...input,
+        patch: {
+          status: "approved",
+          sending_started_at: null,
+        },
+      })
+      return {
+        jobId: updated.id,
+        status: updated.status,
+        sendingStartedAt: null,
+        gmailConnected: true,
+        message,
+      }
+    }
+  }
+
+  // Legacy stub when JOB_AGENT_GMAIL_CONNECTED=true but no OAuth env
   const messageId = `stub-gmail-${job.id.slice(0, 8)}-${Date.now()}`
   const updated = await updateJob({
     ...input,
@@ -300,6 +413,7 @@ export async function completeEmailSend(input: {
     status: updated.status,
     gmailMessageId: updated.gmail_message_id,
     gmailConnected: true,
+    message: "Stub send (JOB_AGENT_GMAIL_CONNECTED) — configure Gmail OAuth env for a real send.",
   }
 }
 
@@ -333,4 +447,4 @@ export async function markAgentJobSent(input: {
   }
 }
 
-export { isGmailConnected, SEND_UNDO_MS }
+export { isGmailConnected, SEND_UNDO_MS, hasGmailApiCredentials }

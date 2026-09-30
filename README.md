@@ -66,16 +66,17 @@ Branch: `feature/job-agents-v2`. Default **off** — matches tags `pre-job-agent
 | `JOB_AGENT_AUTO_REVIEW` | `false` | Auto-review after search |
 | `JOB_AGENT_CRON_SECRET` | — | Auth for `/api/agents/cron` |
 | `CRON_SECRET` | — | Vercel cron Bearer (set equal to `JOB_AGENT_CRON_SECRET`) |
-| `JOB_AGENT_GMAIL_CONNECTED` | `false` | Email send stub unlock |
+| `JOB_AGENT_GMAIL_CLIENT_ID` / `SECRET` / `REFRESH_TOKEN` / `FROM` | — | Real Gmail API send (Phase 8) |
+| `JOB_AGENT_GMAIL_CONNECTED` | `false` | Legacy stub send unlock (no employer email) |
 | `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | — | Relevance + Writer/Fact Checker |
 | `BA_JOBSUCHE_API_KEY` | public BA key | Arbeitsagentur |
 | `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` | — | Adzuna (skipped if unset) |
 
-See `source/src/.env.example`, `docs/agents-data.md` (storage/GDPR), and `docs/agents-job-applications-mapping.md` (optional “Add to my applications”).
+See `source/src/.env.example`, `docs/agents-local-dev.md`, `docs/agents-data.md` (storage/GDPR), and `docs/agents-job-applications-mapping.md` (optional “Add to my applications”).
 
 ### Behaviour notes
 
-- No LinkedIn scraping. No portal auto-apply. Gmail send stays stubbed unless connected.
+- No LinkedIn scraping. No portal auto-apply. Gmail send requires OAuth env (or legacy stub flag for local testing only).
 - Claude receives **confirmed** master-profile facts + listing text only; drafts keep `cited_facts_snapshot`.
 - **Delete all agent data** (Search settings) clears `agent_*` only — not resumes / `job_applications`.
 

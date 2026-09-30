@@ -85,6 +85,10 @@ type AgentsCopyTree = {
   rejectConfirm: string
   rejectCancel: string
   startEmailSend: string
+  confirmSendTitle: string
+  confirmSendDescription: (to: string | null) => string
+  confirmSendConfirm: string
+  confirmSendCancel: string
   undoSend: string
   undoCountdown: (seconds: number) => string
   gmailNotConnected: string
@@ -116,7 +120,9 @@ type AgentsCopyTree = {
     sendingStarted: string
     sendUndone: string
     markedSent: string
+    emailSent: string
     gmailStub: string
+    gmailSendFailed: string
     loadFailed: string
     actionFailed: string
     pipelineComplete: string
@@ -202,7 +208,14 @@ const en: AgentsCopyTree = {
   rejectReasonPlaceholder: "Why this role is not going forward…",
   rejectConfirm: "Confirm reject",
   rejectCancel: "Cancel",
-  startEmailSend: "Start email send (30s undo)",
+  startEmailSend: "Send email…",
+  confirmSendTitle: "Send this application email?",
+  confirmSendDescription: (to) =>
+    to
+      ? `This starts a 30-second undo window, then sends the cover letter to ${to} via Gmail (if connected). Only this one job — never a batch.`
+      : "This starts a 30-second undo window, then attempts Gmail send for this one job only. No recipient email is set — send will be skipped unless you add one.",
+  confirmSendConfirm: "Confirm send",
+  confirmSendCancel: "Cancel",
   undoSend: "Undo send",
   undoCountdown: (seconds) => `Sending in ${seconds}s — undo available`,
   gmailNotConnected:
@@ -211,9 +224,10 @@ const en: AgentsCopyTree = {
   portalReadyHint:
     "Ready to submit on the employer portal yourself. Use Mark as sent after you apply — EquitAI never submits to portals.",
   emailApprovedHint:
-    "Approved for email. Start the send flow for a 30-second undo window. Actual Gmail send requires a connected account (not yet).",
-  sendingHint: "Undo window active. After it ends, EquitAI will attempt email send if Gmail is connected.",
-  sentHint: "Marked as sent. This job stays in the queue so it will not be fetched again.",
+    "Approved for email. Confirm send for a 30-second undo window, then EquitAI sends via Gmail if OAuth env is configured.",
+  sendingHint:
+    "Undo window active. After it ends, EquitAI sends via Gmail when credentials are set; otherwise send is skipped.",
+  sentHint: "Sent (or marked sent). This job stays in the queue so it will not be fetched again.",
   rejectedHint: (reason) =>
     reason
       ? `Rejected — kept so it will not be fetched again. Reason: ${reason}`
@@ -240,7 +254,9 @@ const en: AgentsCopyTree = {
     sendingStarted: "Send started — you have 30 seconds to undo",
     sendUndone: "Send undone — back to approved",
     markedSent: "Marked as sent",
+    emailSent: "Email sent via Gmail",
     gmailStub: "Gmail not connected — send skipped",
+    gmailSendFailed: "Gmail send failed — back to approved",
     loadFailed: "Could not load job queue",
     actionFailed: "Action failed",
     pipelineComplete: "Pipeline complete",
@@ -326,7 +342,14 @@ const de: AgentsCopyTree = {
   rejectReasonPlaceholder: "Warum diese Stelle nicht weiterverfolgt wird…",
   rejectConfirm: "Ablehnung bestätigen",
   rejectCancel: "Abbrechen",
-  startEmailSend: "E-Mail-Versand starten (30s Rückgängig)",
+  startEmailSend: "E-Mail senden…",
+  confirmSendTitle: "Diese Bewerbungs-E-Mail senden?",
+  confirmSendDescription: (to) =>
+    to
+      ? `Startet ein 30-Sekunden-Rückgängig-Fenster und sendet danach das Anschreiben an ${to} per Gmail (falls verbunden). Nur dieser eine Job — nie im Stapel.`
+      : "Startet ein 30-Sekunden-Rückgängig-Fenster und versucht danach den Gmail-Versand nur für diesen Job. Keine Empfängeradresse gesetzt — Versand wird übersprungen, bis eine Adresse vorhanden ist.",
+  confirmSendConfirm: "Versand bestätigen",
+  confirmSendCancel: "Abbrechen",
   undoSend: "Versand rückgängig",
   undoCountdown: (seconds) => `Versand in ${seconds}s — Rückgängig möglich`,
   gmailNotConnected:
@@ -335,10 +358,10 @@ const de: AgentsCopyTree = {
   portalReadyHint:
     "Bereit zur eigenen Einreichung im Arbeitgeberportal. Nach der Bewerbung „Als gesendet markieren“ — EquitAI reicht nie auf Portalen ein.",
   emailApprovedHint:
-    "Für E-Mail freigegeben. Starten Sie den Versand mit 30-Sekunden-Rückgängig. Tatsächlicher Gmail-Versand braucht ein verbundenes Konto (noch nicht).",
+    "Für E-Mail freigegeben. Versand bestätigen für 30-Sekunden-Rückgängig; danach sendet EquitAI per Gmail, wenn OAuth-Env gesetzt ist.",
   sendingHint:
-    "Rückgängig-Fenster aktiv. Danach versucht EquitAI den Versand, wenn Gmail verbunden ist.",
-  sentHint: "Als gesendet markiert. Der Job bleibt in der Warteschlange und wird nicht erneut geholt.",
+    "Rückgängig-Fenster aktiv. Danach sendet EquitAI per Gmail, wenn Zugangsdaten gesetzt sind; sonst wird der Versand übersprungen.",
+  sentHint: "Gesendet (oder als gesendet markiert). Der Job bleibt in der Warteschlange und wird nicht erneut geholt.",
   rejectedHint: (reason) =>
     reason
       ? `Abgelehnt — behalten, damit er nicht erneut geholt wird. Grund: ${reason}`
@@ -365,7 +388,9 @@ const de: AgentsCopyTree = {
     sendingStarted: "Versand gestartet — 30 Sekunden zum Rückgängigmachen",
     sendUndone: "Versand rückgängig — wieder freigegeben",
     markedSent: "Als gesendet markiert",
+    emailSent: "E-Mail per Gmail gesendet",
     gmailStub: "Gmail nicht verbunden — Versand übersprungen",
+    gmailSendFailed: "Gmail-Versand fehlgeschlagen — wieder freigegeben",
     loadFailed: "Warteschlange konnte nicht geladen werden",
     actionFailed: "Aktion fehlgeschlagen",
     pipelineComplete: "Pipeline abgeschlossen",

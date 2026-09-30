@@ -58,4 +58,9 @@ Daily cron (`vercel.json` → `GET/POST /api/agents/cron` at 06:00 UTC) runs sea
 
 ## No employer submission from agents
 
-Agents never auto-submit to employer portals. Gmail send stays stubbed unless `JOB_AGENT_GMAIL_CONNECTED=true` (still not a full OAuth integration in v2). Humans approve, edit, and apply manually.
+Agents never auto-submit to employer portals. Portal applications stay **Mark as sent** only.
+
+Email applications: per-item confirmation dialog → 30s undo → Gmail API send when
+`JOB_AGENT_GMAIL_CLIENT_ID` / `SECRET` / `REFRESH_TOKEN` / `FROM` are set (stores
+`gmail_message_id`). Without credentials, finalize reverts to approved (no employer email).
+`JOB_AGENT_GMAIL_CONNECTED=true` is a local stub that marks sent with a `stub-gmail-*` id only.
