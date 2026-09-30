@@ -16,6 +16,16 @@ export {
   runDraftGeneration,
   requestDraftChanges,
 } from "@/lib/agents/run-draft"
+export {
+  approveAgentJob,
+  rejectAgentJob,
+  startEmailSend,
+  undoEmailSend,
+  completeEmailSend,
+  markAgentJobSent,
+} from "@/lib/agents/review-actions"
+export { getAgentsCopy, detectAgentsLocale, SEND_UNDO_MS, AGENTS_ACCENT } from "@/lib/agents/copy"
+export type { AgentsLocale, AgentsCopy } from "@/lib/agents/copy"
 export { getJobAgentDailyCap } from "@/lib/agents/draft-schema"
 export {
   getAgentsAnthropicModelId,
