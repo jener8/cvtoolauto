@@ -102,7 +102,7 @@ Open:
 | http://localhost:3000/app/agents/profile | Master-profile facts |
 | http://localhost:3000/app/agents/settings | Search settings, pause/run per agent, delete agent data |
 
-Agents also appear in the profile menu when `NEXT_PUBLIC_JOB_AGENT_ENABLED=true`.
+Agents also appear in the left workspace nav and profile menu when `NEXT_PUBLIC_JOB_AGENT_ENABLED=true`.
 
 ## 4. What works without Adzuna / BA keys
 
@@ -136,4 +136,4 @@ Unset or set `JOB_AGENT_ENABLED` to anything other than `true`:
 - Cron → 404
 - SSR `/app/agents*` → 404 when server flag off
 
-Unset `NEXT_PUBLIC_JOB_AGENT_ENABLED` to hide profile-menu Agents item.
+Unset `NEXT_PUBLIC_JOB_AGENT_ENABLED` to hide the sidebar and profile-menu Agents items.
