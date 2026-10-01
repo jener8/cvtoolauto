@@ -67,3 +67,41 @@ Queried for presence of `agent_jobs` / `agent_profile_facts` (and siblings). Liv
 | other `agent_*` | missing |
 
 **Δ for all non-agent tables: 0.** Agent migrations were not applied to live during Phase 9 (as intended).
+
+---
+
+## Re-verify — 2026-10-01 (pre-deploy prep)
+
+| Field | Value |
+|-------|--------|
+| **Measured at** | `2026-10-01T07:27:04.031Z` |
+| **Project host** | `gpbqlxowvwosonatiuac.supabase.co` |
+| **Method** | Same as baseline (Supabase JS + `SUPABASE_APP_USER_*` from `source/src/.env.local`) |
+
+### Non-agent tables (now vs baseline)
+
+| Table | Baseline | Now | Δ |
+|-------|----------|-----|---|
+| `profiles` | 1 | 1 | 0 |
+| `folders` | 4 | 4 | 0 |
+| `resume_versions` | 56 | 56 | 0 |
+| `job_applications` | 290 | 290 | 0 |
+| `cover_letters` | 57 | 57 | 0 |
+| `interview_questions` | 4 | 4 | 0 |
+
+### Agent tables (existence)
+
+Queried with `select` (not `head: true` alone). All missing on live:
+
+| Table | Result |
+|-------|--------|
+| `agent_profile_facts` | **missing** (PGRST205) |
+| `agent_search_settings` | **missing** |
+| `agent_companies` | **missing** |
+| `agent_jobs` | **missing** |
+| `agent_drafts` | **missing** |
+| `agent_activity` | **missing** |
+| `agent_agent_controls` | **missing** |
+
+**Δ for all non-agent tables: 0.** SQL `020`–`023` still **not** applied on live Supabase.
+
