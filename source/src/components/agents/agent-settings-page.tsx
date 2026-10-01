@@ -247,9 +247,17 @@ export function AgentSettingsPage() {
       setLastAgentRun(summary)
       toast({ title: "Run complete", description: summary })
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error"
+      const friendly =
+        /unauthorized/i.test(message)
+          ? "You are not signed in. Open Login, then return here and try again."
+          : /PGRST205|Could not find the table/i.test(message)
+            ? `${message} — apply scripts 020–023 on a non-live Supabase project (do not migrate live without approval).`
+            : message
+      setLastAgentRun(`Run failed: ${friendly}`)
       toast({
         title: "Run failed",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: friendly,
         variant: "destructive",
       })
     } finally {

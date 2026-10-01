@@ -484,6 +484,17 @@ function SendUndoBanner({
   )
 }
 
+function formatAgentsError(raw: string) {
+  const msg = raw.trim() || "Unknown error"
+  if (/unauthorized/i.test(msg)) {
+    return "You are not signed in. Open Login, then return here and try again."
+  }
+  if (/PGRST205|Could not find the table/i.test(msg)) {
+    return `${msg} — agent tables (scripts 020–023) are missing on this Supabase project. Point .env.local at a project that has them applied; do not run those migrations on live without explicit approval.`
+  }
+  return msg
+}
+
 export function AgentsHomePage() {
   const [locale, setLocale] = useState<AgentsLocale>("en")
   const copy = useMemo(() => getAgentsCopy(locale), [locale])
@@ -507,6 +518,8 @@ export function AgentsHomePage() {
   const [lastReview, setLastReview] = useState<ReviewResult | null>(null)
   const [lastDraft, setLastDraft] = useState<DraftResult | null>(null)
   const [lastPipeline, setLastPipeline] = useState<PipelineResult | null>(null)
+  /** Persistent banner — toasts alone were easy to miss / could fail silently. */
+  const [pageError, setPageError] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState("")
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set())
@@ -553,10 +566,15 @@ export function AgentsHomePage() {
       const map = new Map<string, AgentDraft>()
       for (const d of draftsData.drafts ?? []) map.set(d.jobId, d)
       setDraftsByJob(map)
+      setPageError(null)
     } catch (error) {
+      const description = formatAgentsError(
+        error instanceof Error ? error.message : "Unknown error",
+      )
+      setPageError(description)
       toast({
         title: copy.toast.loadFailed,
-        description: error instanceof Error ? error.message : "Unknown error",
+        description,
         variant: "destructive",
       })
     } finally {
@@ -733,6 +751,7 @@ export function AgentsHomePage() {
   const runPipelineNow = async () => {
     setRunningPipeline(true)
     setLastPipeline(null)
+    setPageError(null)
     try {
       const res = await fetch("/api/agents/pipeline/run", {
         method: "POST",
@@ -753,9 +772,13 @@ export function AgentsHomePage() {
       })
       await refresh()
     } catch (error) {
+      const description = formatAgentsError(
+        error instanceof Error ? error.message : "Unknown error",
+      )
+      setPageError(description)
       toast({
         title: copy.toast.actionFailed,
-        description: error instanceof Error ? error.message : "Unknown error",
+        description,
         variant: "destructive",
       })
     } finally {
@@ -959,6 +982,23 @@ export function AgentsHomePage() {
           {copy.title}
         </h1>
         <p className="mt-3 text-base leading-relaxed text-stone-600">{copy.subtitle}</p>
+
+        {pageError && (
+          <div
+            className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+            role="alert"
+          >
+            <p className="font-medium">Could not run agents</p>
+            <p className="mt-1 leading-relaxed">{pageError}</p>
+            {/not signed in/i.test(pageError) && (
+              <p className="mt-2">
+                <Link href="/login" className="font-medium underline underline-offset-2">
+                  Go to login
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Button
