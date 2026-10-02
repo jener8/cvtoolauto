@@ -351,6 +351,11 @@ export function buildSeedFacts(input: {
   resumeVersionId?: string | null
   /** Import every workspace CV with text and surface multi-direction role suggestions. */
   allWorkspaceResumes?: boolean
+  /**
+   * Client-side CVs (localStorage / browser workspace). DEV cloud often has none;
+   * the profile UI sends these so “review my saved CVs” still works.
+   */
+  clientVersions?: ResumeVersion[]
 }): {
   facts: SeedFact[]
   resumeId: string | null
@@ -373,8 +378,10 @@ export function buildSeedFacts(input: {
     }
   }
 
+  const mergedVersions = mergeSeedVersions(input.versions, input.clientVersions ?? [])
+
   if (input.allWorkspaceResumes) {
-    const withText = input.versions.filter((v) => v.resumeText?.trim())
+    const withText = mergedVersions.filter((v) => v.resumeText?.trim())
     const seenKeys = new Set<string>()
     const merged: SeedFact[] = []
     for (const version of withText) {
@@ -382,7 +389,6 @@ export function buildSeedFacts(input: {
         const dedupeKey = `${fact.category}::${fact.factText.trim().toLowerCase()}`
         if (seenKeys.has(dedupeKey)) continue
         seenKeys.add(dedupeKey)
-        // Keep original source_key uniqueness per resume line
         merged.push(fact)
       }
     }
@@ -416,9 +422,9 @@ export function buildSeedFacts(input: {
   }
 
   const versions = input.resumeVersionId
-    ? input.versions.filter((v) => v.id === input.resumeVersionId)
-    : input.versions
-  const resume = pickSeedResume(versions.length ? versions : input.versions)
+    ? mergedVersions.filter((v) => v.id === input.resumeVersionId)
+    : mergedVersions
+  const resume = pickSeedResume(versions.length ? versions : mergedVersions)
   const fromResume = resume ? extractFactsFromResume(resume) : []
   const fromQual = extractFactsFromQualificationProfile(input.qualificationProfile)
   return {
@@ -428,6 +434,42 @@ export function buildSeedFacts(input: {
     directions: resume ? deriveCareerDirections([resume]) : [],
     resumeCount: resume ? 1 : 0,
   }
+}
+
+/** Prefer client text when cloud rows are empty shells; keep unique ids. */
+function mergeSeedVersions(
+  cloud: ResumeVersion[],
+  client: ResumeVersion[],
+): ResumeVersion[] {
+  const byId = new Map<string, ResumeVersion>()
+  for (const version of cloud) {
+    if (!version?.id) continue
+    byId.set(version.id, version)
+  }
+  for (const version of client) {
+    if (!version?.id) continue
+    const existing = byId.get(version.id)
+    if (!existing) {
+      byId.set(version.id, version)
+      continue
+    }
+    const clientHasText = Boolean(version.resumeText?.trim())
+    const cloudHasText = Boolean(existing.resumeText?.trim())
+    if (clientHasText && !cloudHasText) {
+      byId.set(version.id, version)
+    } else if (clientHasText && cloudHasText) {
+      // Prefer longer text (more complete snapshot)
+      if ((version.resumeText?.length ?? 0) > (existing.resumeText?.length ?? 0)) {
+        byId.set(version.id, version)
+      }
+    }
+  }
+  // Client-only versions without colliding with cloud
+  for (const version of client) {
+    if (!version?.id) continue
+    if (!byId.has(version.id)) byId.set(version.id, version)
+  }
+  return [...byId.values()]
 }
 
 /**

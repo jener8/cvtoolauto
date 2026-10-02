@@ -167,12 +167,13 @@ const en: ProfileCopy = {
     allCvsTitle: "Review my saved CVs",
     allCvsBody: (count) =>
       count === 1
-        ? "You already have 1 CV saved. With your OK, we’ll read it and suggest roles you can aim for."
-        : `You already have ${count} CVs saved. With your OK, we’ll read them all and surface every direction you can look for work in.`,
+        ? "You already have 1 CV in this workspace. With your OK, we’ll read it and suggest roles you can aim for."
+        : `You already have ${count} CVs in this workspace. With your OK, we’ll read them all and surface every direction you can look for work in.`,
     allCvsBodyUnknown:
-      "With your OK, we’ll look through the CVs already saved in your account and suggest every direction you can look for work in.",
+      "With your OK, we’ll read the CVs saved in this browser workspace and suggest every direction you can look for work in.",
     allCvsCta: "Allow & find directions",
-    allCvsEmptyHint: "No CVs found in your account yet — upload one first, or try again after syncing.",
+    allCvsEmptyHint:
+      "No CVs with text found in this browser. Open your workspace first so they’re loaded here, or upload a file.",
     workspaceTitle: "Use one CV from your workspace",
     workspaceBody: "Import suggestions from a single CV you already saved here.",
     workspaceCta: "Pick a CV",
@@ -317,13 +318,13 @@ const de: ProfileCopy = {
     allCvsTitle: "Meine gespeicherten Lebensläufe prüfen",
     allCvsBody: (count) =>
       count === 1
-        ? "Du hast schon 1 Lebenslauf gespeichert. Mit deiner Erlaubnis lesen wir ihn und schlagen mögliche Richtungen vor."
-        : `Du hast schon ${count} Lebensläufe gespeichert. Mit deiner Erlaubnis lesen wir sie alle und erkennen jede Richtung, in der du Arbeit suchen kannst.`,
+        ? "Du hast schon 1 Lebenslauf in diesem Workspace. Mit deiner Erlaubnis lesen wir ihn und schlagen mögliche Richtungen vor."
+        : `Du hast schon ${count} Lebensläufe in diesem Workspace. Mit deiner Erlaubnis lesen wir sie alle und erkennen jede Richtung, in der du Arbeit suchen kannst.`,
     allCvsBodyUnknown:
-      "Mit deiner Erlaubnis durchsuchen wir die Lebensläufe in deinem Konto und schlagen jede Richtung vor, in der du Arbeit suchen kannst.",
+      "Mit deiner Erlaubnis lesen wir die Lebensläufe in diesem Browser-Workspace und schlagen jede Richtung vor, in der du Arbeit suchen kannst.",
     allCvsCta: "Erlauben & Richtungen finden",
     allCvsEmptyHint:
-      "Noch keine Lebensläufe im Konto gefunden — zuerst einen hochladen oder nach dem Sync erneut versuchen.",
+      "Keine Lebensläufe mit Text in diesem Browser. Öffne zuerst den Workspace, oder lade eine Datei hoch.",
     workspaceTitle: "Einen Lebenslauf aus dem Workspace",
     workspaceBody: "Vorschläge aus einem einzelnen hier gespeicherten Lebenslauf.",
     workspaceCta: "Lebenslauf wählen",

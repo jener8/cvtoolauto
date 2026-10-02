@@ -60,6 +60,16 @@ async function fetchFacts(): Promise<AgentProfileFact[]> {
 
 async function fetchWorkspaceResumes(): Promise<WorkspaceResume[]> {
   try {
+    const { loadAllResumesForAccount } = await import("@/lib/resume-persistence")
+    const local = await loadAllResumesForAccount()
+    const fromLocal = local
+      .filter((v) => Boolean(v.id) && Boolean(v.resumeText?.trim()))
+      .map((v) => ({
+        id: v.id,
+        name: (v.name || "Untitled CV").trim() || "Untitled CV",
+      }))
+    if (fromLocal.length > 0) return fromLocal
+
     const agentsRes = await fetch("/api/agents/profile/workspace-cvs", {
       credentials: "same-origin",
     })
@@ -67,26 +77,38 @@ async function fetchWorkspaceResumes(): Promise<WorkspaceResume[]> {
       const data = (await agentsRes.json()) as {
         versions?: Array<{ id?: string; name?: string | null; hasText?: boolean }>
       }
-      const fromAgents = (data.versions ?? [])
+      return (data.versions ?? [])
         .filter((v) => Boolean(v.id))
         .map((v) => ({
           id: v.id as string,
           name: (v.name || "Untitled CV").trim() || "Untitled CV",
         }))
-      if (fromAgents.length > 0) return fromAgents
     }
-
-    const res = await fetch("/api/workspace/resume-versions", { credentials: "same-origin" })
-    if (!res.ok) return []
-    const data = (await res.json()) as {
-      versions?: Array<{ id?: string; name?: string | null }>
-    }
-    return (data.versions ?? [])
-      .filter((v) => Boolean(v.id))
-      .map((v) => ({ id: v.id as string, name: (v.name || "Untitled CV").trim() || "Untitled CV" }))
+    return []
   } catch {
     return []
   }
+}
+
+async function loadClientResumesForSeed(): Promise<
+  Array<{
+    id: string
+    name: string
+    resumeText: string
+    contactInfo: import("@/lib/types").ResumeVersion["contactInfo"]
+  }>
+> {
+  const { loadAllResumesForAccount } = await import("@/lib/resume-persistence")
+  const all = await loadAllResumesForAccount()
+  return all
+    .filter((v) => v.resumeText?.trim())
+    .slice(0, 24)
+    .map((v) => ({
+      id: v.id,
+      name: (v.name || "Untitled CV").trim() || "Untitled CV",
+      resumeText: v.resumeText.slice(0, 80_000),
+      contactInfo: v.contactInfo,
+    }))
 }
 
 function StepBar({
@@ -214,11 +236,18 @@ export function AgentProfilePage() {
     setImporting(true)
     try {
       const qualificationProfile = loadQualificationProfile()
+      const needsClientResumes =
+        body.allWorkspaceResumes === true || typeof body.resumeVersionId === "string"
+      const clientResumes = needsClientResumes ? await loadClientResumesForSeed() : []
       const res = await fetch("/api/agents/profile/seed", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...body, qualificationProfile }),
+        body: JSON.stringify({
+          ...body,
+          qualificationProfile,
+          ...(clientResumes.length > 0 ? { clientResumes } : {}),
+        }),
       })
       const data = (await res.json()) as {
         inserted?: number

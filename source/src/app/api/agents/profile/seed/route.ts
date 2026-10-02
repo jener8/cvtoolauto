@@ -4,13 +4,64 @@ import { buildSeedFacts } from "@/lib/agents/seed-facts"
 import { mapAgentProfileFactRow } from "@/lib/agents/profile-facts"
 import { mapResumeVersionRow } from "@/lib/resume-persistence"
 import type { QualificationProfile } from "@/lib/qualification-profile/types"
+import type { ResumeVersion } from "@/lib/types"
 
 export const runtime = "nodejs"
 
+const MAX_CLIENT_RESUMES = 24
+const MAX_CLIENT_RESUME_TEXT = 80_000
+
+type ClientResumePayload = {
+  id?: string
+  name?: string | null
+  resumeText?: string | null
+  contactInfo?: ResumeVersion["contactInfo"] | null
+}
+
+function normalizeClientResumes(raw: unknown): ResumeVersion[] {
+  if (!Array.isArray(raw)) return []
+  const out: ResumeVersion[] = []
+  for (const item of raw.slice(0, MAX_CLIENT_RESUMES)) {
+    if (!item || typeof item !== "object") continue
+    const row = item as ClientResumePayload
+    const text = typeof row.resumeText === "string" ? row.resumeText.trim() : ""
+    if (!text) continue
+    const id =
+      typeof row.id === "string" && row.id.trim()
+        ? row.id.trim()
+        : `client-${out.length}-${text.length}`
+    out.push({
+      id,
+      name: (typeof row.name === "string" && row.name.trim()) || "Saved CV",
+      resumeText: text.slice(0, MAX_CLIENT_RESUME_TEXT),
+      profileImage: null,
+      companyLogo: null,
+      timestamp: Date.now(),
+      contactInfo: (row.contactInfo ?? {
+        email: "",
+        linkedin: "",
+        phone: "",
+        address: "",
+        citizenship: "",
+        portfolio: "",
+        portfolios: [],
+        showPortfolio: false,
+        professionalTitle: "",
+        name: "",
+        language: "en",
+        targetCompany: "",
+        targetRole: "",
+        jobAdvertSource: "",
+      }) as ResumeVersion["contactInfo"],
+    })
+  }
+  return out
+}
+
 /**
  * POST /api/agents/profile/seed
- * Seeds unconfirmed facts from resume_versions (server read) + qualification profile
- * (client-supplied JSON — localStorage only; never written back).
+ * Seeds unconfirmed facts from resume_versions (server read) + optional client
+ * workspace CVs (browser localStorage) + qualification profile.
  * Idempotent via source_key unique index.
  */
 export async function POST(request: Request) {
@@ -24,6 +75,7 @@ export async function POST(request: Request) {
     resumeLabel?: string | null
     resumeVersionId?: string | null
     allWorkspaceResumes?: boolean
+    clientResumes?: ClientResumePayload[]
   } = {}
   try {
     body = (await request.json()) as typeof body
@@ -62,9 +114,11 @@ export async function POST(request: Request) {
     const versions = versionRows.map((row) =>
       mapResumeVersionRow(row as Record<string, unknown>),
     )
+    const clientVersions = normalizeClientResumes(body.clientResumes)
 
     const { facts: seedFacts, resumeId, resumeName, directions, resumeCount } = buildSeedFacts({
       versions,
+      clientVersions,
       qualificationProfile: body.qualificationProfile ?? null,
       resumeText: body.resumeText ?? null,
       resumeLabel: body.resumeLabel ?? null,
@@ -82,7 +136,9 @@ export async function POST(request: Request) {
         directions: [],
         resumeCount,
         message:
-          "No items found. Upload a CV, use all workspace CVs, or add items by hand.",
+          clientVersions.length === 0 && versions.length === 0
+            ? "No CVs found in this browser or the cloud. Open your workspace CVs here, or upload a file."
+            : "No readable CV text found. Upload a CV or add items by hand.",
       })
     }
 
