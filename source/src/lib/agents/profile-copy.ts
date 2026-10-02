@@ -34,7 +34,9 @@ export type ProfileCopy = {
     linkedinCta: string
     allCvsTitle: string
     allCvsBody: (count: number) => string
+    allCvsBodyUnknown: string
     allCvsCta: string
+    allCvsEmptyHint: string
     workspaceTitle: string
     workspaceBody: string
     workspaceCta: string
@@ -162,12 +164,15 @@ const en: ProfileCopy = {
     linkedinBody: "Use a LinkedIn data export ZIP or a profile PDF.",
     linkedinHowTo: "How to export from LinkedIn",
     linkedinCta: "Choose file",
-    allCvsTitle: "Use all my CVs",
+    allCvsTitle: "Review my saved CVs",
     allCvsBody: (count) =>
       count === 1
-        ? "Read the CV already in your workspace and suggest roles you can aim for."
-        : `Read all ${count} CVs in your workspace and surface every direction you can look for work in.`,
-    allCvsCta: "Find my directions",
+        ? "You already have 1 CV saved. With your OK, we’ll read it and suggest roles you can aim for."
+        : `You already have ${count} CVs saved. With your OK, we’ll read them all and surface every direction you can look for work in.`,
+    allCvsBodyUnknown:
+      "With your OK, we’ll look through the CVs already saved in your account and suggest every direction you can look for work in.",
+    allCvsCta: "Allow & find directions",
+    allCvsEmptyHint: "No CVs found in your account yet — upload one first, or try again after syncing.",
     workspaceTitle: "Use one CV from your workspace",
     workspaceBody: "Import suggestions from a single CV you already saved here.",
     workspaceCta: "Pick a CV",
@@ -309,12 +314,16 @@ const de: ProfileCopy = {
     linkedinBody: "LinkedIn-Datenexport (ZIP) oder Profil-PDF.",
     linkedinHowTo: "So exportierst du aus LinkedIn",
     linkedinCta: "Datei wählen",
-    allCvsTitle: "Alle meine Lebensläufe nutzen",
+    allCvsTitle: "Meine gespeicherten Lebensläufe prüfen",
     allCvsBody: (count) =>
       count === 1
-        ? "Den Lebenslauf im Workspace lesen und mögliche Richtungen vorschlagen."
-        : `Alle ${count} Lebensläufe im Workspace lesen und jede Richtung erkennen, in der du Arbeit suchen kannst.`,
-    allCvsCta: "Meine Richtungen finden",
+        ? "Du hast schon 1 Lebenslauf gespeichert. Mit deiner Erlaubnis lesen wir ihn und schlagen mögliche Richtungen vor."
+        : `Du hast schon ${count} Lebensläufe gespeichert. Mit deiner Erlaubnis lesen wir sie alle und erkennen jede Richtung, in der du Arbeit suchen kannst.`,
+    allCvsBodyUnknown:
+      "Mit deiner Erlaubnis durchsuchen wir die Lebensläufe in deinem Konto und schlagen jede Richtung vor, in der du Arbeit suchen kannst.",
+    allCvsCta: "Erlauben & Richtungen finden",
+    allCvsEmptyHint:
+      "Noch keine Lebensläufe im Konto gefunden — zuerst einen hochladen oder nach dem Sync erneut versuchen.",
     workspaceTitle: "Einen Lebenslauf aus dem Workspace",
     workspaceBody: "Vorschläge aus einem einzelnen hier gespeicherten Lebenslauf.",
     workspaceCta: "Lebenslauf wählen",

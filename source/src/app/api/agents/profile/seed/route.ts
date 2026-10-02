@@ -35,6 +35,7 @@ export async function POST(request: Request) {
     const { data: rows, error: resumeError } = await ctx.supabase
       .from("resume_versions")
       .select("*")
+      .eq("user_id", ctx.userId)
       .order("created_at", { ascending: false })
       .abortSignal(ctx.controller.signal)
 
@@ -43,7 +44,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: resumeError.message }, { status: 503 })
     }
 
-    const versions = (rows ?? []).map((row) =>
+    let versionRows = rows ?? []
+    if (versionRows.length === 0) {
+      // Older workspaces / remapped auth: fall back to whatever RLS returns for this session
+      const { data: visible, error: visibleError } = await ctx.supabase
+        .from("resume_versions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .abortSignal(ctx.controller.signal)
+      if (visibleError) {
+        console.error("[api/agents/profile/seed] resume fallback", visibleError)
+      } else {
+        versionRows = visible ?? []
+      }
+    }
+
+    const versions = versionRows.map((row) =>
       mapResumeVersionRow(row as Record<string, unknown>),
     )
 
