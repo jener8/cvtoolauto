@@ -54,6 +54,8 @@ export type ProfileCopy = {
     clearMixedConfirm: string
     reimportTitle: string
     reimportBody: string
+    advancedToggle: string
+    advancedHide: string
     workspaceTitle: string
     workspaceBody: string
     workspaceCta: string
@@ -63,6 +65,12 @@ export type ProfileCopy = {
   check: {
     progress: (checked: number, total: number) => string
     howToAdvance: string
+    calmTitle: string
+    calmBody: (total: number) => string
+    trustAll: string
+    trustAllWorking: string
+    reviewDetails: string
+    hideDetails: string
     confirmAll: string
     confirmAllWorking: string
     onlyUnchecked: string
@@ -158,40 +166,39 @@ const en: ProfileCopy = {
   brand: "EquitAI",
   title: "Your profile for applications",
   subtitle:
-    "The agents write your CVs and letters only from what you confirm here. They never invent anything.",
+    "We will only use what you say is true. Take one step at a time. You can stop and come back later.",
   confirmedExplain:
-    "Confirmed means you've checked it's true. Only confirmed items appear in applications.",
+    "Correct means: this is true about you. Only correct items are used in applications.",
   backAgents: "Back to job agents",
   steps: {
-    add: "1. Add your experience",
-    check: "2. Check each item",
-    ready: "3. Ready for the agents",
+    add: "1. Add",
+    check: "2. Check",
+    ready: "3. Ready",
   },
   next: {
-    add: "Next: Add your experience so the agents have something to work with.",
-    directions:
-      "Next: Review the work directions below. If they look right, agree to continue.",
+    add: "Do this now: Add your experience.",
+    directions: "Do this now: Read your work directions. If they are right, press the green button.",
     check: (n) =>
-      n === 1
-        ? "Next: Check the 1 item still waiting."
-        : `Next: Check the ${n} items still waiting.`,
-    readyMissing: "Next: Fill in what's still missing below.",
-    readyDone: "Next: Your profile is ready. Go to job agents when you want.",
+      n <= 0
+        ? "Do this now: Go to Ready."
+        : "Do this now: Press the green button to keep your items and continue.",
+    readyMissing: "Do this now: Add what is still missing.",
+    readyDone: "You are ready. You can open job agents.",
   },
   primary: {
     add: "Add your experience",
-    check: "Check items",
-    agreeDirections: "These directions look right",
-    goAgents: "Go to job agents",
+    check: "Continue",
+    agreeDirections: "Yes — these directions are right",
+    goAgents: "Open job agents",
     addEducation: "Add education",
-    addMissing: "Add what's missing",
+    addMissing: "Add what is missing",
   },
   directions: {
     title: "Your work directions",
-    body: "From your CVs, these are the directions you can look for work in. Agree to keep them in your profile for the agents.",
-    agreedTitle: "Directions agreed",
-    agreedBody: "These stay on your profile. Continue checking the remaining items, then you’re ready for the agents.",
-    continueCheck: "Continue to check items",
+    body: "These are the kinds of work your CVs point to. Read the list. If it is right, press the green button.",
+    agreedTitle: "Directions saved",
+    agreedBody: "Good. Next you will keep your profile items, then you can go to Ready.",
+    continueCheck: "Continue",
   },
   empty: {
     uploadTitle: "Upload your CV",
@@ -214,14 +221,14 @@ const en: ProfileCopy = {
     whoseCvs: "Whose CVs?",
     whoseCvsHint: "Only this person’s CVs will be added to your profile.",
     clearMixed: "Start over",
-    clearMixedBody:
-      "Clear the mixed items below, then import only your CVs with the card underneath.",
-    clearMixedCta: "Clear all profile items",
+    clearMixedBody: "Only use this if the wrong person’s CVs were imported.",
+    clearMixedCta: "Delete all profile items",
     clearMixedConfirm:
-      "Clear every item on this profile? You can import your CVs again afterwards.",
+      "Delete every item on this profile? You can import again afterwards.",
     reimportTitle: "Import only my CVs",
-    reimportBody:
-      "Pick your name, then allow EquitAI to read your saved CVs and suggest work directions.",
+    reimportBody: "Choose your name, then press the green button.",
+    advancedToggle: "Need to start over?",
+    advancedHide: "Hide start over",
     workspaceTitle: "Use one CV from your workspace",
     workspaceBody: "Import suggestions from a single CV you already saved here.",
     workspaceCta: "Pick a CV",
@@ -229,19 +236,27 @@ const en: ProfileCopy = {
     orHand: "or add items by hand",
   },
   check: {
-    progress: (checked, total) => `${checked} of ${total} checked`,
-    howToAdvance:
-      "Step 3 appears when every item below is marked Correct. Use Confirm all remaining if the list looks right.",
-    confirmAll: "Confirm all remaining",
-    confirmAllWorking: "Confirming…",
-    onlyUnchecked: "Show only unchecked",
+    progress: (checked, total) => `${checked} of ${total} done`,
+    howToAdvance: "Press the green button to continue. You do not need to open every item.",
+    calmTitle: "Keep these profile items?",
+    calmBody: (total) =>
+      total === 1
+        ? "We found 1 item from your CVs. If it looks fine, press the green button."
+        : `We found ${total} items from your CVs. If they look fine, press the green button. You can open the list later if you want.`,
+    trustAll: "Yes — keep them and continue",
+    trustAllWorking: "Saving… please wait",
+    reviewDetails: "Show items one by one (optional)",
+    hideDetails: "Hide the item list",
+    confirmAll: "Yes — keep them and continue",
+    confirmAllWorking: "Saving… please wait",
+    onlyUnchecked: "Show only items not done yet",
     fromSource: (label) => `From: ${label}`,
-    correct: "Correct",
-    edit: "Edit",
+    correct: "Yes, correct",
+    edit: "Change",
     remove: "Remove",
     removeConfirm: "Remove this item? You can add it again later.",
-    allCheckedTitle: "All imported items checked",
-    allCheckedBody: "Step 3 is ready below. You can still edit anytime.",
+    allCheckedTitle: "All items are saved",
+    allCheckedBody: "Step 3 is next. Scroll down to Ready, or press the green button.",
   },
   sections: {
     experience: "Experience",
@@ -349,41 +364,40 @@ const de: ProfileCopy = {
   brand: "EquitAI",
   title: "Dein Profil für Bewerbungen",
   subtitle:
-    "Die Agenten schreiben deine Lebensläufe und Anschreiben nur aus dem, was du hier bestätigst. Sie erfinden nichts.",
+    "Wir nutzen nur, was du als wahr bestätigst. Mach einen Schritt nach dem anderen. Du kannst jederzeit pausieren.",
   confirmedExplain:
-    "Bestätigt heißt: du hast geprüft, dass es stimmt. Nur bestätigte Einträge erscheinen in Bewerbungen.",
+    "Stimmt heißt: das ist wahr über dich. Nur bestätigte Einträge kommen in Bewerbungen.",
   backAgents: "Zurück zu Job-Agenten",
   steps: {
-    add: "1. Erfahrung hinzufügen",
-    check: "2. Jeden Eintrag prüfen",
-    ready: "3. Bereit für die Agenten",
+    add: "1. Hinzufügen",
+    check: "2. Prüfen",
+    ready: "3. Bereit",
   },
   next: {
-    add: "Als Nächstes: Füge deine Erfahrung hinzu, damit die Agenten etwas zum Arbeiten haben.",
+    add: "Jetzt: Füge deine Erfahrung hinzu.",
     directions:
-      "Als Nächstes: Prüfe die Arbeitsrichtungen unten. Wenn sie stimmen, stimme zu und mach weiter.",
+      "Jetzt: Lies deine Arbeitsrichtungen. Wenn sie stimmen, drücke den grünen Knopf.",
     check: (n) =>
-      n === 1
-        ? "Als Nächstes: Prüfe den 1 offenen Eintrag."
-        : `Als Nächstes: Prüfe die ${n} offenen Einträge.`,
-    readyMissing: "Als Nächstes: Ergänze, was unten noch fehlt.",
-    readyDone: "Als Nächstes: Dein Profil ist bereit. Öffne die Job-Agenten, wenn du magst.",
+      n <= 0
+        ? "Jetzt: Gehe zu Bereit."
+        : "Jetzt: Drücke den grünen Knopf, um deine Einträge zu behalten und weiterzugehen.",
+    readyMissing: "Jetzt: Ergänze, was noch fehlt.",
+    readyDone: "Du bist bereit. Du kannst die Job-Agenten öffnen.",
   },
   primary: {
     add: "Erfahrung hinzufügen",
-    check: "Einträge prüfen",
-    agreeDirections: "Diese Richtungen stimmen",
-    goAgents: "Zu den Job-Agenten",
+    check: "Weiter",
+    agreeDirections: "Ja — diese Richtungen stimmen",
+    goAgents: "Job-Agenten öffnen",
     addEducation: "Ausbildung hinzufügen",
     addMissing: "Fehlendes hinzufügen",
   },
   directions: {
     title: "Deine Arbeitsrichtungen",
-    body: "Aus deinen Lebensläufen: In diesen Richtungen kannst du Arbeit suchen. Stimme zu, damit sie im Profil für die Agenten bleiben.",
-    agreedTitle: "Richtungen bestätigt",
-    agreedBody:
-      "Sie bleiben in deinem Profil. Prüfe als Nächstes die übrigen Einträge — dann bist du bereit für die Agenten.",
-    continueCheck: "Weiter zu den Einträgen",
+    body: "Das sind die Arbeitsrichtungen aus deinen Lebensläufen. Lies die Liste. Wenn sie stimmt, drücke den grünen Knopf.",
+    agreedTitle: "Richtungen gespeichert",
+    agreedBody: "Gut. Als Nächstes behältst du deine Profileinträge — dann kannst du zu Bereit gehen.",
+    continueCheck: "Weiter",
   },
   empty: {
     uploadTitle: "Lebenslauf hochladen",
@@ -406,14 +420,14 @@ const de: ProfileCopy = {
     whoseCvs: "Wessen Lebensläufe?",
     whoseCvsHint: "Nur die Lebensläufe dieser Person kommen in dein Profil.",
     clearMixed: "Neu starten",
-    clearMixedBody:
-      "Lösche die vermischten Einträge unten und importiere danach nur deine Lebensläufe mit der Karte darunter.",
+    clearMixedBody: "Nur nutzen, wenn die Lebensläufe der falschen Person importiert wurden.",
     clearMixedCta: "Alle Profileinträge löschen",
     clearMixedConfirm:
-      "Wirklich alle Einträge in diesem Profil löschen? Danach kannst du deine Lebensläufe neu importieren.",
+      "Wirklich alle Einträge löschen? Danach kannst du neu importieren.",
     reimportTitle: "Nur meine Lebensläufe importieren",
-    reimportBody:
-      "Wähle deinen Namen und erlaube EquitAI, deine gespeicherten Lebensläufe zu lesen und Arbeitsrichtungen vorzuschlagen.",
+    reimportBody: "Wähle deinen Namen und drücke den grünen Knopf.",
+    advancedToggle: "Neu starten nötig?",
+    advancedHide: "Neu starten ausblenden",
     workspaceTitle: "Einen Lebenslauf aus dem Workspace",
     workspaceBody: "Vorschläge aus einem einzelnen hier gespeicherten Lebenslauf.",
     workspaceCta: "Lebenslauf wählen",
@@ -421,19 +435,27 @@ const de: ProfileCopy = {
     orHand: "oder Einträge von Hand hinzufügen",
   },
   check: {
-    progress: (checked, total) => `${checked} von ${total} geprüft`,
-    howToAdvance:
-      "Schritt 3 erscheint, wenn jeder Eintrag unten mit „Stimmt“ markiert ist. Nutze „Alle übrigen bestätigen“, wenn die Liste passt.",
-    confirmAll: "Alle übrigen bestätigen",
-    confirmAllWorking: "Bestätige…",
-    onlyUnchecked: "Nur ungeprüfte zeigen",
+    progress: (checked, total) => `${checked} von ${total} erledigt`,
+    howToAdvance: "Drücke den grünen Knopf, um weiterzugehen. Du musst nicht jeden Eintrag öffnen.",
+    calmTitle: "Diese Profileinträge behalten?",
+    calmBody: (total) =>
+      total === 1
+        ? "Wir haben 1 Eintrag aus deinen Lebensläufen gefunden. Wenn er passt, drücke den grünen Knopf."
+        : `Wir haben ${total} Einträge aus deinen Lebensläufen gefunden. Wenn sie passen, drücke den grünen Knopf. Die Liste kannst du später öffnen.`,
+    trustAll: "Ja — behalten und weiter",
+    trustAllWorking: "Speichern… bitte warten",
+    reviewDetails: "Einträge einzeln zeigen (optional)",
+    hideDetails: "Liste ausblenden",
+    confirmAll: "Ja — behalten und weiter",
+    confirmAllWorking: "Speichern… bitte warten",
+    onlyUnchecked: "Nur offene Einträge zeigen",
     fromSource: (label) => `Quelle: ${label}`,
-    correct: "Stimmt",
-    edit: "Bearbeiten",
+    correct: "Ja, stimmt",
+    edit: "Ändern",
     remove: "Entfernen",
     removeConfirm: "Diesen Eintrag entfernen? Du kannst ihn später wieder hinzufügen.",
-    allCheckedTitle: "Alle importierten Einträge geprüft",
-    allCheckedBody: "Schritt 3 ist unten bereit. Du kannst jederzeit noch ändern.",
+    allCheckedTitle: "Alle Einträge sind gespeichert",
+    allCheckedBody: "Schritt 3 kommt als Nächstes. Scrolle zu Bereit oder drücke den grünen Knopf.",
   },
   sections: {
     experience: "Erfahrung",

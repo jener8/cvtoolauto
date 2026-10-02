@@ -158,16 +158,16 @@ function StepBar({
               </span>
             ) : null}
             <span
-              className={`rounded-full px-3 py-1.5 font-medium ${
+              className={`rounded-full px-4 py-2 text-base font-medium ${
                 current
-                  ? "bg-[#2D7A5F] text-white"
+                  ? "bg-[#2D7A5F] text-white ring-2 ring-[#2D7A5F] ring-offset-2"
                   : done
                     ? "bg-stone-200 text-stone-800"
                     : "bg-stone-100 text-stone-500"
               }`}
               aria-current={current ? "step" : undefined}
             >
-              {item.label}
+              {current ? `${item.label} · now` : item.label}
             </span>
           </li>
         )
@@ -192,6 +192,8 @@ export function AgentProfilePage() {
   const [resumesByPerson, setResumesByPerson] = useState<Record<string, WorkspaceResume[]>>({})
   const [clearing, setClearing] = useState(false)
   const [confirmingAll, setConfirmingAll] = useState(false)
+  const [showItemDetails, setShowItemDetails] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [showHand, setShowHand] = useState(false)
   const [handSection, setHandSection] = useState<HandSection | null>(null)
   const [adding, setAdding] = useState(false)
@@ -651,36 +653,64 @@ export function AgentProfilePage() {
   const primaryAction =
     step === 1 ? (
       <Button
+        size="lg"
+        className="min-h-12 w-full text-base text-white hover:opacity-90 sm:w-auto"
         style={{ backgroundColor: AGENTS_ACCENT }}
-        className="text-white hover:opacity-90"
         onClick={scrollToEmpty}
       >
         {copy.primary.add}
       </Button>
     ) : directionsPending ? (
       <Button
+        size="lg"
+        className="min-h-12 w-full text-base text-white hover:opacity-90 sm:w-auto"
         style={{ backgroundColor: AGENTS_ACCENT }}
-        className="text-white hover:opacity-90"
         onClick={scrollToDirections}
       >
         {copy.primary.agreeDirections}
       </Button>
+    ) : step === 2 && unchecked > 0 ? (
+      <Button
+        size="lg"
+        className="min-h-12 w-full text-base text-white hover:opacity-90 sm:w-auto"
+        style={{ backgroundColor: AGENTS_ACCENT }}
+        disabled={confirmingAll}
+        onClick={() => {
+          void confirmAllRemaining()
+        }}
+      >
+        {confirmingAll ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {copy.check.trustAllWorking}
+          </>
+        ) : (
+          copy.check.trustAll
+        )}
+      </Button>
     ) : step === 2 ? (
       <Button
+        size="lg"
+        className="min-h-12 w-full text-base text-white hover:opacity-90 sm:w-auto"
         style={{ backgroundColor: AGENTS_ACCENT }}
-        className="text-white hover:opacity-90"
-        onClick={scrollToCheck}
+        onClick={scrollToReady}
       >
-        {copy.primary.check}
+        {copy.steps.ready}
       </Button>
     ) : readiness.ready ? (
-      <Button asChild style={{ backgroundColor: AGENTS_ACCENT }} className="text-white hover:opacity-90">
+      <Button
+        asChild
+        size="lg"
+        className="min-h-12 w-full text-base text-white hover:opacity-90 sm:w-auto"
+        style={{ backgroundColor: AGENTS_ACCENT }}
+      >
         <Link href="/app/agents">{copy.primary.goAgents}</Link>
       </Button>
     ) : (
       <Button
+        size="lg"
+        className="min-h-12 w-full text-base text-white hover:opacity-90 sm:w-auto"
         style={{ backgroundColor: AGENTS_ACCENT }}
-        className="text-white hover:opacity-90"
         onClick={scrollToReady}
       >
         {copy.primary.addMissing}
@@ -813,8 +843,12 @@ export function AgentProfilePage() {
 
         <StepBar step={step} copy={copy} />
 
-        <div className="mt-4 flex flex-col gap-3 rounded-xl border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-medium text-stone-800">{nextSentence}</p>
+        <div
+          className="sticky top-0 z-20 mt-4 flex flex-col gap-3 rounded-xl border-2 border-[#2D7A5F] bg-white p-4 shadow-md sm:flex-row sm:items-center sm:justify-between"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="text-base font-semibold leading-snug text-stone-900">{nextSentence}</p>
           {primaryAction}
         </div>
 
@@ -830,30 +864,33 @@ export function AgentProfilePage() {
                 <h2 id="directions-heading" className="text-lg font-semibold text-stone-900">
                   {directionsAgreed ? copy.directions.agreedTitle : copy.directions.title}
                 </h2>
-                <p className="mt-1 text-sm text-stone-600">
+                <p className="mt-2 text-base leading-relaxed text-stone-700">
                   {directionsAgreed ? copy.directions.agreedBody : copy.directions.body}
                 </p>
-                <ul className="mt-4 space-y-2">
+                <ul className="mt-4 space-y-3">
                   {directionFacts.map((fact) => (
                     <li
                       key={fact.id}
-                      className="flex items-start gap-2 rounded-lg border border-stone-100 bg-stone-50 px-3 py-2.5 text-sm text-stone-900"
+                      className="flex items-start gap-3 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900"
                     >
                       {fact.status === "confirmed" ? (
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#2D7A5F]" aria-hidden />
+                        <Check className="mt-0.5 h-5 w-5 shrink-0 text-[#2D7A5F]" aria-hidden />
                       ) : (
                         <span
-                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#2D7A5F]/60"
+                          className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[#2D7A5F]"
                           aria-hidden
                         />
                       )}
-                      <span className="font-medium">{directionLabelFromFact(fact)}</span>
+                      <span className="font-medium leading-snug">
+                        {directionLabelFromFact(fact)}
+                      </span>
                     </li>
                   ))}
                 </ul>
                 {directionsPending ? (
                   <Button
-                    className="mt-5"
+                    size="lg"
+                    className="mt-5 min-h-12 w-full text-base text-white hover:opacity-90 sm:w-auto"
                     style={{ backgroundColor: AGENTS_ACCENT }}
                     disabled={importing}
                     onClick={() => {
@@ -864,7 +901,12 @@ export function AgentProfilePage() {
                     {copy.primary.agreeDirections}
                   </Button>
                 ) : (
-                  <Button className="mt-5" variant="outline" onClick={scrollToCheck}>
+                  <Button
+                    size="lg"
+                    className="mt-5 min-h-12 w-full text-base sm:w-auto"
+                    variant="outline"
+                    onClick={scrollToCheck}
+                  >
                     {copy.directions.continueCheck}
                   </Button>
                 )}
@@ -963,30 +1005,6 @@ export function AgentProfilePage() {
                 {copy.empty.orHand}
               </button>
             </div>
-          </section>
-        ) : null}
-
-        {/* Clear mixed import + re-import when profile already has items */}
-        {!loading && facts.length > 0 ? (
-          <section className="mt-10 scroll-mt-6" aria-labelledby="reimport-heading">
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-              <h2 id="reimport-heading" className="text-base font-semibold text-stone-900">
-                {copy.empty.clearMixed}
-              </h2>
-              <p className="mt-2 text-sm text-stone-700">{copy.empty.clearMixedBody}</p>
-              <Button
-                className="mt-4"
-                variant="outline"
-                disabled={clearing || importing}
-                onClick={() => {
-                  void clearAllFacts()
-                }}
-              >
-                {clearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {copy.empty.clearMixedCta}
-              </Button>
-            </div>
-            <div className="mt-4 max-w-md">{myCvsCard}</div>
           </section>
         ) : null}
 
@@ -1250,188 +1268,185 @@ export function AgentProfilePage() {
           </section>
         )}
 
-        {/* Step 2 check items */}
-        {!loading && facts.length > 0 ? (
+        {/* Step 2 check items — calm default, details optional */}
+        {!loading && facts.length > 0 && !directionsPending ? (
           <section id="profile-check" className="mt-10 scroll-mt-6" aria-labelledby="check-heading">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 id="check-heading" className="text-lg font-semibold text-stone-900">
-                  {copy.steps.check}
-                </h2>
-                <p className="mt-1 text-sm text-stone-600">
-                  {copy.check.progress(checked, checklistFacts.length)}
-                </p>
-                {unchecked > 0 ? (
-                  <p className="mt-2 max-w-xl text-sm text-stone-600">{copy.check.howToAdvance}</p>
-                ) : null}
-              </div>
-              <div className="flex flex-col items-stretch gap-2 sm:items-end">
-                <label className="flex items-center gap-2 text-sm text-stone-700">
+            <div className="rounded-xl border-2 border-stone-200 bg-white p-6 shadow-sm">
+              <h2 id="check-heading" className="text-xl font-semibold text-stone-900">
+                {unchecked > 0 ? copy.check.calmTitle : copy.check.allCheckedTitle}
+              </h2>
+              <p className="mt-3 text-base leading-relaxed text-stone-700">
+                {unchecked > 0
+                  ? copy.check.calmBody(checklistFacts.length)
+                  : copy.check.allCheckedBody}
+              </p>
+              <p className="mt-2 text-base text-stone-600">
+                {copy.check.progress(checked, checklistFacts.length)}
+              </p>
+
+              {unchecked > 0 ? (
+                <Button
+                  size="lg"
+                  className="mt-6 min-h-14 w-full text-lg text-white hover:opacity-90"
+                  style={{ backgroundColor: AGENTS_ACCENT }}
+                  disabled={confirmingAll || importing || clearing}
+                  onClick={() => {
+                    void confirmAllRemaining()
+                  }}
+                >
+                  {confirmingAll ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      {copy.check.trustAllWorking}
+                    </>
+                  ) : (
+                    copy.check.trustAll
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  className="mt-6 min-h-14 w-full text-lg text-white hover:opacity-90"
+                  style={{ backgroundColor: AGENTS_ACCENT }}
+                  onClick={scrollToReady}
+                >
+                  {copy.steps.ready}
+                </Button>
+              )}
+
+              <button
+                type="button"
+                className="mt-5 min-h-11 text-left text-base font-medium text-stone-700 underline underline-offset-2"
+                aria-expanded={showItemDetails}
+                onClick={() => setShowItemDetails((v) => !v)}
+              >
+                {showItemDetails ? copy.check.hideDetails : copy.check.reviewDetails}
+              </button>
+            </div>
+
+            {showItemDetails ? (
+              <div className="mt-6">
+                <label className="mb-4 flex min-h-11 items-center gap-3 text-base text-stone-700">
                   <Switch checked={onlyUnchecked} onCheckedChange={setOnlyUnchecked} />
                   {copy.check.onlyUnchecked}
                 </label>
-                {unchecked > 0 ? (
+                <div className="space-y-8" aria-label={copy.a11y.itemList}>
+                  {PROFILE_SECTION_ORDER.map((sectionId) => {
+                    let items = grouped[sectionId]
+                    if (onlyUnchecked) items = items.filter((f) => f.status !== "confirmed")
+                    if (!items.length) return null
+                    return (
+                      <div key={sectionId}>
+                        <h3 className="mb-3 text-base font-semibold text-stone-700">
+                          {sectionLabel(sectionId)}
+                        </h3>
+                        <ul className="space-y-3">
+                          {items.map((fact) => {
+                            const busy = busyId === fact.id
+                            const editing = editingId === fact.id
+                            return (
+                              <li
+                                key={fact.id}
+                                className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+                              >
+                                {editing ? (
+                                  <div className="space-y-2">
+                                    <Textarea
+                                      value={editText}
+                                      onChange={(e) => setEditText(e.target.value)}
+                                      className="min-h-[80px] text-base"
+                                      autoFocus
+                                    />
+                                    <div className="flex flex-wrap gap-2">
+                                      <Button
+                                        className="min-h-11"
+                                        disabled={busy || !editText.trim()}
+                                        onClick={() =>
+                                          void patchFact(fact.id, { factText: editText.trim() })
+                                        }
+                                      >
+                                        {copy.hand.save}
+                                      </Button>
+                                      <Button
+                                        className="min-h-11"
+                                        variant="ghost"
+                                        disabled={busy}
+                                        onClick={() => setEditingId(null)}
+                                      >
+                                        {copy.hand.cancel}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <p className="text-base leading-relaxed text-stone-900">
+                                      {fact.factText}
+                                    </p>
+                                    <p className="mt-2 text-sm text-stone-500">
+                                      {copy.check.fromSource(sourceLabelForFact(fact, locale))}
+                                      {fact.status === "confirmed" ? (
+                                        <span className="ml-2 text-[#2D7A5F]">· ✓</span>
+                                      ) : null}
+                                    </p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      {fact.status !== "confirmed" ? (
+                                        <Button
+                                          className="min-h-11 text-white hover:opacity-90"
+                                          disabled={busy}
+                                          style={{ backgroundColor: AGENTS_ACCENT }}
+                                          onClick={() =>
+                                            void patchFact(fact.id, { status: "confirmed" })
+                                          }
+                                        >
+                                          <Check className="mr-1 h-4 w-4" aria-hidden />
+                                          {copy.check.correct}
+                                        </Button>
+                                      ) : null}
+                                      <Button
+                                        className="min-h-11"
+                                        variant="outline"
+                                        disabled={busy}
+                                        onClick={() => {
+                                          setEditingId(fact.id)
+                                          setEditText(fact.factText)
+                                        }}
+                                      >
+                                        {copy.check.edit}
+                                      </Button>
+                                      <Button
+                                        className="min-h-11 text-red-700 hover:bg-red-50"
+                                        variant="ghost"
+                                        disabled={busy}
+                                        onClick={() => void deleteFact(fact.id)}
+                                      >
+                                        {copy.check.remove}
+                                      </Button>
+                                    </div>
+                                  </>
+                                )}
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="mt-6">
                   <Button
-                    style={{ backgroundColor: AGENTS_ACCENT }}
-                    className="text-white hover:opacity-90"
-                    disabled={confirmingAll || importing || clearing}
+                    className="min-h-12"
+                    variant="outline"
                     onClick={() => {
-                      void confirmAllRemaining()
+                      setShowHand(true)
+                      setHandSection(null)
                     }}
                   >
-                    {confirmingAll ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {copy.check.confirmAllWorking}
-                      </>
-                    ) : (
-                      copy.check.confirmAll
-                    )}
-                  </Button>
-                ) : (
-                  <Button variant="outline" onClick={scrollToReady}>
-                    {copy.steps.ready}
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {unchecked === 0 ? (
-              <div className="mt-6 rounded-xl border border-[#2D7A5F]/30 bg-[#2D7A5F]/5 p-5">
-                <p className="font-semibold text-stone-900">{copy.check.allCheckedTitle}</p>
-                <p className="mt-1 text-sm text-stone-600">{copy.check.allCheckedBody}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={scrollToReady}>
-                    {copy.steps.ready}
-                  </Button>
-                  <Button
-                    asChild
-                    className="text-white hover:opacity-90"
-                    style={{ backgroundColor: AGENTS_ACCENT }}
-                  >
-                    <Link href="/app/agents">{copy.primary.goAgents}</Link>
+                    <Plus className="mr-1.5 h-4 w-4" aria-hidden />
+                    {copy.hand.title}
                   </Button>
                 </div>
               </div>
             ) : null}
-
-            <div className="mt-6 space-y-8" aria-label={copy.a11y.itemList}>
-              {PROFILE_SECTION_ORDER.map((sectionId) => {
-                let items = grouped[sectionId]
-                if (onlyUnchecked) items = items.filter((f) => f.status !== "confirmed")
-                if (!items.length) return null
-                return (
-                  <div key={sectionId}>
-                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-stone-500">
-                      {sectionLabel(sectionId)}
-                    </h3>
-                    <ul className="space-y-3">
-                      {items.map((fact) => {
-                        const busy = busyId === fact.id
-                        const editing = editingId === fact.id
-                        return (
-                          <li
-                            key={fact.id}
-                            className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
-                          >
-                            {editing ? (
-                              <div className="space-y-2">
-                                <Textarea
-                                  value={editText}
-                                  onChange={(e) => setEditText(e.target.value)}
-                                  className="min-h-[80px]"
-                                  autoFocus
-                                />
-                                <div className="flex flex-wrap gap-2">
-                                  <Button
-                                    size="sm"
-                                    disabled={busy || !editText.trim()}
-                                    onClick={() =>
-                                      void patchFact(fact.id, { factText: editText.trim() })
-                                    }
-                                  >
-                                    {copy.hand.save}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    disabled={busy}
-                                    onClick={() => setEditingId(null)}
-                                  >
-                                    {copy.hand.cancel}
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <p className="text-sm leading-relaxed text-stone-900">
-                                  {fact.factText}
-                                </p>
-                                <p className="mt-2 text-xs text-stone-500">
-                                  {copy.check.fromSource(sourceLabelForFact(fact, locale))}
-                                  {fact.status === "confirmed" ? (
-                                    <span className="ml-2 text-[#2D7A5F]">· ✓</span>
-                                  ) : null}
-                                </p>
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                  {fact.status !== "confirmed" ? (
-                                    <Button
-                                      size="sm"
-                                      disabled={busy}
-                                      style={{ backgroundColor: AGENTS_ACCENT }}
-                                      className="text-white hover:opacity-90"
-                                      onClick={() =>
-                                        void patchFact(fact.id, { status: "confirmed" })
-                                      }
-                                    >
-                                      <Check className="mr-1 h-3.5 w-3.5" aria-hidden />
-                                      {copy.check.correct}
-                                    </Button>
-                                  ) : null}
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={busy}
-                                    onClick={() => {
-                                      setEditingId(fact.id)
-                                      setEditText(fact.factText)
-                                    }}
-                                  >
-                                    {copy.check.edit}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="text-red-700 hover:bg-red-50"
-                                    disabled={busy}
-                                    onClick={() => void deleteFact(fact.id)}
-                                  >
-                                    {copy.check.remove}
-                                  </Button>
-                                </div>
-                              </>
-                            )}
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </div>
-                )
-              })}
-            </div>
-
-            <div className="mt-6">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowHand(true)
-                  setHandSection(null)
-                }}
-              >
-                <Plus className="mr-1.5 h-4 w-4" aria-hidden />
-                {copy.hand.title}
-              </Button>
-            </div>
           </section>
         ) : null}
 
@@ -1442,10 +1457,10 @@ export function AgentProfilePage() {
             className="mt-10 scroll-mt-6 rounded-xl border border-stone-200 bg-white p-5 shadow-sm"
             aria-labelledby="ready-heading"
           >
-            <h2 id="ready-heading" className="text-lg font-semibold text-stone-900">
+            <h2 id="ready-heading" className="text-xl font-semibold text-stone-900">
               {copy.ready.heading}
             </h2>
-            <ul className="mt-4 space-y-2 text-sm text-stone-800">
+            <ul className="mt-4 space-y-3 text-base text-stone-800">
               <li>{readiness.hasCurrentRole ? "☑" : "☐"} {copy.ready.currentRole}</li>
               <li>
                 {readiness.achievementCount >= 3 ? "☑" : "☐"} {copy.ready.achievements}{" "}
@@ -1454,20 +1469,22 @@ export function AgentProfilePage() {
               <li>{readiness.hasEducation ? "☑" : "☐"} {copy.ready.education}</li>
               <li>{readiness.hasLanguages ? "☑" : "☐"} {copy.ready.languages}</li>
             </ul>
-            <p className="mt-3 text-sm text-stone-600">
+            <p className="mt-3 text-base text-stone-600">
               {copy.ready.stillMissing(readiness.missingLabels)}
             </p>
             {readiness.ready ? (
               <Button
                 asChild
-                className="mt-4 text-white hover:opacity-90"
+                size="lg"
+                className="mt-6 min-h-14 w-full text-lg text-white hover:opacity-90 sm:w-auto"
                 style={{ backgroundColor: AGENTS_ACCENT }}
               >
                 <Link href="/app/agents">{copy.primary.goAgents}</Link>
               </Button>
             ) : readiness.missingLabels.includes(copy.ready.education) ? (
               <Button
-                className="mt-4"
+                size="lg"
+                className="mt-6 min-h-14 w-full text-lg sm:w-auto"
                 variant="outline"
                 onClick={() => {
                   setShowHand(true)
@@ -1478,7 +1495,8 @@ export function AgentProfilePage() {
               </Button>
             ) : (
               <Button
-                className="mt-4"
+                size="lg"
+                className="mt-6 min-h-14 w-full text-lg sm:w-auto"
                 variant="outline"
                 onClick={() => {
                   setShowHand(true)
@@ -1490,6 +1508,43 @@ export function AgentProfilePage() {
             )}
           </section>
         ) : null}
+
+        {/* Advanced: start over — hidden unless asked */}
+        {!loading && facts.length > 0 ? (
+          <section className="mt-8 scroll-mt-6">
+            <button
+              type="button"
+              className="min-h-11 text-left text-base font-medium text-stone-700 underline underline-offset-2"
+              aria-expanded={showAdvanced}
+              onClick={() => setShowAdvanced((v) => !v)}
+            >
+              {showAdvanced ? copy.empty.advancedHide : copy.empty.advancedToggle}
+            </button>
+            {showAdvanced ? (
+              <div className="mt-4 space-y-4" id="reimport-heading">
+                <div className="rounded-xl border border-stone-300 bg-white p-5">
+                  <h2 className="text-base font-semibold text-stone-900">{copy.empty.clearMixed}</h2>
+                  <p className="mt-2 text-base leading-relaxed text-stone-700">
+                    {copy.empty.clearMixedBody}
+                  </p>
+                  <Button
+                    className="mt-4 min-h-12"
+                    variant="outline"
+                    disabled={clearing || importing}
+                    onClick={() => {
+                      void clearAllFacts()
+                    }}
+                  >
+                    {clearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {copy.empty.clearMixedCta}
+                  </Button>
+                </div>
+                <div className="max-w-md">{myCvsCard}</div>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
       </div>
     </div>
   )
