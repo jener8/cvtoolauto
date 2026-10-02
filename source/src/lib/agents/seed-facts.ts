@@ -349,7 +349,15 @@ export function buildSeedFacts(input: {
   resumeText?: string | null
   resumeLabel?: string | null
   resumeVersionId?: string | null
-}): { facts: SeedFact[]; resumeId: string | null; resumeName: string | null } {
+  /** Import every workspace CV with text and surface multi-direction role suggestions. */
+  allWorkspaceResumes?: boolean
+}): {
+  facts: SeedFact[]
+  resumeId: string | null
+  resumeName: string | null
+  directions: string[]
+  resumeCount: number
+} {
   if (input.resumeText?.trim()) {
     const fromText = extractFactsFromResumeText({
       resumeText: input.resumeText,
@@ -360,6 +368,50 @@ export function buildSeedFacts(input: {
       facts: [...fromText, ...fromQual],
       resumeId: null,
       resumeName: input.resumeLabel ?? "uploaded CV",
+      directions: [],
+      resumeCount: 1,
+    }
+  }
+
+  if (input.allWorkspaceResumes) {
+    const withText = input.versions.filter((v) => v.resumeText?.trim())
+    const seenKeys = new Set<string>()
+    const merged: SeedFact[] = []
+    for (const version of withText) {
+      for (const fact of extractFactsFromResume(version)) {
+        const dedupeKey = `${fact.category}::${fact.factText.trim().toLowerCase()}`
+        if (seenKeys.has(dedupeKey)) continue
+        seenKeys.add(dedupeKey)
+        // Keep original source_key uniqueness per resume line
+        merged.push(fact)
+      }
+    }
+    const directions = deriveCareerDirections(withText)
+    let order = 50_000
+    for (const direction of directions) {
+      pushFact(merged, {
+        category: "summary",
+        factText: `Possible work direction: ${direction}`,
+        source: "resume",
+        sourceKey: `directions:all:${direction.toLowerCase().replace(/\s+/g, "-").slice(0, 60)}`,
+        sourceRef: {
+          field: "career_direction",
+          label: "all workspace CVs",
+          direction,
+        },
+        sortOrder: order++,
+      })
+    }
+    const fromQual = extractFactsFromQualificationProfile(input.qualificationProfile)
+    return {
+      facts: [...merged, ...fromQual],
+      resumeId: null,
+      resumeName:
+        withText.length === 0
+          ? null
+          : `${withText.length} workspace CV${withText.length === 1 ? "" : "s"}`,
+      directions,
+      resumeCount: withText.length,
     }
   }
 
@@ -373,5 +425,57 @@ export function buildSeedFacts(input: {
     facts: [...fromResume, ...fromQual],
     resumeId: resume?.id ?? null,
     resumeName: resume?.name ?? null,
+    directions: resume ? deriveCareerDirections([resume]) : [],
+    resumeCount: resume ? 1 : 0,
   }
+}
+
+/**
+ * Pull distinct role-like titles across CVs so the profile can show
+ * multiple possible work directions (e.g. design leadership + AI enablement).
+ */
+export function deriveCareerDirections(versions: ResumeVersion[]): string[] {
+  const titles = new Map<string, string>()
+  for (const version of versions) {
+    const contactTitle = version.contactInfo?.professionalTitle?.trim()
+    if (contactTitle) {
+      const key = normalizeDirectionKey(contactTitle)
+      if (key && !titles.has(key)) titles.set(key, contactTitle)
+    }
+    const name = version.name?.trim()
+    if (name && !/^cv|resume|lebenslauf|untitled/i.test(name) && name.length < 80) {
+      const cleaned = name.replace(/\s+v\d+$/i, "").trim()
+      const key = normalizeDirectionKey(cleaned)
+      if (key && key.length > 3 && !titles.has(key)) titles.set(key, cleaned)
+    }
+    for (const fact of extractFactsFromResume(version)) {
+      if (fact.category !== "role" && fact.category !== "experience") continue
+      const role = extractRoleTitle(fact.factText)
+      if (!role) continue
+      const key = normalizeDirectionKey(role)
+      if (key && !titles.has(key)) titles.set(key, role)
+    }
+  }
+  return [...titles.values()].slice(0, 12)
+}
+
+function normalizeDirectionKey(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9äöüß+&/\s-]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function extractRoleTitle(factText: string): string | null {
+  const text = factText.trim()
+  if (!text || text.length > 100) return null
+  // "Head of Design · Acme · 2021–current"
+  const beforeSep = text.split(/\s*[·|—–-]\s*/)[0]?.trim()
+  if (!beforeSep) return null
+  if (/^\d{4}/.test(beforeSep)) return null
+  if (beforeSep.length < 3) return null
+  return beforeSep
 }

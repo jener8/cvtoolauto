@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     resumeText?: string | null
     resumeLabel?: string | null
     resumeVersionId?: string | null
+    allWorkspaceResumes?: boolean
   } = {}
   try {
     body = (await request.json()) as typeof body
@@ -46,12 +47,13 @@ export async function POST(request: Request) {
       mapResumeVersionRow(row as Record<string, unknown>),
     )
 
-    const { facts: seedFacts, resumeId, resumeName } = buildSeedFacts({
+    const { facts: seedFacts, resumeId, resumeName, directions, resumeCount } = buildSeedFacts({
       versions,
       qualificationProfile: body.qualificationProfile ?? null,
       resumeText: body.resumeText ?? null,
       resumeLabel: body.resumeLabel ?? null,
       resumeVersionId: body.resumeVersionId ?? null,
+      allWorkspaceResumes: body.allWorkspaceResumes === true,
     })
 
     if (seedFacts.length === 0) {
@@ -61,8 +63,10 @@ export async function POST(request: Request) {
         facts: [],
         resumeId,
         resumeName,
+        directions: [],
+        resumeCount,
         message:
-          "No items found. Upload a CV, pick one from your workspace, or add items by hand.",
+          "No items found. Upload a CV, use all workspace CVs, or add items by hand.",
       })
     }
 
@@ -126,6 +130,8 @@ export async function POST(request: Request) {
         facts: created,
         resumeId,
         resumeName,
+        directions,
+        resumeCount,
         totalCandidates: seedFacts.length,
       })
     }
@@ -142,6 +148,8 @@ export async function POST(request: Request) {
       facts,
       resumeId,
       resumeName,
+      directions,
+      resumeCount,
       totalCandidates: seedFacts.length,
     })
   } catch (e) {

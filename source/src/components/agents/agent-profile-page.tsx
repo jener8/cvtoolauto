@@ -39,7 +39,7 @@ import { toast } from "@/components/ui/use-toast"
 import {
   ArrowLeft,
   Check,
-  FileText,
+  Compass,
   Linkedin,
   Loader2,
   Plus,
@@ -208,11 +208,18 @@ export function AgentProfilePage() {
         inserted?: number
         message?: string
         error?: string
+        directions?: string[]
+        resumeCount?: number
       }
       if (!res.ok) throw new Error(data.error ?? "Import failed")
+      const directions = data.directions ?? []
+      const resumeCount = data.resumeCount ?? 0
       toast({
         title: copy.toast.importOk,
-        description: data.message ?? `Imported ${data.inserted ?? 0}`,
+        description:
+          resumeCount > 0 && (body.allWorkspaceResumes || directions.length > 0)
+            ? copy.toast.importOkDirections(resumeCount, directions)
+            : (data.message ?? `Imported ${data.inserted ?? 0}`),
       })
       setOnlyUnchecked(true)
       await refresh()
@@ -567,29 +574,47 @@ export function AgentProfilePage() {
               </div>
 
               {workspaceResumes.length > 0 ? (
-                <div className="flex flex-col rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
-                  <FileText className="h-6 w-6 text-[#2D7A5F]" aria-hidden />
+                <div className="flex flex-col rounded-xl border border-[#2D7A5F]/30 bg-white p-5 shadow-sm ring-1 ring-[#2D7A5F]/10">
+                  <Compass className="h-6 w-6 text-[#2D7A5F]" aria-hidden />
                   <h3 className="mt-3 text-base font-semibold text-stone-900">
-                    {copy.empty.workspaceTitle}
+                    {copy.empty.allCvsTitle}
                   </h3>
-                  <p className="mt-2 text-sm text-stone-600">{copy.empty.workspaceBody}</p>
-                  <Select
-                    onValueChange={(id) => {
-                      void runImport({ resumeVersionId: id })
-                    }}
+                  <p className="mt-2 flex-1 text-sm text-stone-600">
+                    {copy.empty.allCvsBody(workspaceResumes.length)}
+                  </p>
+                  <Button
+                    className="mt-4"
+                    style={{ backgroundColor: AGENTS_ACCENT }}
                     disabled={importing}
+                    onClick={() => {
+                      void runImport({ allWorkspaceResumes: true })
+                    }}
                   >
-                    <SelectTrigger className="mt-4 bg-white">
-                      <SelectValue placeholder={copy.empty.workspaceCta} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {workspaceResumes.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {copy.empty.allCvsCta}
+                  </Button>
+                  {workspaceResumes.length > 1 ? (
+                    <div className="mt-4 border-t border-stone-100 pt-3">
+                      <p className="mb-2 text-xs text-stone-500">{copy.empty.orPickOne}</p>
+                      <Select
+                        onValueChange={(id) => {
+                          void runImport({ resumeVersionId: id })
+                        }}
+                        disabled={importing}
+                      >
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder={copy.empty.workspaceCta} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {workspaceResumes.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>

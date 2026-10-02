@@ -126,6 +126,9 @@ export function resolveProfileStep(facts: AgentProfileFact[]): ProfileStep {
 
 export function sourceLabelForFact(fact: AgentProfileFact, locale: "en" | "de"): string {
   const ref = fact.sourceRef ?? {}
+  if (ref.field === "career_direction") {
+    return locale === "de" ? "alle Workspace-Lebensläufe" : "all workspace CVs"
+  }
   const section =
     typeof ref.section === "string"
       ? ref.section

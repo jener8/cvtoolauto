@@ -32,9 +32,13 @@ export type ProfileCopy = {
     linkedinBody: string
     linkedinHowTo: string
     linkedinCta: string
+    allCvsTitle: string
+    allCvsBody: (count: number) => string
+    allCvsCta: string
     workspaceTitle: string
     workspaceBody: string
     workspaceCta: string
+    orPickOne: string
     orHand: string
   }
   check: {
@@ -106,6 +110,7 @@ export type ProfileCopy = {
   }
   toast: {
     importOk: string
+    importOkDirections: (count: number, directions: string[]) => string
     importFail: string
     loadFail: string
     updateFail: string
@@ -157,9 +162,16 @@ const en: ProfileCopy = {
     linkedinBody: "Use a LinkedIn data export ZIP or a profile PDF.",
     linkedinHowTo: "How to export from LinkedIn",
     linkedinCta: "Choose file",
-    workspaceTitle: "Use a CV from your workspace",
-    workspaceBody: "Import suggestions from a CV you already saved here.",
+    allCvsTitle: "Use all my CVs",
+    allCvsBody: (count) =>
+      count === 1
+        ? "Read the CV already in your workspace and suggest roles you can aim for."
+        : `Read all ${count} CVs in your workspace and surface every direction you can look for work in.`,
+    allCvsCta: "Find my directions",
+    workspaceTitle: "Use one CV from your workspace",
+    workspaceBody: "Import suggestions from a single CV you already saved here.",
     workspaceCta: "Pick a CV",
+    orPickOne: "or pick just one CV",
     orHand: "or add items by hand",
   },
   check: {
@@ -237,6 +249,15 @@ const en: ProfileCopy = {
   },
   toast: {
     importOk: "Items imported — please check each one",
+    importOkDirections: (count, directions) => {
+      const list =
+        directions.length === 0
+          ? ""
+          : ` Directions found: ${directions.slice(0, 5).join("; ")}${
+              directions.length > 5 ? "…" : ""
+            }.`
+      return `Imported from ${count} CV${count === 1 ? "" : "s"}.${list} Please check each item.`
+    },
     importFail: "Could not import",
     loadFail: "Could not load your profile",
     updateFail: "Could not update item",
@@ -288,9 +309,16 @@ const de: ProfileCopy = {
     linkedinBody: "LinkedIn-Datenexport (ZIP) oder Profil-PDF.",
     linkedinHowTo: "So exportierst du aus LinkedIn",
     linkedinCta: "Datei wählen",
-    workspaceTitle: "Lebenslauf aus dem Workspace",
-    workspaceBody: "Vorschläge aus einem hier gespeicherten Lebenslauf.",
+    allCvsTitle: "Alle meine Lebensläufe nutzen",
+    allCvsBody: (count) =>
+      count === 1
+        ? "Den Lebenslauf im Workspace lesen und mögliche Richtungen vorschlagen."
+        : `Alle ${count} Lebensläufe im Workspace lesen und jede Richtung erkennen, in der du Arbeit suchen kannst.`,
+    allCvsCta: "Meine Richtungen finden",
+    workspaceTitle: "Einen Lebenslauf aus dem Workspace",
+    workspaceBody: "Vorschläge aus einem einzelnen hier gespeicherten Lebenslauf.",
     workspaceCta: "Lebenslauf wählen",
+    orPickOne: "oder nur einen Lebenslauf wählen",
     orHand: "oder Einträge von Hand hinzufügen",
   },
   check: {
@@ -368,6 +396,15 @@ const de: ProfileCopy = {
   },
   toast: {
     importOk: "Einträge importiert — bitte jeden prüfen",
+    importOkDirections: (count, directions) => {
+      const list =
+        directions.length === 0
+          ? ""
+          : ` Gefundene Richtungen: ${directions.slice(0, 5).join("; ")}${
+              directions.length > 5 ? "…" : ""
+            }.`
+      return `Importiert aus ${count === 1 ? "1 Lebenslauf" : `${count} Lebensläufen`}.${list} Bitte jeden Eintrag prüfen.`
+    },
     importFail: "Import fehlgeschlagen",
     loadFail: "Profil konnte nicht geladen werden",
     updateFail: "Eintrag konnte nicht aktualisiert werden",

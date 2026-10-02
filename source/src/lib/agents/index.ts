@@ -1,6 +1,6 @@
 export { isJobAgentEnabled, isJobAgentEnabledClient, isJobAgentApiEnabled } from "@/lib/agents/feature-flag"
 export { getConfirmedFacts, listProfileFacts, mapAgentProfileFactRow } from "@/lib/agents/profile-facts"
-export { buildSeedFacts, pickSeedResume } from "@/lib/agents/seed-facts"
+export { buildSeedFacts, pickSeedResume, deriveCareerDirections } from "@/lib/agents/seed-facts"
 export {
   getOrCreateSearchSettings,
   upsertSearchSettings,
