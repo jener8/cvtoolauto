@@ -114,16 +114,40 @@ export function pickOwnResumePerson(
 /** Keep only CVs for one person (by group key or display-name hint). */
 export function filterResumesToOwnPerson(
   versions: ResumeVersion[],
-  options?: { ownerKey?: string | null; ownerHint?: string | null },
+  options?: {
+    ownerKey?: string | null
+    ownerHint?: string | null
+    /** Prefer reusable/base CVs for multi-direction import. */
+    templatesPreferred?: boolean
+    maxVersions?: number
+  },
 ): ResumeVersion[] {
   const withText = versions.filter((v) => v.resumeText?.trim())
   if (withText.length === 0) return []
 
+  let matched: ResumeVersion[] = []
   if (options?.ownerKey) {
-    const matched = withText.filter((v) => personKeyForResume(v) === options.ownerKey)
-    if (matched.length > 0) return matched
+    matched = withText.filter((v) => personKeyForResume(v) === options.ownerKey)
+  }
+  if (matched.length === 0) {
+    const picked = pickOwnResumePerson(withText, options?.ownerHint)
+    matched = picked?.versions ?? []
+  }
+  if (matched.length === 0) return []
+
+  // Never keep the anonymous bucket mixed with a named person when ownerKey was set
+  if (options?.ownerKey && options.ownerKey !== "unknown") {
+    matched = matched.filter((v) => personKeyForResume(v) === options.ownerKey)
   }
 
-  const picked = pickOwnResumePerson(withText, options?.ownerHint)
-  return picked?.versions ?? []
+  if (options?.templatesPreferred) {
+    const templates = matched.filter((v) => isResumeTemplateVersion(v))
+    if (templates.length > 0) matched = templates
+  }
+
+  matched = [...matched].sort(
+    (a, b) => (b.resumeText?.length ?? 0) - (a.resumeText?.length ?? 0),
+  )
+  const max = options?.maxVersions ?? 12
+  return matched.slice(0, max)
 }

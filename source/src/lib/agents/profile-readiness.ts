@@ -142,6 +142,10 @@ export function sourceLabelForFact(fact: AgentProfileFact, locale: "en" | "de"):
     return locale === "de" ? "Qualifikationsprofil" : "qualification profile"
   }
   if (section) {
+    const cvLabel = typeof ref.label === "string" ? ref.label.trim() : ""
+    if (cvLabel) {
+      return locale === "de" ? `dein Lebenslauf „${cvLabel}“` : `your CV “${cvLabel}”`
+    }
     return locale === "de" ? `dein Lebenslauf „${section}“` : `your CV “${section}”`
   }
   return locale === "de" ? "dein Lebenslauf" : "your CV"

@@ -101,7 +101,7 @@ async function loadWorkspaceCvContext(): Promise<{
   }
 }
 
-async function loadClientResumesForSeed(): Promise<
+async function loadClientResumesForSeed(ownerKey?: string | null): Promise<
   Array<{
     id: string
     name: string
@@ -109,17 +109,22 @@ async function loadClientResumesForSeed(): Promise<
     contactInfo: import("@/lib/types").ResumeVersion["contactInfo"]
   }>
 > {
-  const { loadAllResumesForAccount } = await import("@/lib/resume-persistence")
+  const [{ loadAllResumesForAccount }, { filterResumesToOwnPerson }] = await Promise.all([
+    import("@/lib/resume-persistence"),
+    import("@/lib/agents/own-resumes"),
+  ])
   const all = await loadAllResumesForAccount()
-  return all
-    .filter((v) => v.resumeText?.trim())
-    .slice(0, 40)
-    .map((v) => ({
-      id: v.id,
-      name: (v.name || "Untitled CV").trim() || "Untitled CV",
-      resumeText: v.resumeText.slice(0, 80_000),
-      contactInfo: v.contactInfo,
-    }))
+  const scoped = filterResumesToOwnPerson(all, {
+    ownerKey: ownerKey ?? null,
+    templatesPreferred: true,
+    maxVersions: 12,
+  })
+  return scoped.map((v) => ({
+    id: v.id,
+    name: (v.name || "Untitled CV").trim() || "Untitled CV",
+    resumeText: v.resumeText.slice(0, 80_000),
+    contactInfo: v.contactInfo,
+  }))
 }
 
 function StepBar({
@@ -182,6 +187,7 @@ export function AgentProfilePage() {
   const [workspacePeople, setWorkspacePeople] = useState<WorkspacePerson[]>([])
   const [ownerKey, setOwnerKey] = useState<string | null>(null)
   const [resumesByPerson, setResumesByPerson] = useState<Record<string, WorkspaceResume[]>>({})
+  const [clearing, setClearing] = useState(false)
   const [showHand, setShowHand] = useState(false)
   const [handSection, setHandSection] = useState<HandSection | null>(null)
   const [adding, setAdding] = useState(false)
@@ -264,7 +270,29 @@ export function AgentProfilePage() {
       const qualificationProfile = loadQualificationProfile()
       const needsClientResumes =
         body.allWorkspaceResumes === true || typeof body.resumeVersionId === "string"
-      const clientResumes = needsClientResumes ? await loadClientResumesForSeed() : []
+      if (body.allWorkspaceResumes === true && workspacePeople.length > 0 && !ownerKey) {
+        toast({
+          title: copy.toast.importFail,
+          description: copy.empty.whoseCvsHint,
+          variant: "destructive",
+        })
+        setImporting(false)
+        return
+      }
+      const clientResumes = needsClientResumes
+        ? await loadClientResumesForSeed(
+            body.allWorkspaceResumes === true ? ownerKey : null,
+          )
+        : []
+      if (body.allWorkspaceResumes === true && clientResumes.length === 0) {
+        toast({
+          title: copy.toast.importFail,
+          description: copy.empty.allCvsEmptyHint,
+          variant: "destructive",
+        })
+        setImporting(false)
+        return
+      }
       const res = await fetch("/api/agents/profile/seed", {
         method: "POST",
         credentials: "same-origin",
@@ -391,6 +419,35 @@ export function AgentProfilePage() {
       })
     } finally {
       setBusyId(null)
+    }
+  }
+
+  const clearAllFacts = async () => {
+    if (!window.confirm(copy.empty.clearMixedConfirm)) return
+    setClearing(true)
+    try {
+      const res = await fetch("/api/agents/profile/clear", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "CLEAR_PROFILE_FACTS" }),
+      })
+      const data = (await res.json()) as { deleted?: number; error?: string }
+      if (!res.ok) throw new Error(data.error ?? "Clear failed")
+      setFacts([])
+      toast({
+        title: copy.empty.clearMixed,
+        description: copy.toast.clearOk(data.deleted ?? 0),
+      })
+      await refresh()
+    } catch (error) {
+      toast({
+        title: copy.toast.clearFail,
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      })
+    } finally {
+      setClearing(false)
     }
   }
 
@@ -534,6 +591,82 @@ export function AgentProfilePage() {
 
   const sectionLabel = (id: ProfileSectionId) => copy.sections[id]
 
+  const myCvsCard = (
+    <div className="flex flex-col rounded-xl border border-[#2D7A5F]/30 bg-white p-5 shadow-sm ring-1 ring-[#2D7A5F]/10">
+      <Compass className="h-6 w-6 text-[#2D7A5F]" aria-hidden />
+      <h3 className="mt-3 text-base font-semibold text-stone-900">
+        {facts.length > 0 ? copy.empty.reimportTitle : copy.empty.allCvsTitle}
+      </h3>
+      <p className="mt-2 flex-1 text-sm text-stone-600">
+        {facts.length > 0
+          ? copy.empty.reimportBody
+          : workspaceResumes.length > 0
+            ? copy.empty.allCvsBody(workspaceResumes.length)
+            : copy.empty.allCvsBodyUnknown}
+      </p>
+      {workspacePeople.length > 1 ? (
+        <div className="mt-3">
+          <p className="text-xs font-medium text-stone-700">{copy.empty.whoseCvs}</p>
+          <p className="mt-0.5 text-xs text-stone-500">{copy.empty.whoseCvsHint}</p>
+          <Select
+            value={ownerKey ?? undefined}
+            onValueChange={(key) => setOwnerKey(key)}
+            disabled={importing}
+          >
+            <SelectTrigger className="mt-2 bg-white">
+              <SelectValue placeholder={copy.empty.whoseCvs} />
+            </SelectTrigger>
+            <SelectContent>
+              {workspacePeople.map((person) => (
+                <SelectItem key={person.key} value={person.key}>
+                  {person.displayName} ({person.count})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : workspacePeople.length === 1 ? (
+        <p className="mt-3 text-xs text-stone-500">
+          {copy.empty.whoseCvsHint}{" "}
+          <span className="font-medium text-stone-700">{workspacePeople[0]?.displayName}</span>
+        </p>
+      ) : null}
+      <Button
+        className="mt-4"
+        style={{ backgroundColor: AGENTS_ACCENT }}
+        disabled={importing || (workspacePeople.length > 0 && !ownerKey)}
+        onClick={() => {
+          void runImport({ allWorkspaceResumes: true })
+        }}
+      >
+        {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        {copy.empty.allCvsCta}
+      </Button>
+      {workspaceResumes.length > 1 ? (
+        <div className="mt-4 border-t border-stone-100 pt-3">
+          <p className="mb-2 text-xs text-stone-500">{copy.empty.orPickOne}</p>
+          <Select
+            onValueChange={(id) => {
+              void runImport({ resumeVersionId: id })
+            }}
+            disabled={importing}
+          >
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder={copy.empty.workspaceCta} />
+            </SelectTrigger>
+            <SelectContent>
+              {workspaceResumes.map((r) => (
+                <SelectItem key={r.id} value={r.id}>
+                  {r.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
+    </div>
+  )
+
   return (
     <div
       className="min-h-0 px-4 py-8 sm:px-6"
@@ -662,79 +795,7 @@ export function AgentProfilePage() {
                 </Button>
               </div>
 
-              <div className="flex flex-col rounded-xl border border-[#2D7A5F]/30 bg-white p-5 shadow-sm ring-1 ring-[#2D7A5F]/10">
-                <Compass className="h-6 w-6 text-[#2D7A5F]" aria-hidden />
-                <h3 className="mt-3 text-base font-semibold text-stone-900">
-                  {copy.empty.allCvsTitle}
-                </h3>
-                <p className="mt-2 flex-1 text-sm text-stone-600">
-                  {workspaceResumes.length > 0
-                    ? copy.empty.allCvsBody(workspaceResumes.length)
-                    : copy.empty.allCvsBodyUnknown}
-                </p>
-                {workspacePeople.length > 1 ? (
-                  <div className="mt-3">
-                    <p className="text-xs font-medium text-stone-700">{copy.empty.whoseCvs}</p>
-                    <p className="mt-0.5 text-xs text-stone-500">{copy.empty.whoseCvsHint}</p>
-                    <Select
-                      value={ownerKey ?? undefined}
-                      onValueChange={(key) => setOwnerKey(key)}
-                      disabled={importing}
-                    >
-                      <SelectTrigger className="mt-2 bg-white">
-                        <SelectValue placeholder={copy.empty.whoseCvs} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {workspacePeople.map((person) => (
-                          <SelectItem key={person.key} value={person.key}>
-                            {person.displayName} ({person.count})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : workspacePeople.length === 1 ? (
-                  <p className="mt-3 text-xs text-stone-500">
-                    {copy.empty.whoseCvsHint}{" "}
-                    <span className="font-medium text-stone-700">
-                      {workspacePeople[0]?.displayName}
-                    </span>
-                  </p>
-                ) : null}
-                <Button
-                  className="mt-4"
-                  style={{ backgroundColor: AGENTS_ACCENT }}
-                  disabled={importing || (workspacePeople.length > 0 && !ownerKey)}
-                  onClick={() => {
-                    void runImport({ allWorkspaceResumes: true })
-                  }}
-                >
-                  {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  {copy.empty.allCvsCta}
-                </Button>
-                {workspaceResumes.length > 1 ? (
-                  <div className="mt-4 border-t border-stone-100 pt-3">
-                    <p className="mb-2 text-xs text-stone-500">{copy.empty.orPickOne}</p>
-                    <Select
-                      onValueChange={(id) => {
-                        void runImport({ resumeVersionId: id })
-                      }}
-                      disabled={importing}
-                    >
-                      <SelectTrigger className="bg-white">
-                        <SelectValue placeholder={copy.empty.workspaceCta} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {workspaceResumes.map((r) => (
-                          <SelectItem key={r.id} value={r.id}>
-                            {r.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : null}
-              </div>
+              {myCvsCard}
             </div>
 
             <div className="mt-6 text-center">
@@ -749,6 +810,30 @@ export function AgentProfilePage() {
                 {copy.empty.orHand}
               </button>
             </div>
+          </section>
+        ) : null}
+
+        {/* Clear mixed import + re-import when profile already has items */}
+        {!loading && facts.length > 0 ? (
+          <section className="mt-10 scroll-mt-6" aria-labelledby="reimport-heading">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+              <h2 id="reimport-heading" className="text-base font-semibold text-stone-900">
+                {copy.empty.clearMixed}
+              </h2>
+              <p className="mt-2 text-sm text-stone-700">{copy.empty.clearMixedBody}</p>
+              <Button
+                className="mt-4"
+                variant="outline"
+                disabled={clearing || importing}
+                onClick={() => {
+                  void clearAllFacts()
+                }}
+              >
+                {clearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {copy.empty.clearMixedCta}
+              </Button>
+            </div>
+            <div className="mt-4 max-w-md">{myCvsCard}</div>
           </section>
         ) : null}
 

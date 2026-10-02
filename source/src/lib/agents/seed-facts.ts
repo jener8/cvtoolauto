@@ -96,6 +96,7 @@ export function extractFactsFromResume(version: ResumeVersion): SeedFact[] {
   let order = 0
   const resumeId = version.id
   const contact = version.contactInfo
+  const resumeLabel = (version.name || "CV").trim() || "CV"
 
   if (contact?.name?.trim()) {
     pushFact(facts, {
@@ -103,7 +104,7 @@ export function extractFactsFromResume(version: ResumeVersion): SeedFact[] {
       factText: contact.name.trim(),
       source: "resume",
       sourceKey: `resume:${resumeId}:contact:name`,
-      sourceRef: { resumeId, field: "name" },
+      sourceRef: { resumeId, field: "name", label: resumeLabel },
       sortOrder: order++,
     })
   }
@@ -113,7 +114,7 @@ export function extractFactsFromResume(version: ResumeVersion): SeedFact[] {
       factText: `Professional title: ${contact.professionalTitle.trim()}`,
       source: "resume",
       sourceKey: `resume:${resumeId}:contact:professionalTitle`,
-      sourceRef: { resumeId, field: "professionalTitle" },
+      sourceRef: { resumeId, field: "professionalTitle", label: resumeLabel },
       sortOrder: order++,
     })
   }
@@ -123,24 +124,81 @@ export function extractFactsFromResume(version: ResumeVersion): SeedFact[] {
       factText: `Citizenship: ${contact.citizenship.trim()}`,
       source: "resume",
       sourceKey: `resume:${resumeId}:contact:citizenship`,
-      sourceRef: { resumeId, field: "citizenship" },
+      sourceRef: { resumeId, field: "citizenship", label: resumeLabel },
       sortOrder: order++,
     })
   }
 
   const sections = parseResumeText(version.resumeText ?? "")
+  let bodyFacts = 0
+
   sections.forEach((section, sectionIndex) => {
     const sectionCategory = categoryForSection(section.title)
+    let pendingRole: string | null = null
+    let pendingEmployer: string | null = null
+    let pendingDates: string | null = null
+    let pendingStart = 0
+
+    const flushExperience = (lineIndex: number) => {
+      if (!pendingRole && !pendingEmployer) {
+        pendingRole = null
+        pendingEmployer = null
+        pendingDates = null
+        return
+      }
+      const parts = [pendingRole, pendingEmployer, pendingDates].filter(Boolean)
+      const factText = parts.join(" · ")
+      pushFact(facts, {
+        category: "experience",
+        factText,
+        source: "resume",
+        sourceKey: `resume:${resumeId}:s${sectionIndex}:exp${pendingStart}`,
+        sourceRef: {
+          resumeId,
+          section: section.title,
+          sectionIndex,
+          lineIndex,
+          kind: "experience_block",
+          label: resumeLabel,
+        },
+        sortOrder: order++,
+      })
+      bodyFacts += 1
+      pendingRole = null
+      pendingEmployer = null
+      pendingDates = null
+    }
+
     section.content.forEach((line, lineIndex) => {
       const kind = lineKind(line)
       const text = stripMarkupPrefix(line)
-      if (!text) return
+      if (!text || text.length < 2) return
+
+      if (kind === "role") {
+        flushExperience(lineIndex)
+        pendingRole = text
+        pendingStart = lineIndex
+        return
+      }
+      if (kind === "employer") {
+        pendingEmployer = text
+        return
+      }
+      if (kind === "dates") {
+        pendingDates = text
+        return
+      }
+
+      // Non-role line closes any open experience header block
+      if (pendingRole || pendingEmployer) {
+        flushExperience(lineIndex)
+      }
 
       let category: AgentFactCategory = sectionCategory
-      if (kind === "role") category = "role"
-      else if (kind === "employer") category = "employer"
-      else if (kind === "dates") category = "dates"
-      else if (kind === "bullet") category = "achievement"
+      if (kind === "bullet") category = "achievement"
+
+      // Skip tiny noise / page furniture
+      if (text.length < 8 && kind !== "bullet") return
 
       pushFact(facts, {
         category,
@@ -153,11 +211,36 @@ export function extractFactsFromResume(version: ResumeVersion): SeedFact[] {
           sectionIndex,
           lineIndex,
           kind,
+          label: resumeLabel,
         },
         sortOrder: order++,
       })
+      bodyFacts += 1
     })
+    flushExperience(section.content.length)
   })
+
+  // Fallback: structured markup missing — pull meaningful plain lines
+  if (bodyFacts < 3) {
+    const rawLines = (version.resumeText ?? "")
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length >= 12 && !/^#{1,6}\s*$/.test(l))
+    for (let i = 0; i < rawLines.length && bodyFacts < 40; i++) {
+      const line = stripMarkupPrefix(rawLines[i]!)
+      if (!line || line.length < 12) continue
+      if (/^(page\s*\d+|confidential)/i.test(line)) continue
+      pushFact(facts, {
+        category: "experience",
+        factText: line.slice(0, 400),
+        source: "resume",
+        sourceKey: `resume:${resumeId}:raw:${i}`,
+        sourceRef: { resumeId, field: "raw_line", label: resumeLabel, lineIndex: i },
+        sortOrder: order++,
+      })
+      bodyFacts += 1
+    }
+  }
 
   return facts
 }
@@ -391,6 +474,8 @@ export function buildSeedFacts(input: {
     const ownOnly = filterResumesToOwnPerson(mergedVersions, {
       ownerKey: input.ownerKey,
       ownerHint: input.ownerHint,
+      templatesPreferred: true,
+      maxVersions: 12,
     })
     const withText = ownOnly.filter((v) => v.resumeText?.trim())
     const ownerLabel =

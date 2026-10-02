@@ -39,6 +39,12 @@ export type ProfileCopy = {
     allCvsEmptyHint: string
     whoseCvs: string
     whoseCvsHint: string
+    clearMixed: string
+    clearMixedBody: string
+    clearMixedCta: string
+    clearMixedConfirm: string
+    reimportTitle: string
+    reimportBody: string
     workspaceTitle: string
     workspaceBody: string
     workspaceCta: string
@@ -120,6 +126,8 @@ export type ProfileCopy = {
       ownerLabel: string | null,
       directions: string[],
     ) => string
+    clearOk: (deleted: number) => string
+    clearFail: string
     importFail: string
     loadFail: string
     updateFail: string
@@ -183,6 +191,15 @@ const en: ProfileCopy = {
       "No CVs with text found in this browser. Open your workspace first so they’re loaded here, or upload a file.",
     whoseCvs: "Whose CVs?",
     whoseCvsHint: "Only this person’s CVs will be added to your profile.",
+    clearMixed: "Start over",
+    clearMixedBody:
+      "Clear the mixed items below, then import only your CVs with the card underneath.",
+    clearMixedCta: "Clear all profile items",
+    clearMixedConfirm:
+      "Clear every item on this profile? You can import your CVs again afterwards.",
+    reimportTitle: "Import only my CVs",
+    reimportBody:
+      "Pick your name, then allow EquitAI to read your saved CVs and suggest work directions.",
     workspaceTitle: "Use one CV from your workspace",
     workspaceBody: "Import suggestions from a single CV you already saved here.",
     workspaceCta: "Pick a CV",
@@ -283,6 +300,11 @@ const en: ProfileCopy = {
             }.`
       return `Imported ${count} CV${count === 1 ? "" : "s"}${who} only.${list} Remove any leftover items that aren’t yours, then check each one.`
     },
+    clearOk: (deleted) =>
+      deleted === 1
+        ? "Cleared 1 profile item. You can import your CVs now."
+        : `Cleared ${deleted} profile items. You can import your CVs now.`,
+    clearFail: "Could not clear profile items",
     importFail: "Could not import",
     loadFail: "Could not load your profile",
     updateFail: "Could not update item",
@@ -346,6 +368,15 @@ const de: ProfileCopy = {
       "Keine Lebensläufe mit Text in diesem Browser. Öffne zuerst den Workspace, oder lade eine Datei hoch.",
     whoseCvs: "Wessen Lebensläufe?",
     whoseCvsHint: "Nur die Lebensläufe dieser Person kommen in dein Profil.",
+    clearMixed: "Neu starten",
+    clearMixedBody:
+      "Lösche die vermischten Einträge unten und importiere danach nur deine Lebensläufe mit der Karte darunter.",
+    clearMixedCta: "Alle Profileinträge löschen",
+    clearMixedConfirm:
+      "Wirklich alle Einträge in diesem Profil löschen? Danach kannst du deine Lebensläufe neu importieren.",
+    reimportTitle: "Nur meine Lebensläufe importieren",
+    reimportBody:
+      "Wähle deinen Namen und erlaube EquitAI, deine gespeicherten Lebensläufe zu lesen und Arbeitsrichtungen vorzuschlagen.",
     workspaceTitle: "Einen Lebenslauf aus dem Workspace",
     workspaceBody: "Vorschläge aus einem einzelnen hier gespeicherten Lebenslauf.",
     workspaceCta: "Lebenslauf wählen",
@@ -446,6 +477,11 @@ const de: ProfileCopy = {
             }.`
       return `Nur ${count === 1 ? "1 Lebenslauf" : `${count} Lebensläufe`}${who} importiert.${list} Entferne fremde Einträge, dann jeden prüfen.`
     },
+    clearOk: (deleted) =>
+      deleted === 1
+        ? "1 Profileintrag gelöscht. Du kannst jetzt deine Lebensläufe importieren."
+        : `${deleted} Profileinträge gelöscht. Du kannst jetzt deine Lebensläufe importieren.`,
+    clearFail: "Profileinträge konnten nicht gelöscht werden",
     importFail: "Import fehlgeschlagen",
     loadFail: "Profil konnte nicht geladen werden",
     updateFail: "Eintrag konnte nicht aktualisiert werden",
