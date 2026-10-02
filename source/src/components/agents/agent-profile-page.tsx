@@ -191,6 +191,7 @@ export function AgentProfilePage() {
   const [ownerKey, setOwnerKey] = useState<string | null>(null)
   const [resumesByPerson, setResumesByPerson] = useState<Record<string, WorkspaceResume[]>>({})
   const [clearing, setClearing] = useState(false)
+  const [confirmingAll, setConfirmingAll] = useState(false)
   const [showHand, setShowHand] = useState(false)
   const [handSection, setHandSection] = useState<HandSection | null>(null)
   const [adding, setAdding] = useState(false)
@@ -607,6 +608,43 @@ export function AgentProfilePage() {
       })
     } finally {
       setImporting(false)
+    }
+  }
+
+  const confirmAllRemaining = async () => {
+    const pending = checklistFacts.filter((f) => f.status !== "confirmed")
+    if (pending.length === 0) {
+      scrollToReady()
+      return
+    }
+    setConfirmingAll(true)
+    try {
+      const confirmed: AgentProfileFact[] = []
+      for (const fact of pending) {
+        const res = await fetch(`/api/agents/profile/${fact.id}`, {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "confirmed" }),
+        })
+        const data = (await res.json()) as { fact?: AgentProfileFact; error?: string }
+        if (!res.ok) throw new Error(data.error ?? "Could not confirm item")
+        if (data.fact) confirmed.push(data.fact)
+      }
+      if (confirmed.length > 0) {
+        const byId = new Map(confirmed.map((f) => [f.id, f]))
+        setFacts((prev) => prev.map((f) => byId.get(f.id) ?? f))
+      }
+      requestAnimationFrame(() => scrollToReady())
+    } catch (error) {
+      toast({
+        title: copy.toast.updateFail,
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      })
+      await refresh()
+    } finally {
+      setConfirmingAll(false)
     }
   }
 
@@ -1223,24 +1261,57 @@ export function AgentProfilePage() {
                 <p className="mt-1 text-sm text-stone-600">
                   {copy.check.progress(checked, checklistFacts.length)}
                 </p>
+                {unchecked > 0 ? (
+                  <p className="mt-2 max-w-xl text-sm text-stone-600">{copy.check.howToAdvance}</p>
+                ) : null}
               </div>
-              <label className="flex items-center gap-2 text-sm text-stone-700">
-                <Switch checked={onlyUnchecked} onCheckedChange={setOnlyUnchecked} />
-                {copy.check.onlyUnchecked}
-              </label>
+              <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                <label className="flex items-center gap-2 text-sm text-stone-700">
+                  <Switch checked={onlyUnchecked} onCheckedChange={setOnlyUnchecked} />
+                  {copy.check.onlyUnchecked}
+                </label>
+                {unchecked > 0 ? (
+                  <Button
+                    style={{ backgroundColor: AGENTS_ACCENT }}
+                    className="text-white hover:opacity-90"
+                    disabled={confirmingAll || importing || clearing}
+                    onClick={() => {
+                      void confirmAllRemaining()
+                    }}
+                  >
+                    {confirmingAll ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {copy.check.confirmAllWorking}
+                      </>
+                    ) : (
+                      copy.check.confirmAll
+                    )}
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={scrollToReady}>
+                    {copy.steps.ready}
+                  </Button>
+                )}
+              </div>
             </div>
 
             {unchecked === 0 ? (
               <div className="mt-6 rounded-xl border border-[#2D7A5F]/30 bg-[#2D7A5F]/5 p-5">
                 <p className="font-semibold text-stone-900">{copy.check.allCheckedTitle}</p>
                 <p className="mt-1 text-sm text-stone-600">{copy.check.allCheckedBody}</p>
-                <Button
-                  asChild
-                  className="mt-4 text-white hover:opacity-90"
-                  style={{ backgroundColor: AGENTS_ACCENT }}
-                >
-                  <Link href="/app/agents">{copy.primary.goAgents}</Link>
-                </Button>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={scrollToReady}>
+                    {copy.steps.ready}
+                  </Button>
+                  <Button
+                    asChild
+                    className="text-white hover:opacity-90"
+                    style={{ backgroundColor: AGENTS_ACCENT }}
+                  >
+                    <Link href="/app/agents">{copy.primary.goAgents}</Link>
+                  </Button>
+                </div>
               </div>
             ) : null}
 

@@ -62,6 +62,9 @@ export type ProfileCopy = {
   }
   check: {
     progress: (checked: number, total: number) => string
+    howToAdvance: string
+    confirmAll: string
+    confirmAllWorking: string
     onlyUnchecked: string
     fromSource: (label: string) => string
     correct: string
@@ -227,6 +230,10 @@ const en: ProfileCopy = {
   },
   check: {
     progress: (checked, total) => `${checked} of ${total} checked`,
+    howToAdvance:
+      "Step 3 appears when every item below is marked Correct. Use Confirm all remaining if the list looks right.",
+    confirmAll: "Confirm all remaining",
+    confirmAllWorking: "Confirming…",
     onlyUnchecked: "Show only unchecked",
     fromSource: (label) => `From: ${label}`,
     correct: "Correct",
@@ -234,7 +241,7 @@ const en: ProfileCopy = {
     remove: "Remove",
     removeConfirm: "Remove this item? You can add it again later.",
     allCheckedTitle: "All imported items checked",
-    allCheckedBody: "You can still edit anytime. When you're ready, open job agents.",
+    allCheckedBody: "Step 3 is ready below. You can still edit anytime.",
   },
   sections: {
     experience: "Experience",
@@ -415,6 +422,10 @@ const de: ProfileCopy = {
   },
   check: {
     progress: (checked, total) => `${checked} von ${total} geprüft`,
+    howToAdvance:
+      "Schritt 3 erscheint, wenn jeder Eintrag unten mit „Stimmt“ markiert ist. Nutze „Alle übrigen bestätigen“, wenn die Liste passt.",
+    confirmAll: "Alle übrigen bestätigen",
+    confirmAllWorking: "Bestätige…",
     onlyUnchecked: "Nur ungeprüfte zeigen",
     fromSource: (label) => `Quelle: ${label}`,
     correct: "Stimmt",
@@ -422,7 +433,7 @@ const de: ProfileCopy = {
     remove: "Entfernen",
     removeConfirm: "Diesen Eintrag entfernen? Du kannst ihn später wieder hinzufügen.",
     allCheckedTitle: "Alle importierten Einträge geprüft",
-    allCheckedBody: "Du kannst jederzeit noch ändern. Wenn du bereit bist, öffne die Job-Agenten.",
+    allCheckedBody: "Schritt 3 ist unten bereit. Du kannst jederzeit noch ändern.",
   },
   sections: {
     experience: "Erfahrung",
