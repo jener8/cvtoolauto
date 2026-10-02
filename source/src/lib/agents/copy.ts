@@ -48,15 +48,43 @@ type AgentsCopyTree = {
   tabs: {
     all: (n: number) => string
     new: (n: number) => string
-    reviewing: (n: number) => string
+    potentialFit: (n: number) => string
+    notAFit: (n: number) => string
+    manual: (n: number) => string
+    shortlisted: (n: number) => string
+    skipped: (n: number) => string
+    drafting: (n: number) => string
+    draftsReady: (n: number) => string
     changes: (n: number) => string
-    approved: (n: number) => string
+    documentsApproved: (n: number) => string
     sending: (n: number) => string
     sent: (n: number) => string
     rejected: (n: number) => string
-    notRelevant: (n: number) => string
-    manual: (n: number) => string
   }
+  queues: {
+    choose: (n: number) => string
+    documents: (n: number) => string
+    send: (n: number) => string
+    sentHistory: (n: number) => string
+    overviewChoose: string
+    overviewDocuments: string
+    overviewSend: string
+    shortlist: string
+    skip: string
+    approveDocuments: string
+    waitingRedraft: string
+    readyToSubmit: string
+    openPortal: string
+    sendBlockedFlags: string
+    emptyChoose: string
+    emptyDocuments: string
+    emptySend: string
+    selected: (n: number) => string
+  }
+  confirmSendSubject: (title: string) => string
+  confirmSendAttachments: string
+  confirmSendMode: (mode: "live" | "test") => string
+  confirmSendCoverLabel: string
   empty: {
     title: string
     body: string
@@ -162,34 +190,72 @@ const en: AgentsCopyTree = {
   tabs: {
     all: (n) => `All (${n})`,
     new: (n) => `New (${n})`,
-    reviewing: (n) => `Potential fits (${n})`,
+    potentialFit: (n) => `Potential fit (${n})`,
+    notAFit: (n) => `Not a fit (${n})`,
+    manual: (n) => `Manual (${n})`,
+    shortlisted: (n) => `Shortlisted (${n})`,
+    skipped: (n) => `Skipped (${n})`,
+    drafting: (n) => `Drafting (${n})`,
+    draftsReady: (n) => `Drafts ready (${n})`,
     changes: (n) => `Changes (${n})`,
-    approved: (n) => `Approved (${n})`,
+    documentsApproved: (n) => `Documents approved (${n})`,
     sending: (n) => `Sending (${n})`,
     sent: (n) => `Sent (${n})`,
     rejected: (n) => `Rejected (${n})`,
-    notRelevant: (n) => `Not a fit (${n})`,
-    manual: (n) => `Manual (${n})`,
   },
+  queues: {
+    choose: (n) => `Choose jobs (${n})`,
+    documents: (n) => `Check documents (${n})`,
+    send: (n) => `Ready to send (${n})`,
+    sentHistory: (n) => `Sent (${n})`,
+    overviewChoose: "Choose jobs",
+    overviewDocuments: "Check documents",
+    overviewSend: "Ready to send",
+    shortlist: "Shortlist",
+    skip: "Skip",
+    approveDocuments: "Approve documents",
+    waitingRedraft: "Waiting for redraft",
+    readyToSubmit: "Ready to submit",
+    openPortal: "Open portal",
+    sendBlockedFlags: "Cannot send while fabrication flags are open — resolve flags first.",
+    emptyChoose: "No jobs waiting for a shortlist decision.",
+    emptyDocuments: "No drafts waiting for document review.",
+    emptySend: "No applications ready to send.",
+    selected: (n) => `${n} selected`,
+  },
+  confirmSendSubject: (title) => `Application: ${title}`,
+  confirmSendAttachments: "Attachments",
+  confirmSendMode: (mode) =>
+    mode === "live" ? "Send mode: Live (Gmail)" : "Send mode: Test (stub / no Gmail)",
+  confirmSendCoverLabel: "Cover letter",
   empty: {
     title: "No jobs in this view",
     body: "Confirm profile facts, run a search, review fits, then draft and approve applications here.",
     noNewToday: "No new jobs found today",
     noFits: "No potential fits waiting for your decision",
-    noApproved: "No approved applications yet",
+    noApproved: "No applications with approved documents yet",
     noSent: "Nothing marked as sent yet",
     noRejected: "No rejected jobs",
   },
   status: {
     new: "New",
-    reviewing: "Potential fit",
-    not_relevant: "Not a fit",
-    needs_manual_review: "Needs manual review",
+    potential_fit: "Potential fit",
+    not_a_fit: "Not a fit",
+    manual: "Manual review",
+    shortlisted: "Shortlisted",
+    skipped: "Skipped",
+    drafting: "Drafting",
+    drafts_ready: "Drafts ready",
     changes_requested: "Changes requested",
-    approved: "Approved",
+    documents_approved: "Documents approved",
     sending: "Sending…",
     sent: "Sent",
     rejected: "Rejected",
+    // legacy aliases (normalized by API, kept for safety)
+    reviewing: "Potential fit",
+    not_relevant: "Not a fit",
+    needs_manual_review: "Manual review",
+    approved: "Documents approved",
   },
   kind: { listing: "Listing", initiative: "Initiative" },
   applyMethod: { email: "Email", portal: "Portal", unknown: "Apply method unknown" },
@@ -252,11 +318,11 @@ const en: AgentsCopyTree = {
     approved: "Application approved",
     rejected: "Job rejected",
     sendingStarted: "Send started — you have 30 seconds to undo",
-    sendUndone: "Send undone — back to approved",
+    sendUndone: "Send undone — back to documents approved",
     markedSent: "Marked as sent",
     emailSent: "Email sent via Gmail",
     gmailStub: "Gmail not connected — send skipped",
-    gmailSendFailed: "Gmail send failed — back to approved",
+    gmailSendFailed: "Gmail send failed — back to documents approved",
     loadFailed: "Could not load job queue",
     actionFailed: "Action failed",
     pipelineComplete: "Pipeline complete",
@@ -296,34 +362,72 @@ const de: AgentsCopyTree = {
   tabs: {
     all: (n) => `Alle (${n})`,
     new: (n) => `Neu (${n})`,
-    reviewing: (n) => `Mögliche Passungen (${n})`,
+    potentialFit: (n) => `Mögliche Passung (${n})`,
+    notAFit: (n) => `Nicht passend (${n})`,
+    manual: (n) => `Manuell (${n})`,
+    shortlisted: (n) => `Shortlist (${n})`,
+    skipped: (n) => `Übersprungen (${n})`,
+    drafting: (n) => `Wird entworfen (${n})`,
+    draftsReady: (n) => `Entwürfe bereit (${n})`,
     changes: (n) => `Änderungen (${n})`,
-    approved: (n) => `Freigegeben (${n})`,
+    documentsApproved: (n) => `Dokumente freigegeben (${n})`,
     sending: (n) => `Wird gesendet (${n})`,
     sent: (n) => `Gesendet (${n})`,
     rejected: (n) => `Abgelehnt (${n})`,
-    notRelevant: (n) => `Nicht passend (${n})`,
-    manual: (n) => `Manuell (${n})`,
   },
+  queues: {
+    choose: (n) => `Jobs wählen (${n})`,
+    documents: (n) => `Dokumente prüfen (${n})`,
+    send: (n) => `Bereit zum Senden (${n})`,
+    sentHistory: (n) => `Gesendet (${n})`,
+    overviewChoose: "Jobs wählen",
+    overviewDocuments: "Dokumente prüfen",
+    overviewSend: "Bereit zum Senden",
+    shortlist: "Auf Shortlist",
+    skip: "Überspringen",
+    approveDocuments: "Dokumente freigeben",
+    waitingRedraft: "Wartet auf Neu-Entwurf",
+    readyToSubmit: "Bereit zur Einreichung",
+    openPortal: "Portal öffnen",
+    sendBlockedFlags:
+      "Versand nicht möglich, solange Erfindungshinweise offen sind — zuerst beheben.",
+    emptyChoose: "Keine Jobs zur Shortlist-Entscheidung.",
+    emptyDocuments: "Keine Entwürfe zur Dokumentenprüfung.",
+    emptySend: "Keine Bewerbungen bereit zum Senden.",
+    selected: (n) => `${n} ausgewählt`,
+  },
+  confirmSendSubject: (title) => `Bewerbung: ${title}`,
+  confirmSendAttachments: "Anhänge",
+  confirmSendMode: (mode) =>
+    mode === "live" ? "Versandmodus: Live (Gmail)" : "Versandmodus: Test (Stub / kein Gmail)",
+  confirmSendCoverLabel: "Anschreiben",
   empty: {
     title: "Keine Jobs in dieser Ansicht",
     body: "Profilfakten bestätigen, Suche starten, Passungen prüfen, dann hier entwerfen und freigeben.",
     noNewToday: "Heute keine neuen Jobs gefunden",
     noFits: "Keine möglichen Passungen zur Entscheidung",
-    noApproved: "Noch keine freigegebenen Bewerbungen",
+    noApproved: "Noch keine Bewerbungen mit freigegebenen Dokumenten",
     noSent: "Noch nichts als gesendet markiert",
     noRejected: "Keine abgelehnten Jobs",
   },
   status: {
     new: "Neu",
-    reviewing: "Mögliche Passung",
-    not_relevant: "Nicht passend",
-    needs_manual_review: "Manuelle Prüfung nötig",
+    potential_fit: "Mögliche Passung",
+    not_a_fit: "Nicht passend",
+    manual: "Manuelle Prüfung",
+    shortlisted: "Shortlist",
+    skipped: "Übersprungen",
+    drafting: "Wird entworfen",
+    drafts_ready: "Entwürfe bereit",
     changes_requested: "Änderungen angefordert",
-    approved: "Freigegeben",
+    documents_approved: "Dokumente freigegeben",
     sending: "Wird gesendet…",
     sent: "Gesendet",
     rejected: "Abgelehnt",
+    reviewing: "Mögliche Passung",
+    not_relevant: "Nicht passend",
+    needs_manual_review: "Manuelle Prüfung",
+    approved: "Dokumente freigegeben",
   },
   kind: { listing: "Stellenanzeige", initiative: "Initiativ" },
   applyMethod: { email: "E-Mail", portal: "Portal", unknown: "Bewerbungsweg unbekannt" },
@@ -386,11 +490,11 @@ const de: AgentsCopyTree = {
     approved: "Bewerbung freigegeben",
     rejected: "Job abgelehnt",
     sendingStarted: "Versand gestartet — 30 Sekunden zum Rückgängigmachen",
-    sendUndone: "Versand rückgängig — wieder freigegeben",
+    sendUndone: "Versand rückgängig — Dokumente wieder freigegeben",
     markedSent: "Als gesendet markiert",
     emailSent: "E-Mail per Gmail gesendet",
     gmailStub: "Gmail nicht verbunden — Versand übersprungen",
-    gmailSendFailed: "Gmail-Versand fehlgeschlagen — wieder freigegeben",
+    gmailSendFailed: "Gmail-Versand fehlgeschlagen — Dokumente wieder freigegeben",
     loadFailed: "Warteschlange konnte nicht geladen werden",
     actionFailed: "Aktion fehlgeschlagen",
     pipelineComplete: "Pipeline abgeschlossen",

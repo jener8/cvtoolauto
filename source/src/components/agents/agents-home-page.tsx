@@ -20,6 +20,7 @@ import {
   type AgentsLocale,
 } from "@/lib/agents/copy"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
 import {
@@ -79,6 +80,8 @@ type ReviewResult = {
   needsManualReview?: number
   errors?: number
   errorMessages?: string[]
+  refused?: boolean
+  refuseReason?: string
   error?: string
 }
 
@@ -107,17 +110,22 @@ type PipelineResult = {
 type FilterTab =
   | "all"
   | "new"
-  | "reviewing"
-  | "not_relevant"
-  | "needs_manual_review"
+  | "potential_fit"
+  | "not_a_fit"
+  | "manual"
+  | "shortlisted"
+  | "skipped"
+  | "drafting"
+  | "drafts_ready"
   | "changes_requested"
-  | "approved"
+  | "documents_approved"
   | "sending"
   | "sent"
   | "rejected"
 
 type ActionName =
   | "approve"
+  | "request_changes"
   | "reject"
   | "start_send"
   | "undo_send"
@@ -148,6 +156,21 @@ function formatPostedDate(postedAt: string | null, locale: AgentsLocale): string
   })
 }
 
+function formatPostingAge(postedAt: string | null, locale: AgentsLocale): string {
+  if (!postedAt) return locale === "de" ? "Alter unbekannt" : "Age unknown"
+  const d = new Date(postedAt.length <= 10 ? `${postedAt}T12:00:00` : postedAt)
+  if (Number.isNaN(d.getTime())) return locale === "de" ? "Alter unbekannt" : "Age unknown"
+  const days = Math.max(0, Math.floor((Date.now() - d.getTime()) / 86_400_000))
+  if (locale === "de") {
+    if (days === 0) return "Heute veröffentlicht"
+    if (days === 1) return "Vor 1 Tag"
+    return `Vor ${days} Tagen`
+  }
+  if (days === 0) return "Posted today"
+  if (days === 1) return "1 day old"
+  return `${days} days old`
+}
+
 function usesEmailSendPath(job: JobItem): boolean {
   if (job.applyMethod === "portal") return false
   if (job.applyMethod === "email") return true
@@ -159,9 +182,10 @@ function emptyMessageForTab(tab: FilterTab, copy: AgentsCopy): { title: string; 
   switch (tab) {
     case "new":
       return { title: copy.empty.noNewToday, body: copy.empty.body }
-    case "reviewing":
+    case "potential_fit":
+    case "manual":
       return { title: copy.empty.noFits, body: copy.empty.body }
-    case "approved":
+    case "documents_approved":
       return { title: copy.empty.noApproved, body: copy.empty.body }
     case "sent":
       return { title: copy.empty.noSent, body: copy.empty.body }
@@ -170,6 +194,132 @@ function emptyMessageForTab(tab: FilterTab, copy: AgentsCopy): { title: string; 
     default:
       return { title: copy.empty.title, body: copy.empty.body }
   }
+}
+
+function RelevanceBlock({
+  job,
+  copy,
+  factById,
+}: {
+  job: JobItem
+  copy: AgentsCopy
+  factById: Map<string, AgentProfileFact>
+}) {
+  const relevance = isRelevancePayload(job.relevance) ? job.relevance : null
+  const reviewError =
+    typeof job.relevance === "object" &&
+    job.relevance &&
+    "error" in job.relevance &&
+    typeof (job.relevance as { error?: unknown }).error === "string"
+      ? (job.relevance as { error: string }).error
+      : null
+
+  if (relevance) {
+    return (
+      <div className="mt-4 space-y-4 border-t border-stone-100 pt-4">
+        <p className="text-sm leading-relaxed text-stone-700">{relevance.summary}</p>
+
+        {relevance.requirements_met.length > 0 && (
+          <div>
+            <p className="flex items-center gap-1.5 text-sm font-medium text-stone-900">
+              <CheckCircle2 className="h-4 w-4 text-[#2D7A5F]" aria-hidden />
+              {copy.requirementsMet}
+            </p>
+            <ul className="mt-2 space-y-2">
+              {relevance.requirements_met.map((item) => (
+                <li key={item.requirement} className="text-sm text-stone-700">
+                  <span className="font-medium">{item.requirement}</span>
+                  <ul className="mt-1 space-y-0.5 pl-4 text-xs text-stone-500">
+                    {item.evidence_fact_ids.map((fid) => {
+                      const fact = factById.get(fid)
+                      return (
+                        <li key={fid}>
+                          {copy.evidence}: {fact ? fact.factText : `fact ${fid.slice(0, 8)}…`}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {relevance.requirements_not_met.length > 0 && (
+          <div>
+            <p className="flex items-center gap-1.5 text-sm font-medium text-stone-900">
+              <XCircle className="h-4 w-4 text-amber-700" aria-hidden />
+              {copy.requirementsNotMet}
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-stone-700">
+              {relevance.requirements_not_met.map((req) => (
+                <li key={req}>{req}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (reviewError) {
+    return (
+      <p className="mt-4 border-t border-stone-100 pt-4 text-sm text-amber-800">
+        {copy.reviewError(reviewError)}
+      </p>
+    )
+  }
+
+  if (job.status === "new") {
+    return (
+      <p className="mt-4 border-t border-stone-100 pt-4 text-sm text-stone-500">
+        {copy.notReviewedYet}
+      </p>
+    )
+  }
+
+  return null
+}
+
+function RejectInline({
+  jobId,
+  copy,
+  rejectReason,
+  setRejectReason,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  jobId: string
+  copy: AgentsCopy
+  rejectReason: string
+  setRejectReason: (v: string) => void
+  busy: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <div className="mt-4 space-y-2 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+      <label htmlFor={`reject-${jobId}`} className="text-sm font-medium text-stone-800">
+        {copy.rejectReasonLabel}
+      </label>
+      <Textarea
+        id={`reject-${jobId}`}
+        value={rejectReason}
+        onChange={(e) => setRejectReason(e.target.value)}
+        placeholder={copy.rejectReasonPlaceholder}
+        className={`min-h-[72px] bg-white ${focusRing}`}
+      />
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" disabled={busy} onClick={onConfirm} className={focusRing}>
+          {copy.rejectConfirm}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel} className={focusRing}>
+          {copy.rejectCancel}
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 async function downloadDraftExport(
@@ -526,6 +676,11 @@ export function AgentsHomePage() {
   const [linkedAppIds, setLinkedAppIds] = useState<Set<string>>(new Set())
   /** Per-item email send confirmation — never batch. */
   const [confirmSendJobId, setConfirmSendJobId] = useState<string | null>(null)
+  /** Gate 1 multi-select — shortlist / skip only. */
+  const [selectedGate1, setSelectedGate1] = useState<Set<string>>(new Set())
+  const [gate1Busy, setGate1Busy] = useState(false)
+  /** Optimistic: live when last start_send reported gmailConnected. */
+  const [gmailLive, setGmailLive] = useState(false)
 
   const factById = useMemo(() => {
     const map = new Map<string, AgentProfileFact>()
@@ -566,6 +721,13 @@ export function AgentsHomePage() {
       const map = new Map<string, AgentDraft>()
       for (const d of draftsData.drafts ?? []) map.set(d.jobId, d)
       setDraftsByJob(map)
+      setSelectedGate1((prev) => {
+        const next = new Set<string>()
+        for (const id of prev) {
+          if ((jobsData.jobs ?? []).some((j) => j.id === id)) next.add(id)
+        }
+        return next
+      })
       setPageError(null)
     } catch (error) {
       const description = formatAgentsError(
@@ -592,27 +754,87 @@ export function AgentsHomePage() {
   }, [jobs, tab])
 
   const counts = useMemo(() => {
-    const c = {
+    const c: Record<FilterTab, number> = {
       all: jobs.length,
       new: 0,
-      reviewing: 0,
-      not_relevant: 0,
-      needs_manual_review: 0,
+      potential_fit: 0,
+      not_a_fit: 0,
+      manual: 0,
+      shortlisted: 0,
+      skipped: 0,
+      drafting: 0,
+      drafts_ready: 0,
       changes_requested: 0,
-      approved: 0,
+      documents_approved: 0,
       sending: 0,
       sent: 0,
       rejected: 0,
     }
     for (const j of jobs) {
-      if (j.status in c) {
-        c[j.status as keyof typeof c] += 1
+      const status = j.status as FilterTab
+      if (status !== "all" && status in c) {
+        c[status] += 1
       }
     }
     return c
   }, [jobs])
 
-  const draftEligible = counts.reviewing + counts.changes_requested
+  const queueChoose = useMemo(
+    () => jobs.filter((j) => j.status === "potential_fit" || j.status === "manual"),
+    [jobs],
+  )
+  const queueDocuments = useMemo(
+    () =>
+      jobs.filter((j) => j.status === "drafts_ready" || j.status === "changes_requested"),
+    [jobs],
+  )
+  const queueSend = useMemo(
+    () =>
+      jobs.filter((j) => j.status === "documents_approved" || j.status === "sending"),
+    [jobs],
+  )
+  const sentHistory = useMemo(() => jobs.filter((j) => j.status === "sent"), [jobs])
+
+  const draftEligible = counts.shortlisted + counts.changes_requested
+
+  const runGate1Bulk = async (action: "shortlist" | "skip") => {
+    const jobIds = [...selectedGate1]
+    if (jobIds.length === 0) return
+    setGate1Busy(true)
+    try {
+      const res = await fetch("/api/agents/jobs/gate", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, jobIds }),
+      })
+      const data = (await res.json()) as { error?: string }
+      if (!res.ok) throw new Error(data.error ?? "Gate action failed")
+      setSelectedGate1(new Set())
+      toast({
+        title: action === "shortlist" ? copy.queues.shortlist : copy.queues.skip,
+        description: copy.queues.selected(jobIds.length),
+      })
+      await refresh()
+    } catch (error) {
+      toast({
+        title: copy.toast.actionFailed,
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      })
+    } finally {
+      setGate1Busy(false)
+    }
+  }
+
+  const toggleGate1 = (jobId: string, checked: boolean) => {
+    setSelectedGate1((prev) => {
+      const next = new Set(prev)
+      if (checked) next.add(jobId)
+      else next.delete(jobId)
+      return next
+    })
+  }
 
   const runJobAction = async (
     jobId: string,
@@ -636,7 +858,12 @@ export function AgentsHomePage() {
       }
       if (!res.ok) throw new Error(data.error ?? "Action failed")
 
+      if (typeof data.gmailConnected === "boolean") {
+        setGmailLive(data.gmailConnected)
+      }
+
       if (action === "approve") toast({ title: copy.toast.approved })
+      else if (action === "request_changes") toast({ title: copy.requestChanges })
       else if (action === "reject") toast({ title: copy.toast.rejected })
       else if (action === "start_send") toast({ title: copy.toast.sendingStarted })
       else if (action === "undo_send") toast({ title: copy.toast.sendUndone })
@@ -691,16 +918,34 @@ export function AgentsHomePage() {
       const data = (await res.json()) as ReviewResult
       if (!res.ok) throw new Error(data.error ?? "Review failed")
       setLastReview(data)
-      toast({
-        title: copy.toast.reviewComplete,
-        description: copy.lastReview({
-          reviewed: data.reviewed ?? 0,
-          relevant: data.relevant ?? 0,
-          notRelevant: data.notRelevant ?? 0,
-          manual: data.needsManualReview ?? 0,
-          errors: data.errors ?? 0,
-        }),
-      })
+      if (data.refused || (data.errors ?? 0) > 0) {
+        const detail =
+          data.refuseReason ||
+          data.errorMessages?.[0] ||
+          copy.lastReview({
+            reviewed: data.reviewed ?? 0,
+            relevant: data.relevant ?? 0,
+            notRelevant: data.notRelevant ?? 0,
+            manual: data.needsManualReview ?? 0,
+            errors: data.errors ?? 0,
+          })
+        toast({
+          title: data.refused ? "Assessor refused to run" : copy.toast.reviewComplete,
+          description: detail,
+          variant: data.refused ? "destructive" : "default",
+        })
+      } else {
+        toast({
+          title: copy.toast.reviewComplete,
+          description: copy.lastReview({
+            reviewed: data.reviewed ?? 0,
+            relevant: data.relevant ?? 0,
+            notRelevant: data.notRelevant ?? 0,
+            manual: data.needsManualReview ?? 0,
+            errors: data.errors ?? 0,
+          }),
+        })
+      }
       await refresh()
     } catch (error) {
       toast({
@@ -866,35 +1111,6 @@ export function AgentsHomePage() {
     }
   }
 
-  const requestChangesAndRedraft = async (jobId: string) => {
-    setDraftingId(jobId)
-    try {
-      const mark = await fetch(`/api/agents/jobs/${jobId}/request-changes`, {
-        method: "POST",
-        credentials: "same-origin",
-      })
-      const markData = (await mark.json()) as { error?: string }
-      if (!mark.ok) throw new Error(markData.error ?? "Could not request changes")
-
-      const res = await fetch(`/api/agents/jobs/${jobId}/draft`, {
-        method: "POST",
-        credentials: "same-origin",
-      })
-      const data = (await res.json()) as DraftResult
-      if (!res.ok) throw new Error(data.error ?? "Redraft failed")
-      toast({ title: copy.toast.draftReady })
-      await refresh()
-    } catch (error) {
-      toast({
-        title: copy.toast.actionFailed,
-        description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive",
-      })
-    } finally {
-      setDraftingId(null)
-    }
-  }
-
   const handleCompleteSend = useCallback(
     (jobId: string) => {
       setCompletingIds((prev) => {
@@ -923,18 +1139,27 @@ export function AgentsHomePage() {
   const tabs: { id: FilterTab; label: string }[] = [
     { id: "all", label: copy.tabs.all(counts.all) },
     { id: "new", label: copy.tabs.new(counts.new) },
-    { id: "reviewing", label: copy.tabs.reviewing(counts.reviewing) },
+    { id: "potential_fit", label: copy.tabs.potentialFit(counts.potential_fit) },
+    { id: "manual", label: copy.tabs.manual(counts.manual) },
+    { id: "shortlisted", label: copy.tabs.shortlisted(counts.shortlisted) },
+    { id: "drafts_ready", label: copy.tabs.draftsReady(counts.drafts_ready) },
     { id: "changes_requested", label: copy.tabs.changes(counts.changes_requested) },
-    { id: "approved", label: copy.tabs.approved(counts.approved) },
+    {
+      id: "documents_approved",
+      label: copy.tabs.documentsApproved(counts.documents_approved),
+    },
     { id: "sending", label: copy.tabs.sending(counts.sending) },
     { id: "sent", label: copy.tabs.sent(counts.sent) },
     { id: "rejected", label: copy.tabs.rejected(counts.rejected) },
-    { id: "not_relevant", label: copy.tabs.notRelevant(counts.not_relevant) },
-    { id: "needs_manual_review", label: copy.tabs.manual(counts.needs_manual_review) },
+    { id: "not_a_fit", label: copy.tabs.notAFit(counts.not_a_fit) },
+    { id: "skipped", label: copy.tabs.skipped(counts.skipped) },
+    { id: "drafting", label: copy.tabs.drafting(counts.drafting) },
   ]
 
   const empty = emptyMessageForTab(tab, copy)
-  const busyGlobal = reviewingAll || draftingAll || runningPipeline || loading
+  const busyGlobal = reviewingAll || draftingAll || runningPipeline || loading || gate1Busy
+  const confirmSendJob = jobs.find((j) => j.id === confirmSendJobId) ?? null
+  const confirmSendDraft = confirmSendJob ? draftsByJob.get(confirmSendJob.id) : undefined
 
   return (
     <div
@@ -1083,15 +1308,23 @@ export function AgentsHomePage() {
           </p>
         )}
         {lastReview && (
-          <p className="mt-1 text-sm text-stone-600">
-            {copy.lastReview({
-              reviewed: lastReview.reviewed ?? 0,
-              relevant: lastReview.relevant ?? 0,
-              notRelevant: lastReview.notRelevant ?? 0,
-              manual: lastReview.needsManualReview ?? 0,
-              errors: lastReview.errors ?? 0,
-            })}
-          </p>
+          <div className="mt-1 text-sm text-stone-600">
+            <p>
+              {copy.lastReview({
+                reviewed: lastReview.reviewed ?? 0,
+                relevant: lastReview.relevant ?? 0,
+                notRelevant: lastReview.notRelevant ?? 0,
+                manual: lastReview.needsManualReview ?? 0,
+                errors: lastReview.errors ?? 0,
+              })}
+            </p>
+            {(lastReview.refuseReason ||
+              (lastReview.errorMessages && lastReview.errorMessages.length > 0)) && (
+              <p className="mt-1 text-red-800" role="status">
+                {lastReview.refuseReason || lastReview.errorMessages?.[0]}
+              </p>
+            )}
+          </div>
         )}
         {lastDraft && (
           <p className="mt-1 text-sm text-stone-600">
@@ -1105,26 +1338,35 @@ export function AgentsHomePage() {
           </p>
         )}
 
-        <div
-          className="mt-8 flex flex-wrap gap-2"
-          role="tablist"
-          aria-label={copy.a11y.filterTabs}
-        >
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => setTab(t.id)}
-              className={`rounded-full px-3 py-1.5 text-sm transition ${focusRing} ${
-                tab === t.id
-                  ? "bg-[#2D7A5F] text-white"
-                  : "bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-50"
-              }`}
+        {/* Overview cards → three gates */}
+        <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          {(
+            [
+              {
+                href: "#queue-choose",
+                label: copy.queues.overviewChoose,
+                count: queueChoose.length,
+              },
+              {
+                href: "#queue-documents",
+                label: copy.queues.overviewDocuments,
+                count: queueDocuments.length,
+              },
+              {
+                href: "#queue-send",
+                label: copy.queues.overviewSend,
+                count: queueSend.filter((j) => j.status === "documents_approved").length,
+              },
+            ] as const
+          ).map((card) => (
+            <a
+              key={card.href}
+              href={card.href}
+              className={`rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:border-[#2D7A5F]/40 hover:bg-[#2D7A5F]/5 ${focusRing}`}
             >
-              {t.label}
-            </button>
+              <p className="text-sm font-medium text-stone-600">{card.label}</p>
+              <p className="mt-1 text-2xl font-semibold text-stone-900">{card.count}</p>
+            </a>
           ))}
         </div>
 
@@ -1133,175 +1375,489 @@ export function AgentsHomePage() {
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             {copy.loadingQueue}
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="mt-12 rounded-xl border border-dashed border-stone-300 bg-white/70 p-8 text-center text-stone-600">
-            <p className="font-medium text-stone-800">{empty.title}</p>
-            <p className="mt-2 text-sm">{empty.body}</p>
-          </div>
         ) : (
-          <ul className="mt-8 space-y-5" aria-label={copy.a11y.jobList}>
-            {filtered.map((job) => {
-              const relevance = isRelevancePayload(job.relevance) ? job.relevance : null
-              const reviewError =
-                typeof job.relevance === "object" &&
-                job.relevance &&
-                "error" in job.relevance &&
-                typeof (job.relevance as { error?: unknown }).error === "string"
-                  ? (job.relevance as { error: string }).error
-                  : null
-              const canReview =
-                job.status === "new" || job.status === "needs_manual_review"
-              const canDraft =
-                job.status === "reviewing" || job.status === "changes_requested"
-              const draft = draftsByJob.get(job.id)
-              const postedLabel = formatPostedDate(job.postedAt, locale)
-              const statusLabel =
-                copy.status[job.status] ?? job.status
-              const emailPath = usesEmailSendPath(job)
-              const canApprove = job.status === "reviewing" && Boolean(draft)
-              const canReject = ![
-                "sent",
-                "rejected",
-              ].includes(job.status)
-              const busyRow =
-                actionId === job.id ||
-                reviewingId === job.id ||
-                draftingId === job.id ||
-                addingAppId === job.id ||
-                busyGlobal
+          <>
+            {/* Gate 1 — Choose jobs */}
+            <section id="queue-choose" className="mt-10 scroll-mt-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-lg font-semibold text-stone-900">
+                  {copy.queues.choose(queueChoose.length)}
+                </h2>
+                {selectedGate1.size > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-stone-500">
+                      {copy.queues.selected(selectedGate1.size)}
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={busyGlobal}
+                      onClick={() => void runGate1Bulk("shortlist")}
+                      style={{ backgroundColor: AGENTS_ACCENT }}
+                      className={`text-white hover:opacity-90 ${focusRing}`}
+                    >
+                      {gate1Busy ? (
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
+                      ) : null}
+                      {copy.queues.shortlist}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busyGlobal}
+                      onClick={() => void runGate1Bulk("skip")}
+                      className={focusRing}
+                    >
+                      {copy.queues.skip}
+                    </Button>
+                  </div>
+                )}
+              </div>
+              {queueChoose.length === 0 ? (
+                <p className="mt-4 text-sm text-stone-500">{copy.queues.emptyChoose}</p>
+              ) : (
+                <ul className="mt-4 space-y-4">
+                  {queueChoose.map((job) => {
+                    const busyRow =
+                      actionId === job.id || busyGlobal || gate1Busy
+                    return (
+                      <li
+                        key={job.id}
+                        className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm"
+                      >
+                        <div className="flex flex-wrap items-start gap-3">
+                          <Checkbox
+                            checked={selectedGate1.has(job.id)}
+                            onCheckedChange={(v) => toggleGate1(job.id, v === true)}
+                            aria-label={`Select ${job.title || copy.untitledRole}`}
+                            className="mt-1"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+                                  {copy.status[job.status] ?? job.status}
+                                  {job.companyName ? ` · ${job.companyName}` : ""}
+                                </p>
+                                <h3 className="mt-1 text-lg font-semibold text-stone-900">
+                                  {job.title || copy.untitledRole}
+                                </h3>
+                                <p className="mt-1 text-xs text-stone-500">
+                                  {formatPostingAge(job.postedAt, locale)}
+                                  {formatPostedDate(job.postedAt, locale)
+                                    ? ` · ${copy.posted(formatPostedDate(job.postedAt, locale)!)}`
+                                    : ""}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {job.url && (
+                                  <Button variant="outline" size="sm" asChild className={focusRing}>
+                                    <a href={job.url} target="_blank" rel="noreferrer">
+                                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                                      {copy.listingLink}
+                                    </a>
+                                  </Button>
+                                )}
+                                {rejectingId !== job.id && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    disabled={busyRow}
+                                    onClick={() => {
+                                      setRejectingId(job.id)
+                                      setRejectReason("")
+                                    }}
+                                    className={`text-amber-800 ${focusRing}`}
+                                  >
+                                    <XCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                                    {copy.reject}
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                            <RelevanceBlock job={job} copy={copy} factById={factById} />
+                            {rejectingId === job.id && (
+                              <RejectInline
+                                jobId={job.id}
+                                copy={copy}
+                                rejectReason={rejectReason}
+                                setRejectReason={setRejectReason}
+                                busy={busyRow}
+                                onConfirm={() =>
+                                  void runJobAction(job.id, "reject", { reason: rejectReason })
+                                }
+                                onCancel={() => {
+                                  setRejectingId(null)
+                                  setRejectReason("")
+                                }}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
 
-              return (
-                <li
-                  key={job.id}
-                  className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
-                        {statusLabel}
-                        {" · "}
-                        {job.kind === "initiative" ? copy.kind.initiative : copy.kind.listing}
-                        {" · "}
-                        {job.applyMethod === "email"
-                          ? copy.applyMethod.email
-                          : job.applyMethod === "portal"
-                            ? copy.applyMethod.portal
-                            : copy.applyMethod.unknown}
-                        {job.source ? ` · ${job.source}` : ""}
-                        {job.language ? ` · ${job.language}` : ""}
-                        {draft ? ` · draft v${draft.version}` : ""}
-                      </p>
-                      <h2 className="mt-1 text-lg font-semibold text-stone-900">
-                        {job.title || copy.untitledRole}
-                      </h2>
-                      <p className="mt-1 text-sm text-stone-600">
-                        {[job.companyName, job.location].filter(Boolean).join(" · ") ||
-                          copy.companyUnknown}
-                      </p>
-                      <p className="mt-1 text-xs text-stone-500">
-                        {postedLabel ? copy.posted(postedLabel) : copy.postedUnknown}
-                        {job.emailTo ? ` · ${job.emailTo}` : ""}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {job.url && (
-                        <Button variant="outline" size="sm" asChild className={focusRing}>
-                          <a href={job.url} target="_blank" rel="noreferrer">
-                            <ExternalLink className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                            {copy.listingLink}
-                          </a>
-                        </Button>
-                      )}
-                      {canReview && (
+            {/* Gate 2 — Check documents */}
+            <section id="queue-documents" className="mt-12 scroll-mt-6">
+              <h2 className="text-lg font-semibold text-stone-900">
+                {copy.queues.documents(queueDocuments.length)}
+              </h2>
+              {queueDocuments.length === 0 ? (
+                <p className="mt-4 text-sm text-stone-500">{copy.queues.emptyDocuments}</p>
+              ) : (
+                <ul className="mt-4 space-y-5">
+                  {queueDocuments.map((job) => {
+                    const draft = draftsByJob.get(job.id)
+                    const busyRow =
+                      actionId === job.id ||
+                      draftingId === job.id ||
+                      busyGlobal
+                    const canApproveDocs = job.status === "drafts_ready" && Boolean(draft)
+                    return (
+                      <li
+                        key={job.id}
+                        className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+                              {copy.status[job.status] ?? job.status}
+                              {job.status === "changes_requested"
+                                ? ` · ${copy.queues.waitingRedraft}`
+                                : ""}
+                              {draft ? ` · draft v${draft.version}` : ""}
+                            </p>
+                            <h3 className="mt-1 text-lg font-semibold text-stone-900">
+                              {job.title || copy.untitledRole}
+                            </h3>
+                            <p className="mt-1 text-sm text-stone-600">
+                              {[job.companyName, job.location].filter(Boolean).join(" · ") ||
+                                copy.companyUnknown}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {job.url && (
+                              <Button variant="outline" size="sm" asChild className={focusRing}>
+                                <a href={job.url} target="_blank" rel="noreferrer">
+                                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                                  {copy.listingLink}
+                                </a>
+                              </Button>
+                            )}
+                            {job.status === "changes_requested" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={busyRow}
+                                onClick={() => void runDraftOne(job.id)}
+                                className={focusRing}
+                              >
+                                {draftingId === job.id ? (
+                                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
+                                ) : (
+                                  <FileText className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                                )}
+                                {copy.redraft}
+                              </Button>
+                            )}
+                            {canApproveDocs && (
+                              <Button
+                                size="sm"
+                                disabled={busyRow}
+                                onClick={() => void runJobAction(job.id, "approve")}
+                                style={{ backgroundColor: AGENTS_ACCENT }}
+                                className={`text-white hover:opacity-90 ${focusRing}`}
+                              >
+                                {actionId === job.id ? (
+                                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
+                                ) : (
+                                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                                )}
+                                {copy.queues.approveDocuments}
+                              </Button>
+                            )}
+                            {job.status === "drafts_ready" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={busyRow}
+                                onClick={() => void runJobAction(job.id, "request_changes")}
+                                className={focusRing}
+                              >
+                                {copy.requestChanges}
+                              </Button>
+                            )}
+                            {rejectingId !== job.id && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={busyRow}
+                                onClick={() => {
+                                  setRejectingId(job.id)
+                                  setRejectReason("")
+                                }}
+                                className={`text-amber-800 ${focusRing}`}
+                              >
+                                <XCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                                {copy.reject}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        {rejectingId === job.id && (
+                          <RejectInline
+                            jobId={job.id}
+                            copy={copy}
+                            rejectReason={rejectReason}
+                            setRejectReason={setRejectReason}
+                            busy={busyRow}
+                            onConfirm={() =>
+                              void runJobAction(job.id, "reject", { reason: rejectReason })
+                            }
+                            onCancel={() => {
+                              setRejectingId(null)
+                              setRejectReason("")
+                            }}
+                          />
+                        )}
+                        {draft ? (
+                          <DraftPanel
+                            draft={draft}
+                            copy={copy}
+                            onSaved={(next) => {
+                              setDraftsByJob((prev) => {
+                                const map = new Map(prev)
+                                map.set(next.jobId, next)
+                                return map
+                              })
+                            }}
+                          />
+                        ) : (
+                          <p className="mt-4 border-t border-stone-100 pt-4 text-sm text-stone-500">
+                            {copy.noDraftYet}
+                          </p>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
+
+            {/* Gate 3 — Ready to send */}
+            <section id="queue-send" className="mt-12 scroll-mt-6">
+              <h2 className="text-lg font-semibold text-stone-900">
+                {copy.queues.send(queueSend.length)}
+              </h2>
+              {queueSend.length === 0 ? (
+                <p className="mt-4 text-sm text-stone-500">{copy.queues.emptySend}</p>
+              ) : (
+                <ul className="mt-4 space-y-5">
+                  {queueSend.map((job) => {
+                    const draft = draftsByJob.get(job.id)
+                    const emailPath = usesEmailSendPath(job)
+                    const flags = draft?.fabricationFlags ?? []
+                    const sendBlocked = flags.length > 0
+                    const busyRow =
+                      actionId === job.id ||
+                      addingAppId === job.id ||
+                      completingIds.has(job.id) ||
+                      busyGlobal
+                    return (
+                      <li
+                        key={job.id}
+                        className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+                              {copy.status[job.status] ?? job.status}
+                              {" · "}
+                              {emailPath
+                                ? copy.applyMethod.email
+                                : job.applyMethod === "portal"
+                                  ? copy.queues.readyToSubmit
+                                  : copy.applyMethod.unknown}
+                            </p>
+                            <h3 className="mt-1 text-lg font-semibold text-stone-900">
+                              {job.title || copy.untitledRole}
+                            </h3>
+                            <p className="mt-1 text-sm text-stone-600">
+                              {[job.companyName, job.location].filter(Boolean).join(" · ") ||
+                                copy.companyUnknown}
+                            </p>
+                            {job.emailTo ? (
+                              <p className="mt-1 text-xs text-stone-500">{job.emailTo}</p>
+                            ) : null}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {job.status === "documents_approved" && emailPath && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={busyRow || sendBlocked}
+                                title={sendBlocked ? copy.queues.sendBlockedFlags : undefined}
+                                onClick={() => setConfirmSendJobId(job.id)}
+                                className={`border-[#2D7A5F] text-[#2D7A5F] ${focusRing}`}
+                              >
+                                <Send className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                                {copy.startEmailSend}
+                              </Button>
+                            )}
+                            {job.status === "documents_approved" && !emailPath && (
+                              <>
+                                {job.url && (
+                                  <Button variant="outline" size="sm" asChild className={focusRing}>
+                                    <a href={job.url} target="_blank" rel="noreferrer">
+                                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                                      {copy.queues.openPortal}
+                                    </a>
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={busyRow || sendBlocked}
+                                  title={sendBlocked ? copy.queues.sendBlockedFlags : undefined}
+                                  onClick={() => void runJobAction(job.id, "mark_sent")}
+                                  className={focusRing}
+                                >
+                                  {copy.markAsSent}
+                                </Button>
+                              </>
+                            )}
+                            {(job.status === "documents_approved" || job.status === "sent") && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={busyRow || linkedAppIds.has(job.id)}
+                                onClick={() => void addToApplications(job.id)}
+                                className={`border-[#2D7A5F] text-[#2D7A5F] ${focusRing}`}
+                                title={copy.addToApplicationsHint}
+                              >
+                                {addingAppId === job.id ? (
+                                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
+                                ) : (
+                                  <Briefcase className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                                )}
+                                {linkedAppIds.has(job.id)
+                                  ? copy.toast.alreadyInApplications
+                                  : copy.addToApplications}
+                              </Button>
+                            )}
+                            {job.status === "documents_approved" && rejectingId !== job.id && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={busyRow}
+                                onClick={() => {
+                                  setRejectingId(job.id)
+                                  setRejectReason("")
+                                }}
+                                className={`text-amber-800 ${focusRing}`}
+                              >
+                                <XCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                                {copy.reject}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {job.status === "documents_approved" && (
+                          <p className="mt-3 text-sm text-stone-600">
+                            {emailPath ? copy.emailApprovedHint : copy.portalReadyHint}
+                          </p>
+                        )}
+
+                        {sendBlocked && job.status === "documents_approved" && (
+                          <p className="mt-2 text-sm text-amber-800" role="status">
+                            {copy.queues.sendBlockedFlags}
+                          </p>
+                        )}
+
+                        {job.status === "sending" && (
+                          <SendUndoBanner
+                            job={job}
+                            copy={copy}
+                            busy={actionId === job.id || completingIds.has(job.id)}
+                            onUndo={() => void runJobAction(job.id, "undo_send")}
+                            onComplete={() => handleCompleteSend(job.id)}
+                          />
+                        )}
+
+                        {rejectingId === job.id && (
+                          <RejectInline
+                            jobId={job.id}
+                            copy={copy}
+                            rejectReason={rejectReason}
+                            setRejectReason={setRejectReason}
+                            busy={busyRow}
+                            onConfirm={() =>
+                              void runJobAction(job.id, "reject", { reason: rejectReason })
+                            }
+                            onCancel={() => {
+                              setRejectingId(null)
+                              setRejectReason("")
+                            }}
+                          />
+                        )}
+
+                        {draft ? (
+                          <DraftPanel
+                            draft={draft}
+                            copy={copy}
+                            onSaved={(next) => {
+                              setDraftsByJob((prev) => {
+                                const map = new Map(prev)
+                                map.set(next.jobId, next)
+                                return map
+                              })
+                            }}
+                          />
+                        ) : null}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
+
+            {/* Sent history */}
+            <section className="mt-12">
+              <h2 className="text-lg font-semibold text-stone-900">
+                {copy.queues.sentHistory(sentHistory.length)}
+              </h2>
+              {sentHistory.length === 0 ? (
+                <p className="mt-4 text-sm text-stone-500">{copy.empty.noSent}</p>
+              ) : (
+                <ul className="mt-4 space-y-3">
+                  {sentHistory.map((job) => (
+                    <li
+                      key={job.id}
+                      className="rounded-xl border border-stone-200 bg-white/80 px-4 py-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="font-medium text-stone-900">
+                            {job.title || copy.untitledRole}
+                          </p>
+                          <p className="text-sm text-stone-600">
+                            {job.companyName || copy.companyUnknown}
+                            {job.gmailMessageId ? ` · Gmail: ${job.gmailMessageId}` : ""}
+                          </p>
+                          <p className="mt-1 text-xs text-[#2D7A5F]">{copy.sentHint}</p>
+                        </div>
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={busyRow}
-                          onClick={() => void runReviewOne(job.id)}
-                          className={focusRing}
-                        >
-                          {reviewingId === job.id ? (
-                            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
-                          ) : (
-                            <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                          )}
-                          {copy.review}
-                        </Button>
-                      )}
-                      {canDraft && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={busyRow}
-                          onClick={() => void runDraftOne(job.id)}
-                          className={focusRing}
-                        >
-                          {draftingId === job.id ? (
-                            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
-                          ) : (
-                            <FileText className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                          )}
-                          {draft ? copy.redraft : copy.draft}
-                        </Button>
-                      )}
-                      {job.status === "reviewing" && draft && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={busyRow}
-                          onClick={() => void requestChangesAndRedraft(job.id)}
-                          className={focusRing}
-                        >
-                          {copy.requestChanges}
-                        </Button>
-                      )}
-                      {canApprove && (
-                        <Button
-                          size="sm"
-                          disabled={busyRow}
-                          onClick={() => void runJobAction(job.id, "approve")}
-                          style={{ backgroundColor: AGENTS_ACCENT }}
-                          className={`text-white hover:opacity-90 ${focusRing}`}
-                        >
-                          {actionId === job.id ? (
-                            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
-                          ) : (
-                            <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                          )}
-                          {copy.approve}
-                        </Button>
-                      )}
-                      {job.status === "approved" && emailPath && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={busyRow}
-                          onClick={() => setConfirmSendJobId(job.id)}
-                          className={`border-[#2D7A5F] text-[#2D7A5F] ${focusRing}`}
-                        >
-                          <Send className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                          {copy.startEmailSend}
-                        </Button>
-                      )}
-                      {job.status === "approved" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={busyRow}
-                          onClick={() => void runJobAction(job.id, "mark_sent")}
-                          className={focusRing}
-                        >
-                          {copy.markAsSent}
-                        </Button>
-                      )}
-                      {(job.status === "approved" || job.status === "sent") && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={busyRow || linkedAppIds.has(job.id)}
+                          disabled={addingAppId === job.id || linkedAppIds.has(job.id)}
                           onClick={() => void addToApplications(job.id)}
                           className={`border-[#2D7A5F] text-[#2D7A5F] ${focusRing}`}
-                          title={copy.addToApplicationsHint}
                         >
                           {addingAppId === job.id ? (
                             <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -1312,174 +1868,257 @@ export function AgentsHomePage() {
                             ? copy.toast.alreadyInApplications
                             : copy.addToApplications}
                         </Button>
-                      )}
-                      {canReject && rejectingId !== job.id && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={busyRow}
-                          onClick={() => {
-                            setRejectingId(job.id)
-                            setRejectReason("")
-                          }}
-                          className={`text-amber-800 ${focusRing}`}
-                        >
-                          <XCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                          {copy.reject}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </>
+        )}
 
-                  {job.status === "approved" && (
-                    <p className="mt-3 text-sm text-stone-600">
-                      {emailPath ? copy.emailApprovedHint : copy.portalReadyHint}
-                    </p>
-                  )}
+        {/* Full list filter tabs (below gates) */}
+        <div className="mt-14 border-t border-stone-200 pt-8">
+          <h2 className="text-base font-semibold text-stone-900">
+            {locale === "de" ? "Alle Jobs" : "All jobs"}
+          </h2>
+          <div
+            className="mt-4 flex flex-wrap gap-2"
+            role="tablist"
+            aria-label={copy.a11y.filterTabs}
+          >
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.id}
+                onClick={() => setTab(t.id)}
+                className={`rounded-full px-3 py-1.5 text-sm transition ${focusRing} ${
+                  tab === t.id
+                    ? "bg-[#2D7A5F] text-white"
+                    : "bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-50"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-                  {job.status === "sending" && (
-                    <SendUndoBanner
-                      job={job}
-                      copy={copy}
-                      busy={actionId === job.id || completingIds.has(job.id)}
-                      onUndo={() => void runJobAction(job.id, "undo_send")}
-                      onComplete={() => handleCompleteSend(job.id)}
-                    />
-                  )}
+          {loading ? null : filtered.length === 0 ? (
+            <div className="mt-8 rounded-xl border border-dashed border-stone-300 bg-white/70 p-8 text-center text-stone-600">
+              <p className="font-medium text-stone-800">{empty.title}</p>
+              <p className="mt-2 text-sm">{empty.body}</p>
+            </div>
+          ) : (
+            <ul className="mt-6 space-y-4" aria-label={copy.a11y.jobList}>
+              {filtered.map((job) => {
+                const draft = draftsByJob.get(job.id)
+                const postedLabel = formatPostedDate(job.postedAt, locale)
+                const canReview = job.status === "new" || job.status === "manual"
+                const canDraft =
+                  job.status === "shortlisted" || job.status === "changes_requested"
+                const emailPath = usesEmailSendPath(job)
+                const busyRow =
+                  actionId === job.id ||
+                  reviewingId === job.id ||
+                  draftingId === job.id ||
+                  addingAppId === job.id ||
+                  busyGlobal
+                const flags = draft?.fabricationFlags ?? []
+                const sendBlocked = flags.length > 0
 
-                  {job.status === "sent" && (
-                    <p className="mt-3 text-sm text-[#2D7A5F]">
-                      {copy.sentHint}
-                      {job.gmailMessageId ? ` (Gmail: ${job.gmailMessageId})` : ""}
-                    </p>
-                  )}
-
-                  {job.status === "rejected" && (
-                    <p className="mt-3 text-sm text-stone-600">
-                      {copy.rejectedHint(job.rejectReason)}
-                    </p>
-                  )}
-
-                  {rejectingId === job.id && (
-                    <div className="mt-4 space-y-2 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
-                      <label
-                        htmlFor={`reject-${job.id}`}
-                        className="text-sm font-medium text-stone-800"
-                      >
-                        {copy.rejectReasonLabel}
-                      </label>
-                      <Textarea
-                        id={`reject-${job.id}`}
-                        value={rejectReason}
-                        onChange={(e) => setRejectReason(e.target.value)}
-                        placeholder={copy.rejectReasonPlaceholder}
-                        className={`min-h-[72px] bg-white ${focusRing}`}
-                      />
+                return (
+                  <li
+                    key={job.id}
+                    className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+                          {copy.status[job.status] ?? job.status}
+                          {" · "}
+                          {job.kind === "initiative" ? copy.kind.initiative : copy.kind.listing}
+                          {job.source ? ` · ${job.source}` : ""}
+                          {draft ? ` · draft v${draft.version}` : ""}
+                        </p>
+                        <h3 className="mt-1 text-lg font-semibold text-stone-900">
+                          {job.title || copy.untitledRole}
+                        </h3>
+                        <p className="mt-1 text-sm text-stone-600">
+                          {[job.companyName, job.location].filter(Boolean).join(" · ") ||
+                            copy.companyUnknown}
+                        </p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {postedLabel ? copy.posted(postedLabel) : copy.postedUnknown}
+                          {job.emailTo ? ` · ${job.emailTo}` : ""}
+                        </p>
+                      </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={busyRow}
-                          onClick={() =>
-                            void runJobAction(job.id, "reject", { reason: rejectReason })
-                          }
-                          className={focusRing}
-                        >
-                          {copy.rejectConfirm}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setRejectingId(null)
-                            setRejectReason("")
-                          }}
-                          className={focusRing}
-                        >
-                          {copy.rejectCancel}
-                        </Button>
+                        {job.url && (
+                          <Button variant="outline" size="sm" asChild className={focusRing}>
+                            <a href={job.url} target="_blank" rel="noreferrer">
+                              <ExternalLink className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                              {copy.listingLink}
+                            </a>
+                          </Button>
+                        )}
+                        {canReview && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busyRow}
+                            onClick={() => void runReviewOne(job.id)}
+                            className={focusRing}
+                          >
+                            {reviewingId === job.id ? (
+                              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
+                            ) : (
+                              <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                            )}
+                            {copy.review}
+                          </Button>
+                        )}
+                        {canDraft && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busyRow}
+                            onClick={() => void runDraftOne(job.id)}
+                            className={focusRing}
+                          >
+                            {draftingId === job.id ? (
+                              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
+                            ) : (
+                              <FileText className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                            )}
+                            {draft ? copy.redraft : copy.draft}
+                          </Button>
+                        )}
+                        {job.status === "drafts_ready" && draft && (
+                          <Button
+                            size="sm"
+                            disabled={busyRow}
+                            onClick={() => void runJobAction(job.id, "approve")}
+                            style={{ backgroundColor: AGENTS_ACCENT }}
+                            className={`text-white hover:opacity-90 ${focusRing}`}
+                          >
+                            {copy.queues.approveDocuments}
+                          </Button>
+                        )}
+                        {job.status === "documents_approved" && emailPath && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busyRow || sendBlocked}
+                            onClick={() => setConfirmSendJobId(job.id)}
+                            className={`border-[#2D7A5F] text-[#2D7A5F] ${focusRing}`}
+                          >
+                            <Send className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                            {copy.startEmailSend}
+                          </Button>
+                        )}
+                        {job.status === "documents_approved" && !emailPath && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busyRow || sendBlocked}
+                            onClick={() => void runJobAction(job.id, "mark_sent")}
+                            className={focusRing}
+                          >
+                            {copy.markAsSent}
+                          </Button>
+                        )}
+                        {(job.status === "documents_approved" || job.status === "sent") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busyRow || linkedAppIds.has(job.id)}
+                            onClick={() => void addToApplications(job.id)}
+                            className={`border-[#2D7A5F] text-[#2D7A5F] ${focusRing}`}
+                          >
+                            {linkedAppIds.has(job.id)
+                              ? copy.toast.alreadyInApplications
+                              : copy.addToApplications}
+                          </Button>
+                        )}
+                        {!["sent", "rejected", "skipped"].includes(job.status) &&
+                          rejectingId !== job.id && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={busyRow}
+                              onClick={() => {
+                                setRejectingId(job.id)
+                                setRejectReason("")
+                              }}
+                              className={`text-amber-800 ${focusRing}`}
+                            >
+                              <XCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                              {copy.reject}
+                            </Button>
+                          )}
                       </div>
                     </div>
-                  )}
 
-                  {relevance ? (
-                    <div className="mt-4 space-y-4 border-t border-stone-100 pt-4">
-                      <p className="text-sm leading-relaxed text-stone-700">{relevance.summary}</p>
+                    {job.status === "sending" && (
+                      <SendUndoBanner
+                        job={job}
+                        copy={copy}
+                        busy={actionId === job.id || completingIds.has(job.id)}
+                        onUndo={() => void runJobAction(job.id, "undo_send")}
+                        onComplete={() => handleCompleteSend(job.id)}
+                      />
+                    )}
 
-                      {relevance.requirements_met.length > 0 && (
-                        <div>
-                          <p className="flex items-center gap-1.5 text-sm font-medium text-stone-900">
-                            <CheckCircle2 className="h-4 w-4 text-[#2D7A5F]" aria-hidden />
-                            {copy.requirementsMet}
-                          </p>
-                          <ul className="mt-2 space-y-2">
-                            {relevance.requirements_met.map((item) => (
-                              <li key={item.requirement} className="text-sm text-stone-700">
-                                <span className="font-medium">{item.requirement}</span>
-                                <ul className="mt-1 space-y-0.5 pl-4 text-xs text-stone-500">
-                                  {item.evidence_fact_ids.map((fid) => {
-                                    const fact = factById.get(fid)
-                                    return (
-                                      <li key={fid}>
-                                        {copy.evidence}:{" "}
-                                        {fact ? fact.factText : `fact ${fid.slice(0, 8)}…`}
-                                      </li>
-                                    )
-                                  })}
-                                </ul>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                    {job.status === "rejected" && (
+                      <p className="mt-3 text-sm text-stone-600">
+                        {copy.rejectedHint(job.rejectReason)}
+                      </p>
+                    )}
 
-                      {relevance.requirements_not_met.length > 0 && (
-                        <div>
-                          <p className="flex items-center gap-1.5 text-sm font-medium text-stone-900">
-                            <XCircle className="h-4 w-4 text-amber-700" aria-hidden />
-                            {copy.requirementsNotMet}
-                          </p>
-                          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-stone-700">
-                            {relevance.requirements_not_met.map((req) => (
-                              <li key={req}>{req}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  ) : reviewError ? (
-                    <p className="mt-4 border-t border-stone-100 pt-4 text-sm text-amber-800">
-                      {copy.reviewError(reviewError)}
-                    </p>
-                  ) : job.status === "new" ? (
-                    <p className="mt-4 border-t border-stone-100 pt-4 text-sm text-stone-500">
-                      {copy.notReviewedYet}
-                    </p>
-                  ) : null}
+                    {rejectingId === job.id && (
+                      <RejectInline
+                        jobId={job.id}
+                        copy={copy}
+                        rejectReason={rejectReason}
+                        setRejectReason={setRejectReason}
+                        busy={busyRow}
+                        onConfirm={() =>
+                          void runJobAction(job.id, "reject", { reason: rejectReason })
+                        }
+                        onCancel={() => {
+                          setRejectingId(null)
+                          setRejectReason("")
+                        }}
+                      />
+                    )}
 
-                  {draft ? (
-                    <DraftPanel
-                      draft={draft}
-                      copy={copy}
-                      onSaved={(next) => {
-                        setDraftsByJob((prev) => {
-                          const map = new Map(prev)
-                          map.set(next.jobId, next)
-                          return map
-                        })
-                      }}
-                    />
-                  ) : canDraft ? (
-                    <p className="mt-4 border-t border-stone-100 pt-4 text-sm text-stone-500">
-                      {copy.noDraftYet}
-                    </p>
-                  ) : null}
-                </li>
-              )
-            })}
-          </ul>
-        )}
+                    <RelevanceBlock job={job} copy={copy} factById={factById} />
+
+                    {draft ? (
+                      <DraftPanel
+                        draft={draft}
+                        copy={copy}
+                        onSaved={(next) => {
+                          setDraftsByJob((prev) => {
+                            const map = new Map(prev)
+                            map.set(next.jobId, next)
+                            return map
+                          })
+                        }}
+                      />
+                    ) : canDraft ? (
+                      <p className="mt-4 border-t border-stone-100 pt-4 text-sm text-stone-500">
+                        {copy.noDraftYet}
+                      </p>
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
       </div>
 
       <AlertDialog
@@ -1488,21 +2127,47 @@ export function AgentsHomePage() {
           if (!open) setConfirmSendJobId(null)
         }}
       >
-        <AlertDialogContent busy={actionId === confirmSendJobId}>
+        <AlertDialogContent busy={actionId === confirmSendJobId} className="max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>{copy.confirmSendTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              {copy.confirmSendDescription(
-                jobs.find((j) => j.id === confirmSendJobId)?.emailTo ?? null,
-              )}
+              {copy.confirmSendDescription(confirmSendJob?.emailTo ?? null)}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-3 text-sm text-stone-600">
+            <p>
+              <span className="font-medium text-stone-800">To:</span>{" "}
+              {confirmSendJob?.emailTo || "—"}
+            </p>
+            <p>
+              <span className="font-medium text-stone-800">Subject:</span>{" "}
+              {copy.confirmSendSubject(confirmSendJob?.title || copy.untitledRole)}
+            </p>
+            <p>{copy.confirmSendMode(gmailLive ? "live" : "test")}</p>
+            <div>
+              <p className="font-medium text-stone-800">{copy.confirmSendAttachments}</p>
+              <ul className="mt-1 list-disc pl-5 text-stone-600">
+                <li>CV.pdf</li>
+                <li>Cover letter.pdf</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-stone-800">{copy.confirmSendCoverLabel}</p>
+              <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded-md border border-stone-200 bg-stone-50 p-2 text-xs text-stone-800">
+                {confirmSendDraft?.coverText?.trim() || "—"}
+              </pre>
+            </div>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={actionId === confirmSendJobId}>
               {copy.confirmSendCancel}
             </AlertDialogCancel>
             <AlertDialogAction
-              disabled={actionId === confirmSendJobId || !confirmSendJobId}
+              disabled={
+                actionId === confirmSendJobId ||
+                !confirmSendJobId ||
+                (confirmSendDraft?.fabricationFlags?.length ?? 0) > 0
+              }
               className="bg-[#2D7A5F] text-white hover:bg-[#2D7A5F]/90"
               onClick={(e) => {
                 e.preventDefault()

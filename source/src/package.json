@@ -19,6 +19,7 @@
     "test:cv-recruiter-strategy": "tsx scripts/test-cv-recruiter-strategy-guidance.ts",
     "test:resume-naming": "node scripts/test-resume-naming.mjs",
     "test:job-applications-dedupe": "node scripts/test-job-applications-dedupe.mjs",
+    "test:agent-three-gates": "tsx scripts/test-agent-three-gates.ts",
     "sync:design-system": "cp design-system/tokens.css design-system/components.css ../../website/design-system/",
     "sync:illustration-slots": "node scripts/import-editorial-library.mjs && node scripts/sync-illustration-slots.mjs",
     "sync:marketing-images": "npm run sync:illustration-slots && node scripts/sync-marketing-from-slots.mjs && node scripts/sync-website-images.mjs"

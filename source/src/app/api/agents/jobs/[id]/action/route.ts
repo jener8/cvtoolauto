@@ -5,6 +5,7 @@ import {
   completeEmailSend,
   markAgentJobSent,
   rejectAgentJob,
+  requestChangesAgentJob,
   startEmailSend,
   undoEmailSend,
 } from "@/lib/agents/review-actions"
@@ -21,6 +22,7 @@ type ActionBody = {
 
 const ACTIONS = [
   "approve",
+  "request_changes",
   "reject",
   "start_send",
   "undo_send",
@@ -32,7 +34,7 @@ type ActionName = (typeof ACTIONS)[number]
 
 /**
  * POST /api/agents/jobs/[id]/action
- * Human review status transitions (Phase 6). Never portal-auto-applies.
+ * Gate 2/3 human actions (one job). Never portal-auto-applies. No bulk.
  */
 export async function POST(request: Request, context: RouteContext) {
   const gate = await requireAgentsApi()
@@ -71,6 +73,9 @@ export async function POST(request: Request, context: RouteContext) {
     switch (action) {
       case "approve":
         result = await approveAgentJob(base)
+        break
+      case "request_changes":
+        result = await requestChangesAgentJob(base)
         break
       case "reject":
         result = await rejectAgentJob({ ...base, reason: body.reason })

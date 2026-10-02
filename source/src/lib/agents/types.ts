@@ -59,29 +59,17 @@ export type AgentDraft = {
 export type AgentJobKind = "listing" | "initiative"
 export type AgentApplyMethod = "email" | "portal"
 
-/** v2 agent_jobs status machine */
-export type AgentJobStatus =
-  | "new"
-  | "needs_manual_review"
-  | "reviewing"
-  | "not_relevant"
-  | "changes_requested"
-  | "approved"
-  | "sending"
-  | "sent"
-  | "rejected"
+/** v2 agent_jobs status machine — three approval gates (see status-machine.ts) */
+export type {
+  AgentJobStatus,
+} from "@/lib/agents/status-machine"
 
-export const AGENT_JOB_STATUSES: AgentJobStatus[] = [
-  "new",
-  "needs_manual_review",
-  "reviewing",
-  "not_relevant",
-  "changes_requested",
-  "approved",
-  "sending",
-  "sent",
-  "rejected",
-]
+export {
+  AGENT_JOB_STATUSES,
+  DRAFT_ELIGIBLE_STATUSES,
+  normalizeAgentJobStatus,
+  isDraftEligibleStatus,
+} from "@/lib/agents/status-machine"
 
 /** Phase 4 Claude relevance payload stored on agent_jobs.relevance (no scores). */
 export type AgentRelevanceMetRequirement = {

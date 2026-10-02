@@ -1,7 +1,6 @@
 /**
- * Phase 6–8 human review actions on agent_jobs.
- * Never auto-submits to employer portals.
- * Email finalize: Gmail API when OAuth env is set; otherwise safe stub / no-send.
+ * Phase 6–8 human review actions — three-gate model.
+ * Gate 2 approve documents / Gate 3 send. Never auto-submits to portals.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js"
@@ -12,6 +11,16 @@ import {
   isGmailConnected,
   sendApplicationEmailViaGmail,
 } from "@/lib/agents/gmail-send"
+import {
+  approveDocuments,
+  assertSingleJobGate,
+  canRejectFromStatus,
+  canStartGate3Send,
+  logGate3Activity,
+  normalizeAgentJobStatus,
+  requestDocumentChanges,
+} from "@/lib/agents/gate-actions"
+import type { FabricationFlag } from "@/lib/agents/types"
 
 export type AgentJobRow = {
   id: string
@@ -54,7 +63,10 @@ async function loadJob(input: {
 
   if (error) throw new Error(error.message)
   if (!data) throw new Error("Job not found")
-  return data as AgentJobRow
+  return {
+    ...(data as AgentJobRow),
+    status: normalizeAgentJobStatus((data as AgentJobRow).status),
+  }
 }
 
 async function updateJob(input: {
@@ -77,27 +89,10 @@ async function updateJob(input: {
   const { data, error } = await query.single()
 
   if (error) throw new Error(error.message)
-  return data as AgentJobRow
-}
-
-async function hasDraft(input: {
-  client: SupabaseClient
-  userId: string
-  jobId: string
-  signal?: AbortSignal
-}): Promise<boolean> {
-  let query = input.client
-    .from("agent_drafts")
-    .select("id")
-    .eq("user_id", input.userId)
-    .eq("job_id", input.jobId)
-    .limit(1)
-  if (input.signal) query = query.abortSignal(input.signal)
-
-  const { data, error } = await query.maybeSingle()
-
-  if (error) throw new Error(error.message)
-  return Boolean(data?.id)
+  return {
+    ...(data as AgentJobRow),
+    status: normalizeAgentJobStatus((data as AgentJobRow).status),
+  }
 }
 
 async function loadLatestDraft(input: {
@@ -105,10 +100,14 @@ async function loadLatestDraft(input: {
   userId: string
   jobId: string
   signal?: AbortSignal
-}): Promise<{ cover_text: string | null; cv_text: string | null } | null> {
+}): Promise<{
+  cover_text: string | null
+  cv_text: string | null
+  fabrication_flags: FabricationFlag[]
+} | null> {
   let query = input.client
     .from("agent_drafts")
-    .select("cover_text, cv_text, version")
+    .select("cover_text, cv_text, version, fabrication_flags")
     .eq("user_id", input.userId)
     .eq("job_id", input.jobId)
     .order("version", { ascending: false })
@@ -118,40 +117,47 @@ async function loadLatestDraft(input: {
   const { data, error } = await query.maybeSingle()
   if (error) throw new Error(error.message)
   if (!data) return null
+  const flags = Array.isArray(data.fabrication_flags)
+    ? (data.fabrication_flags as FabricationFlag[])
+    : []
   return {
     cover_text: (data.cover_text as string | null) ?? null,
     cv_text: (data.cv_text as string | null) ?? null,
+    fabrication_flags: flags,
   }
 }
 
-/** reviewing (+ draft) → approved */
+/** Gate 2: drafts_ready → documents_approved (one job). */
 export async function approveAgentJob(input: {
   client: SupabaseClient
   userId: string
   jobId: string
   signal?: AbortSignal
 }): Promise<ReviewActionResult> {
-  const job = await loadJob(input)
-  if (job.status !== "reviewing") {
-    throw new Error("Only jobs in reviewing can be approved")
+  assertSingleJobGate("gate2", [input.jobId])
+  const draft = await loadLatestDraft(input)
+  if (!draft) {
+    throw new Error("Approve documents requires a draft CV/cover letter first")
   }
-  const draftOk = await hasDraft(input)
-  if (!draftOk) {
-    throw new Error("Approve requires a draft CV/cover letter first")
-  }
-
-  const updated = await updateJob({
+  const result = await approveDocuments({
     ...input,
-    patch: {
-      status: "approved",
-      sending_started_at: null,
-    },
+    fabricationFlags: draft.fabrication_flags,
   })
-
-  return { jobId: updated.id, status: updated.status }
+  return { jobId: result.jobId, status: result.status }
 }
 
-/** Keep job (dedupe), optional reason → rejected */
+/** Gate 2: drafts_ready → changes_requested */
+export async function requestChangesAgentJob(input: {
+  client: SupabaseClient
+  userId: string
+  jobId: string
+  signal?: AbortSignal
+}): Promise<ReviewActionResult> {
+  const result = await requestDocumentChanges(input)
+  return { jobId: result.jobId, status: result.status }
+}
+
+/** Reject at any gate (except sent / already rejected / skipped). */
 export async function rejectAgentJob(input: {
   client: SupabaseClient
   userId: string
@@ -160,16 +166,7 @@ export async function rejectAgentJob(input: {
   signal?: AbortSignal
 }): Promise<ReviewActionResult> {
   const job = await loadJob(input)
-  const allowed: AgentJobStatus[] = [
-    "new",
-    "needs_manual_review",
-    "reviewing",
-    "changes_requested",
-    "approved",
-    "sending",
-    "not_relevant",
-  ]
-  if (!allowed.includes(job.status)) {
+  if (!canRejectFromStatus(job.status)) {
     throw new Error(`Cannot reject from status ${job.status}`)
   }
 
@@ -183,6 +180,13 @@ export async function rejectAgentJob(input: {
     },
   })
 
+  await logGate3Activity({
+    ...input,
+    decision: "reject",
+    jobId: updated.id,
+    details: { reason },
+  })
+
   return {
     jobId: updated.id,
     status: updated.status,
@@ -191,9 +195,8 @@ export async function rejectAgentJob(input: {
 }
 
 /**
- * Email / initiative: approved → sending (starts 30s undo).
- * Portal must never use this path.
- * Caller UI must show a per-item confirmation dialog before invoking.
+ * Gate 3 email: documents_approved → sending (30s undo).
+ * Portal must never use this path. One job only.
  */
 export async function startEmailSend(input: {
   client: SupabaseClient
@@ -201,23 +204,25 @@ export async function startEmailSend(input: {
   jobId: string
   signal?: AbortSignal
 }): Promise<ReviewActionResult> {
+  assertSingleJobGate("gate3", [input.jobId])
   const job = await loadJob(input)
-  if (job.status !== "approved") {
-    throw new Error("Only approved jobs can start send")
-  }
+  const draft = await loadLatestDraft(input)
+  const gate = canStartGate3Send({
+    status: job.status,
+    applyMethod: job.apply_method,
+    fabricationFlags: draft?.fabrication_flags ?? [],
+  })
+  if (!gate.ok) throw new Error(gate.reason)
 
   const method = job.apply_method
   const isEmailPath =
     method === "email" || job.kind === "initiative" || (method == null && Boolean(job.email_to))
 
   if (method === "portal") {
-    throw new Error("Portal jobs cannot use email send — mark as sent after you apply yourself")
+    throw new Error("Portal jobs cannot use email send — open the portal, then mark as sent")
   }
-  if (!isEmailPath && method !== "email") {
-    // Unknown method with no email: still allow only if not portal
-    if (method != null) {
-      throw new Error("Apply method does not support email send")
-    }
+  if (!isEmailPath && method != null && method !== "email") {
+    throw new Error("Apply method does not support email send")
   }
 
   const started = new Date().toISOString()
@@ -227,6 +232,13 @@ export async function startEmailSend(input: {
       status: "sending",
       sending_started_at: started,
     },
+  })
+
+  await logGate3Activity({
+    ...input,
+    decision: "start_send",
+    jobId: updated.id,
+    details: { applyMethod: method, emailTo: job.email_to },
   })
 
   const connected = isGmailConnected()
@@ -241,7 +253,7 @@ export async function startEmailSend(input: {
   }
 }
 
-/** sending → approved within undo window */
+/** sending → documents_approved within undo window */
 export async function undoEmailSend(input: {
   client: SupabaseClient
   userId: string
@@ -256,9 +268,15 @@ export async function undoEmailSend(input: {
   const updated = await updateJob({
     ...input,
     patch: {
-      status: "approved",
+      status: "documents_approved",
       sending_started_at: null,
     },
+  })
+
+  await logGate3Activity({
+    ...input,
+    decision: "undo_send",
+    jobId: updated.id,
   })
 
   return {
@@ -268,11 +286,6 @@ export async function undoEmailSend(input: {
   }
 }
 
-/**
- * After undo window: Gmail API send (if credentials) → sent + gmail_message_id.
- * Legacy JOB_AGENT_GMAIL_CONNECTED stub marks sent with stub id (local/dev only).
- * Otherwise revert to approved (no employer email).
- */
 export async function completeEmailSend(input: {
   client: SupabaseClient
   userId: string
@@ -296,11 +309,10 @@ export async function completeEmailSend(input: {
   }
 
   if (!isGmailConnected()) {
-    // Revert to approved — human can send outside and Mark as sent
     const updated = await updateJob({
       ...input,
       patch: {
-        status: "approved",
+        status: "documents_approved",
         sending_started_at: null,
       },
     })
@@ -313,14 +325,13 @@ export async function completeEmailSend(input: {
     }
   }
 
-  // Real Gmail API path
   if (hasGmailApiCredentials()) {
     const to = job.email_to?.trim()
     if (!to) {
       const updated = await updateJob({
         ...input,
         patch: {
-          status: "approved",
+          status: "documents_approved",
           sending_started_at: null,
         },
       })
@@ -339,7 +350,7 @@ export async function completeEmailSend(input: {
       const updated = await updateJob({
         ...input,
         patch: {
-          status: "approved",
+          status: "documents_approved",
           sending_started_at: null,
         },
       })
@@ -379,11 +390,10 @@ export async function completeEmailSend(input: {
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : "Gmail send failed"
-      // Stay in sending? Better revert to approved so user can retry after fixing credentials.
       const updated = await updateJob({
         ...input,
         patch: {
-          status: "approved",
+          status: "documents_approved",
           sending_started_at: null,
         },
       })
@@ -397,7 +407,6 @@ export async function completeEmailSend(input: {
     }
   }
 
-  // Legacy stub when JOB_AGENT_GMAIL_CONNECTED=true but no OAuth env
   const messageId = `stub-gmail-${job.id.slice(0, 8)}-${Date.now()}`
   const updated = await updateJob({
     ...input,
@@ -418,7 +427,7 @@ export async function completeEmailSend(input: {
 }
 
 /**
- * Portal (or manual after email stub): approved → sent.
+ * Gate 3 portal / manual: documents_approved | sending → sent.
  * Never opens/submits an external portal.
  */
 export async function markAgentJobSent(input: {
@@ -427,9 +436,21 @@ export async function markAgentJobSent(input: {
   jobId: string
   signal?: AbortSignal
 }): Promise<ReviewActionResult> {
+  assertSingleJobGate("gate3", [input.jobId])
   const job = await loadJob(input)
-  if (job.status !== "approved" && job.status !== "sending") {
-    throw new Error("Only approved (or cancelled-send) jobs can be marked as sent")
+  const status = normalizeAgentJobStatus(job.status)
+  if (status !== "documents_approved" && status !== "sending") {
+    throw new Error("Only documents_approved (or cancelled-send) jobs can be marked as sent")
+  }
+
+  if (status === "documents_approved") {
+    const draft = await loadLatestDraft(input)
+    const gate = canStartGate3Send({
+      status,
+      applyMethod: job.apply_method,
+      fabricationFlags: draft?.fabrication_flags ?? [],
+    })
+    if (!gate.ok) throw new Error(gate.reason)
   }
 
   const updated = await updateJob({
@@ -438,6 +459,13 @@ export async function markAgentJobSent(input: {
       status: "sent",
       sending_started_at: null,
     },
+  })
+
+  await logGate3Activity({
+    ...input,
+    decision: "mark_sent",
+    jobId: updated.id,
+    details: { applyMethod: job.apply_method },
   })
 
   return {

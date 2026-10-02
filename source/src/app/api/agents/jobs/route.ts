@@ -7,6 +7,7 @@ import type {
   AgentRelevancePayload,
 } from "@/lib/agents/types"
 import { AGENT_JOB_STATUSES } from "@/lib/agents/types"
+import { normalizeAgentJobStatus } from "@/lib/agents/status-machine"
 
 export const runtime = "nodejs"
 
@@ -33,14 +34,23 @@ export type AgentJobListItem = {
 
 const DEFAULT_STATUSES: AgentJobStatus[] = [
   "new",
-  "reviewing",
-  "not_relevant",
-  "needs_manual_review",
+  "potential_fit",
+  "not_a_fit",
+  "manual",
+  "shortlisted",
+  "skipped",
+  "drafting",
+  "drafts_ready",
   "changes_requested",
-  "approved",
+  "documents_approved",
   "sending",
   "sent",
   "rejected",
+  // legacy aliases still readable pre-migration
+  "reviewing",
+  "not_relevant",
+  "needs_manual_review",
+  "approved",
 ]
 
 /**
@@ -105,7 +115,7 @@ export async function GET(request: Request) {
       const companyId = row.company_id as string | null
       return {
         id: row.id as string,
-        status: row.status as AgentJobStatus,
+        status: normalizeAgentJobStatus(String(row.status)),
         kind: ((row.kind as AgentJobKind) || "listing") as AgentJobKind,
         applyMethod: (row.apply_method as AgentApplyMethod | null) ?? null,
         title: (row.title as string | null) ?? null,

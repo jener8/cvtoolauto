@@ -50,21 +50,20 @@ function collectErrors(...lists: Array<string[] | undefined>): string[] {
   return out.slice(0, 50)
 }
 
-async function runAssessAndDraft(input: {
+async function runAssessOnly(input: {
   userId: string
   client: SupabaseClient
   signal?: AbortSignal
   force?: boolean
 }): Promise<{
   review: Awaited<ReturnType<typeof runRelevanceReview>> | null
-  draft: Awaited<ReturnType<typeof runDraftGeneration>> | null
+  draft: null
   skippedPaused: AgentControlKey[]
   errorMessages: string[]
 }> {
   const skippedPaused: AgentControlKey[] = []
   const errorMessages: string[] = []
   let review: Awaited<ReturnType<typeof runRelevanceReview>> | null = null
-  let draft: Awaited<ReturnType<typeof runDraftGeneration>> | null = null
 
   const assessorPaused =
     !input.force &&
@@ -85,26 +84,8 @@ async function runAssessAndDraft(input: {
     errorMessages.push(...(review.errorMessages ?? []))
   }
 
-  const writerPaused =
-    !input.force &&
-    (await isAgentPaused({
-      userId: input.userId,
-      client: input.client,
-      agentKey: "writer",
-      signal: input.signal,
-    }))
-  if (writerPaused) {
-    skippedPaused.push("writer")
-  } else {
-    draft = await runDraftGeneration({
-      userId: input.userId,
-      client: input.client,
-      signal: input.signal,
-    })
-    errorMessages.push(...(draft.errorMessages ?? []))
-  }
-
-  return { review, draft, skippedPaused, errorMessages }
+  // Writer is NEVER auto-run after assessment — Gate 1 shortlist required first
+  return { review, draft: null, skippedPaused, errorMessages }
 }
 
 /**
@@ -143,7 +124,7 @@ export async function runJobScoutPipeline(input: {
     errorMessages.push(...(search.errors ?? []))
   }
 
-  const follow = await runAssessAndDraft({
+  const follow = await runAssessOnly({
     userId: input.userId,
     client: input.client,
     signal: input.signal,
@@ -160,7 +141,7 @@ export async function runJobScoutPipeline(input: {
     search,
     companyScout: null,
     review: follow.review,
-    draft: follow.draft,
+    draft: null,
     userId: input.userId,
     client: input.client,
     signal: input.signal,
@@ -202,7 +183,7 @@ export async function runCompanyScoutPipeline(input: {
     errorMessages.push(...(companyScout.errors ?? []))
   }
 
-  const follow = await runAssessAndDraft({
+  const follow = await runAssessOnly({
     userId: input.userId,
     client: input.client,
     signal: input.signal,
@@ -219,7 +200,7 @@ export async function runCompanyScoutPipeline(input: {
     search: null,
     companyScout,
     review: follow.review,
-    draft: follow.draft,
+    draft: null,
     userId: input.userId,
     client: input.client,
     signal: input.signal,

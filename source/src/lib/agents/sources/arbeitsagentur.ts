@@ -20,6 +20,7 @@ export type SourceFetchResult = {
   source: "arbeitsagentur"
   jobs: NormalizedJob[]
   fetched: number
+  filteredOut: string[]
   errors: string[]
 }
 
@@ -160,7 +161,6 @@ function toNormalized(
   const { applyMethod, emailTo } = inferApplyMethod({ rawText: rawListingText, url })
   const language = detectListingLanguage(rawListingText, settings.languages)
 
-  if (!matchesKeywords(`${title} ${description ?? ""}`, settings.keywords)) return null
   if (!matchesSeniority(title, settings.seniority)) return null
   if (
     !matchesLocation(location, settings.location, settings.remote, false) &&
@@ -215,11 +215,12 @@ export async function fetchArbeitsagenturJobs(
     payload = await fetchJson(`${BA_BASE}/pc/v6/jobs?${params.toString()}`)
   } catch (e) {
     const message = e instanceof Error ? e.message : "BA search failed"
-    return { source: "arbeitsagentur", jobs: [], fetched: 0, errors: [message] }
+    return { source: "arbeitsagentur", jobs: [], fetched: 0, filteredOut: [], errors: [message] }
   }
 
   const items = listItems(payload)
   const jobs: NormalizedJob[] = []
+  const filteredOut: string[] = []
 
   const detailTargets = items.slice(0, MAX_BA_DETAILS)
   const detailResults = await Promise.all(
@@ -230,10 +231,18 @@ export async function fetchArbeitsagenturJobs(
     }),
   )
 
+  const consider = (normalized: NormalizedJob | null) => {
+    if (!normalized) return
+    if (!matchesKeywords(`${normalized.title} ${normalized.description ?? ""}`, settings.keywords)) {
+      filteredOut.push(normalized.title)
+      return
+    }
+    jobs.push(normalized)
+  }
+
   for (const { item, details } of detailResults) {
     try {
-      const normalized = toNormalized(item, details, settings)
-      if (normalized) jobs.push(normalized)
+      consider(toNormalized(item, details, settings))
     } catch (e) {
       errors.push(e instanceof Error ? e.message : "BA normalize failed")
     }
@@ -242,8 +251,7 @@ export async function fetchArbeitsagenturJobs(
   // Remaining list rows without details (still useful title/company)
   for (const item of items.slice(MAX_BA_DETAILS)) {
     try {
-      const normalized = toNormalized(item, null, settings)
-      if (normalized) jobs.push(normalized)
+      consider(toNormalized(item, null, settings))
     } catch (e) {
       errors.push(e instanceof Error ? e.message : "BA normalize failed")
     }
@@ -261,6 +269,7 @@ export async function fetchArbeitsagenturJobs(
     source: "arbeitsagentur",
     jobs: unique,
     fetched: items.length,
+    filteredOut,
     errors,
   }
 }

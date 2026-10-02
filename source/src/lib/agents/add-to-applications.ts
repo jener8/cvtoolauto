@@ -9,7 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { COMPANY_NOT_ADDED, JOB_TITLE_NOT_ADDED } from "@/lib/job-application-display"
 import type { AgentJobStatus, AgentRelevancePayload } from "@/lib/agents/types"
 
-const SYNCABLE: AgentJobStatus[] = ["approved", "sent"]
+const SYNCABLE: AgentJobStatus[] = ["documents_approved", "sent", "approved"]
 
 export type AddToApplicationsResult =
   | {

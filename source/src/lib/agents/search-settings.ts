@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { AgentSearchSettings, AgentSearchSettingsInput } from "@/lib/agents/types"
+import { DEFAULT_JOB_SCOUT_KEYWORDS } from "@/lib/agents/default-keywords"
 import { sanitizeSearchSettingsInput } from "@/lib/agents/normalize"
 
 type SearchSettingsRow = {
@@ -47,12 +48,29 @@ export async function getOrCreateSearchSettings(input: {
     throw new Error(error.message)
   }
   if (data) {
-    return mapSearchSettingsRow(data as SearchSettingsRow)
+    const mapped = mapSearchSettingsRow(data as SearchSettingsRow)
+    // Empty keywords → seed defaults so Search settings + Job Scout share one list
+    if (mapped.keywords.length === 0) {
+      return upsertSearchSettings({
+        userId: input.userId,
+        client: input.client,
+        patch: {
+          keywords: [...DEFAULT_JOB_SCOUT_KEYWORDS],
+          location: mapped.location,
+          remote: mapped.remote,
+          languages: mapped.languages,
+          seniority: mapped.seniority,
+          targetCompanies: mapped.targetCompanies,
+        },
+        signal: input.signal,
+      })
+    }
+    return mapped
   }
 
   let insertQuery = input.client.from("agent_search_settings").insert({
     user_id: input.userId,
-    keywords: [],
+    keywords: [...DEFAULT_JOB_SCOUT_KEYWORDS],
     location: "Berlin",
     remote: false,
     languages: [],

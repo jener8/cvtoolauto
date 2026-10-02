@@ -19,11 +19,12 @@ import type {
   AgentRelevancePayload,
   CitedFactSnapshot,
 } from "@/lib/agents/types"
+import { DRAFT_ELIGIBLE_STATUSES, isDraftEligibleStatus } from "@/lib/agents/status-machine"
 import { cvFactualSourceRulesBlock } from "@/lib/cv-factual-guidance"
 
 const CALL_TIMEOUT_MS = 120_000
 const LISTING_TEXT_MAX = 10_000
-const DRAFT_ELIGIBLE: AgentJobStatus[] = ["reviewing", "changes_requested"]
+const DRAFT_ELIGIBLE: AgentJobStatus[] = [...DRAFT_ELIGIBLE_STATUSES]
 
 export type DraftRunCounts = {
   drafted: number
@@ -356,15 +357,16 @@ async function persistDraft(input: {
   return data.id as string
 }
 
-async function setJobReviewing(input: {
+async function setJobStatus(input: {
   client: SupabaseClient
   userId: string
   jobId: string
+  status: AgentJobStatus
   signal?: AbortSignal
 }): Promise<void> {
   let query = input.client
     .from("agent_jobs")
-    .update({ status: "reviewing", updated_at: new Date().toISOString() })
+    .update({ status: input.status, updated_at: new Date().toISOString() })
     .eq("id", input.jobId)
     .eq("user_id", input.userId)
   if (input.signal) query = query.abortSignal(input.signal)
@@ -373,9 +375,8 @@ async function setJobReviewing(input: {
 }
 
 /**
- * Draft tailored CV + cover for status=reviewing | changes_requested jobs.
- * Respects JOB_AGENT_DAILY_CAP (default 5). changes_requested → reviewing after draft.
- * Activity log: counts only (no PII).
+ * Draft tailored CV + cover ONLY for shortlisted | changes_requested jobs (Gate 1 passed).
+ * Never drafts potential_fit / assessed-only rows. Status: shortlisted → drafting → drafts_ready.
  */
 export async function runDraftGeneration(input: {
   userId: string
@@ -482,7 +483,7 @@ export async function runDraftGeneration(input: {
   }
 
   const eligible = ((rows as JobRowWithMeta[] | null) ?? []).filter((j) =>
-    DRAFT_ELIGIBLE.includes(j.status as AgentJobStatus),
+    isDraftEligibleStatus(j.status),
   )
 
   function relevanceStrength(rel: JobRowWithMeta["relevance"]): number {
@@ -519,10 +520,15 @@ export async function runDraftGeneration(input: {
       })
 
   const jobs = (input.jobId ? sorted : sorted.slice(0, remaining)).filter((j) =>
-    DRAFT_ELIGIBLE.includes(j.status as AgentJobStatus),
+    isDraftEligibleStatus(j.status),
   )
 
   if (jobs.length === 0) {
+    if (!input.jobId) {
+      errorMessages.push(
+        "No shortlisted jobs to draft — shortlist potential fits (Gate 1) before running the Writer",
+      )
+    }
     return {
       ...counts,
       activityId: null,
@@ -577,6 +583,20 @@ export async function runDraftGeneration(input: {
     const companyName = job.company_id ? companyNames.get(job.company_id) ?? null : null
 
     try {
+      if (!isDraftEligibleStatus(job.status)) {
+        throw new Error(
+          `Writer refused: job is ${job.status} — only shortlisted (or changes_requested) jobs can be drafted`,
+        )
+      }
+
+      await setJobStatus({
+        client: input.client,
+        userId: input.userId,
+        jobId: job.id,
+        status: "drafting",
+        signal: input.signal,
+      })
+
       let writerOut: Awaited<ReturnType<typeof writeDraftOnce>> | null = null
       let lastErr = "Writer failed"
       for (let attempt = 1; attempt <= 2; attempt++) {
@@ -632,11 +652,12 @@ export async function runDraftGeneration(input: {
         signal: input.signal,
       })
 
-      // changes_requested → reviewing after successful redraft
-      await setJobReviewing({
+      // shortlisted | changes_requested → drafts_ready (Gate 2)
+      await setJobStatus({
         client: input.client,
         userId: input.userId,
         jobId: job.id,
+        status: "drafts_ready",
         signal: input.signal,
       })
 
@@ -646,13 +667,27 @@ export async function runDraftGeneration(input: {
       results.push({
         jobId: job.id,
         draftId,
-        status: "reviewing",
+        status: "drafts_ready",
         flags: flags.length,
       })
     } catch (e) {
       const message = e instanceof Error ? e.message : "Draft failed"
       errorMessages.push(message)
       counts.errors += 1
+      // Revert drafting → shortlisted so the job is not stuck
+      if (job.status === "shortlisted" || job.status === "changes_requested") {
+        try {
+          await setJobStatus({
+            client: input.client,
+            userId: input.userId,
+            jobId: job.id,
+            status: job.status as AgentJobStatus,
+            signal: input.signal,
+          })
+        } catch {
+          /* ignore */
+        }
+      }
       results.push({
         jobId: job.id,
         draftId: null,
@@ -728,7 +763,7 @@ export async function requestDraftChanges(input: {
     })
     .eq("id", input.jobId)
     .eq("user_id", input.userId)
-    .in("status", ["reviewing", "changes_requested"])
+    .in("status", ["drafts_ready", "changes_requested", "reviewing"])
     .select("id")
   if (input.signal) query = query.abortSignal(input.signal)
   const { error, data } = await query.maybeSingle()

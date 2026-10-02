@@ -18,6 +18,8 @@ export type ArbeitnowFetchResult = {
   source: "arbeitnow"
   jobs: NormalizedJob[]
   fetched: number
+  /** Titles dropped by keyword pre-filter (not a target role). */
+  filteredOut: string[]
   errors: string[]
 }
 
@@ -62,8 +64,6 @@ function toNormalized(job: ArbeitnowJob, settings: AgentSearchSettings): Normali
     .filter(Boolean)
     .join("\n\n")
 
-  const haystack = `${title} ${description ?? ""} ${tags}`
-  if (!matchesKeywords(haystack, settings.keywords)) return null
   if (!matchesSeniority(title, settings.seniority)) return null
   if (!matchesLocation(location, settings.location, settings.remote, isRemote(job))) return null
 
@@ -101,6 +101,7 @@ export async function fetchArbeitnowJobs(
 ): Promise<ArbeitnowFetchResult> {
   const errors: string[] = []
   const jobs: NormalizedJob[] = []
+  const filteredOut: string[] = []
   let fetched = 0
 
   for (let page = 1; page <= MAX_PAGES; page++) {
@@ -123,7 +124,14 @@ export async function fetchArbeitnowJobs(
       for (const row of rows) {
         try {
           const normalized = toNormalized(row, settings)
-          if (normalized) jobs.push(normalized)
+          if (!normalized) continue
+          const tags = Array.isArray(row.tags) ? row.tags.join(", ") : ""
+          const haystack = `${normalized.title} ${normalized.description ?? ""} ${tags}`
+          if (!matchesKeywords(haystack, settings.keywords)) {
+            filteredOut.push(normalized.title)
+            continue
+          }
+          jobs.push(normalized)
         } catch (e) {
           errors.push(e instanceof Error ? e.message : "Arbeitnow normalize failed")
         }
@@ -143,5 +151,5 @@ export async function fetchArbeitnowJobs(
     return true
   })
 
-  return { source: "arbeitnow", jobs: unique, fetched, errors }
+  return { source: "arbeitnow", jobs: unique, fetched, filteredOut, errors }
 }

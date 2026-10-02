@@ -17,6 +17,7 @@ export type AdzunaFetchResult = {
   source: "adzuna"
   jobs: NormalizedJob[]
   fetched: number
+  filteredOut: string[]
   errors: string[]
   skipped?: boolean
 }
@@ -51,7 +52,6 @@ function toNormalized(job: AdzunaJob, settings: AgentSearchSettings): Normalized
     .filter(Boolean)
     .join("\n\n")
 
-  if (!matchesKeywords(`${title} ${description ?? ""}`, settings.keywords)) return null
   if (!matchesSeniority(title, settings.seniority)) return null
 
   const language = detectListingLanguage(rawListingText, settings.languages)
@@ -91,6 +91,7 @@ export async function fetchAdzunaJobs(
       source: "adzuna",
       jobs: [],
       fetched: 0,
+      filteredOut: [],
       errors: [],
       skipped: true,
     }
@@ -122,27 +123,35 @@ export async function fetchAdzunaJobs(
         source: "adzuna",
         jobs: [],
         fetched: 0,
+        filteredOut: [],
         errors: [`Adzuna HTTP ${res.status}`],
       }
     }
     const payload = (await res.json()) as { results?: AdzunaJob[] }
     const rows = Array.isArray(payload.results) ? payload.results : []
     const jobs: NormalizedJob[] = []
+    const filteredOut: string[] = []
     const errors: string[] = []
     for (const row of rows) {
       try {
         const normalized = toNormalized(row, settings)
-        if (normalized) jobs.push(normalized)
+        if (!normalized) continue
+        if (!matchesKeywords(`${normalized.title} ${normalized.description ?? ""}`, settings.keywords)) {
+          filteredOut.push(normalized.title)
+          continue
+        }
+        jobs.push(normalized)
       } catch (e) {
         errors.push(e instanceof Error ? e.message : "Adzuna normalize failed")
       }
     }
-    return { source: "adzuna", jobs, fetched: rows.length, errors }
+    return { source: "adzuna", jobs, fetched: rows.length, filteredOut, errors }
   } catch (e) {
     return {
       source: "adzuna",
       jobs: [],
       fetched: 0,
+      filteredOut: [],
       errors: [e instanceof Error ? e.message : "Adzuna fetch failed"],
     }
   } finally {

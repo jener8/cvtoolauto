@@ -18,6 +18,7 @@ import {
 import {
   createServerServiceSupabaseClient,
   getLastServerServiceSignInError,
+  resolveServerServiceUserId,
 } from "@/lib/supabase/server-service-client"
 
 export const runtime = "nodejs"
@@ -86,10 +87,14 @@ async function handleCron(request: Request) {
     )
   }
 
-  const { data: authData, error: authError } = await supabase.auth.getUser()
-  if (authError || !authData.user?.id) {
+  const { userId, errorMessage } = await resolveServerServiceUserId(supabase)
+  if (!userId) {
+    console.warn("[api/agents/cron] Could not resolve Supabase user:", errorMessage)
     return NextResponse.json(
-      { error: "Could not resolve Supabase user for agent tables." },
+      {
+        error: "Could not resolve Supabase user for agent tables.",
+        hint: errorMessage,
+      },
       { status: 503 },
     )
   }
@@ -101,13 +106,13 @@ async function handleCron(request: Request) {
     const result =
       agent === "company_scout"
         ? await runCompanyScoutPipeline({
-            userId: authData.user.id,
+            userId,
             client: supabase,
             trigger: "cron",
             signal: controller.signal,
           })
         : await runJobScoutPipeline({
-            userId: authData.user.id,
+            userId,
             client: supabase,
             trigger: "cron",
             signal: controller.signal,

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
 import { ArrowLeft, Loader2, Play, Search, Save, Trash2 } from "lucide-react"
+import { DEFAULT_JOB_SCOUT_KEYWORDS } from "@/lib/agents/default-keywords"
 
 type RunResult = {
   fetched?: number
@@ -455,9 +456,16 @@ export function AgentSettingsPage() {
                   id="keywords"
                   value={keywords}
                   onChange={(e) => setKeywords(e.target.value)}
-                  placeholder="Product Manager, Product Owner"
+                  placeholder={DEFAULT_JOB_SCOUT_KEYWORDS.slice(0, 4).join(", ")}
                 />
-                <p className="text-xs text-stone-500">Comma-separated. Used as the primary search query.</p>
+                <p className="text-xs text-stone-500">
+                  Comma-separated. Job Scout keeps a listing only if title or description matches at
+                  least one keyword (OR). Non-matches are logged in Activity as &ldquo;Filtered out:
+                  not a target role&rdquo; and never appear in the list or Assessor queue.
+                </p>
+                <p className="text-xs text-stone-500">
+                  Default list (editable): {DEFAULT_JOB_SCOUT_KEYWORDS.join(", ")}
+                </p>
               </div>
 
               <div className="space-y-2">

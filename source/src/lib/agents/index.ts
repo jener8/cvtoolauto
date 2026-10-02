@@ -38,11 +38,21 @@ export type { AddToApplicationsResult } from "@/lib/agents/add-to-applications"
 export {
   approveAgentJob,
   rejectAgentJob,
+  requestChangesAgentJob,
   startEmailSend,
   undoEmailSend,
   completeEmailSend,
   markAgentJobSent,
 } from "@/lib/agents/review-actions"
+export { shortlistJobs, skipJobs } from "@/lib/agents/gate-actions"
+export {
+  AGENT_JOB_STATUSES,
+  DRAFT_ELIGIBLE_STATUSES,
+  normalizeAgentJobStatus,
+  isDraftEligibleStatus,
+  canStartGate3Send,
+  assertSingleJobGate,
+} from "@/lib/agents/status-machine"
 export {
   getGmailCredentials,
   hasGmailApiCredentials,

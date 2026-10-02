@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { AgentSearchSettings, NormalizedJob } from "@/lib/agents/types"
 import { findOrCreateCompany } from "@/lib/agents/companies"
+import { filteredOutActivityMessage } from "@/lib/agents/default-keywords"
 import { dedupeNormalizedJobs, loadExistingJobIndex } from "@/lib/agents/dedupe"
 import { getOrCreateSearchSettings } from "@/lib/agents/search-settings"
 import {
@@ -14,6 +15,7 @@ export type RunSearchResult = {
   fetched: number
   inserted: number
   duplicates: number
+  filteredOut: number
   bySource: Record<string, { fetched: number; matched: number; skipped?: boolean }>
   errors: string[]
   activityId: string | null
@@ -72,6 +74,7 @@ export async function runJobSearch(input: {
   client: SupabaseClient
   signal?: AbortSignal
 }): Promise<RunSearchResult> {
+  // Seeds DEFAULT_JOB_SCOUT_KEYWORDS when keywords are empty
   const settings = await getOrCreateSearchSettings({
     userId: input.userId,
     client: input.client,
@@ -84,7 +87,20 @@ export async function runJobSearch(input: {
     fetchAdzunaJobs(settings),
   ])
 
-  const errors = [...ba.errors, ...arbeitnow.errors, ...adzuna.errors]
+  const filteredTitles = [
+    ...(ba.filteredOut ?? []),
+    ...(arbeitnow.filteredOut ?? []),
+    ...(adzuna.filteredOut ?? []),
+  ]
+  const filterMessages = filteredTitles.map((title) => filteredOutActivityMessage(title))
+
+  const errors = [
+    ...ba.errors,
+    ...arbeitnow.errors,
+    ...adzuna.errors,
+    // Activity + response: keyword pre-filter (not saved, not assessed)
+    ...filterMessages.slice(0, 80),
+  ]
   const allJobs: NormalizedJob[] = [...ba.jobs, ...arbeitnow.jobs, ...adzuna.jobs]
   const fetched = ba.fetched + arbeitnow.fetched + adzuna.fetched
 
@@ -139,11 +155,13 @@ export async function runJobSearch(input: {
       fetched,
       relevant: 0,
       drafted: 0,
-      errors: errors.slice(0, 50),
+      errors: errors.slice(0, 100),
       details: {
         agent: "job_scout",
         inserted,
         duplicates: duplicatesTotal,
+        filteredOut: filteredTitles.length,
+        filteredOutSample: filteredTitles.slice(0, 40),
         bySource,
         location: settings.location,
         keywords: settings.keywords,
@@ -167,6 +185,7 @@ export async function runJobSearch(input: {
     fetched,
     inserted,
     duplicates: duplicatesTotal,
+    filteredOut: filteredTitles.length,
     bySource,
     errors,
     activityId,

@@ -57,6 +57,7 @@ const AGENT_SQL = [
   "021_agent_jobs_source_key.sql",
   "022_agent_jobs_not_relevant_status.sql",
   "023_agent_controls_scheduling.sql",
+  "025_agent_jobs_three_gates.sql",
 ]
 
 const cmd = (process.argv[2] || "steps").trim()

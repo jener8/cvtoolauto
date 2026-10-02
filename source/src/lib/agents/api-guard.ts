@@ -11,6 +11,7 @@ import {
 import {
   createServerServiceSupabaseClient,
   getLastServerServiceSignInError,
+  resolveServerServiceUserId,
 } from "@/lib/supabase/server-service-client"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { CvUser } from "@/lib/cv-auth-types"
@@ -83,12 +84,16 @@ export async function requireAgentsApi(): Promise<
     }
   }
 
-  const { data: authData, error: authError } = await supabase.auth.getUser()
-  if (authError || !authData.user?.id) {
+  const { userId, errorMessage } = await resolveServerServiceUserId(supabase)
+  if (!userId) {
+    console.warn("[api/agents] Could not resolve Supabase user:", errorMessage)
     return {
       ok: false,
       response: NextResponse.json(
-        { error: "Could not resolve Supabase user for agent tables." },
+        {
+          error: "Could not resolve Supabase user for agent tables.",
+          hint: errorMessage,
+        },
         { status: 503 },
       ),
     }
@@ -102,7 +107,7 @@ export async function requireAgentsApi(): Promise<
     ctx: {
       user,
       supabase,
-      userId: authData.user.id,
+      userId,
       controller,
     },
   }

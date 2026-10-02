@@ -33,6 +33,9 @@ export type RunRelevanceResult = RelevanceReviewCounts & {
     status: AgentJobStatus
     relevant: boolean | null
   }>
+  /** True when Assessor did not run (missing API key or no confirmed facts). */
+  refused?: boolean
+  refuseReason?: string
 }
 
 type JobRow = {
@@ -174,8 +177,8 @@ export async function reviewJobRelevance(input: {
 }
 
 function nextStatus(relevance: AgentRelevanceResult): AgentJobStatus {
-  // Documented choice: relevant → reviewing; not relevant → not_relevant (no auto-reject/send)
-  return relevance.relevant ? "reviewing" : "not_relevant"
+  // Assessed outcome — Gate 1 (shortlist) is required before Writer
+  return relevance.relevant ? "potential_fit" : "not_a_fit"
 }
 
 async function persistReview(input: {
@@ -223,7 +226,15 @@ export async function runRelevanceReview(input: {
 
   if (!isAgentsAnthropicConfigured()) {
     errorMessages.push("ANTHROPIC_API_KEY is not set")
-    return { ...counts, errors: 1, activityId: null, errorMessages, results }
+    return {
+      ...counts,
+      errors: 1,
+      activityId: null,
+      errorMessages,
+      results,
+      refused: true,
+      refuseReason: "ANTHROPIC_API_KEY is not set",
+    }
   }
 
   const facts = await getConfirmedFacts({
@@ -233,8 +244,18 @@ export async function runRelevanceReview(input: {
   })
 
   if (facts.length === 0) {
-    errorMessages.push("No confirmed profile facts — confirm master-profile facts before review")
-    return { ...counts, errors: 1, activityId: null, errorMessages, results }
+    const refuseReason =
+      "Assessor refused: master profile has no confirmed facts. Confirm facts on Master profile before review."
+    errorMessages.push(refuseReason)
+    return {
+      ...counts,
+      errors: 1,
+      activityId: null,
+      errorMessages,
+      results,
+      refused: true,
+      refuseReason,
+    }
   }
 
   const maxJobs = Math.min(Math.max(input.maxJobs ?? DEFAULT_MAX_JOBS, 1), 50)
@@ -275,10 +296,11 @@ export async function runRelevanceReview(input: {
   for (const job of jobs) {
     if (input.signal?.aborted) break
     if (job.status !== "new" && !input.jobId) continue
-    // Per-job button may re-review needs_manual_review or new only
+    // Per-job button may re-review manual or new only
     if (
       input.jobId &&
       job.status !== "new" &&
+      job.status !== "manual" &&
       job.status !== "needs_manual_review"
     ) {
       errorMessages.push(`Job ${job.id} is not eligible for relevance review (status=${job.status})`)
@@ -293,7 +315,7 @@ export async function runRelevanceReview(input: {
           client: input.client,
           userId: input.userId,
           jobId: job.id,
-          status: "needs_manual_review",
+          status: "manual",
           relevance: {
             error: outcome.reason,
             reviewed_at: new Date().toISOString(),
@@ -302,7 +324,7 @@ export async function runRelevanceReview(input: {
         })
         counts.reviewed += 1
         counts.needsManualReview += 1
-        results.push({ jobId: job.id, status: "needs_manual_review", relevant: null })
+        results.push({ jobId: job.id, status: "manual", relevant: null })
         continue
       }
 
@@ -336,7 +358,7 @@ export async function runRelevanceReview(input: {
           client: input.client,
           userId: input.userId,
           jobId: job.id,
-          status: "needs_manual_review",
+          status: "manual",
           relevance: {
             error: message,
             reviewed_at: new Date().toISOString(),
@@ -345,10 +367,10 @@ export async function runRelevanceReview(input: {
         })
         counts.reviewed += 1
         counts.needsManualReview += 1
-        results.push({ jobId: job.id, status: "needs_manual_review", relevant: null })
+        results.push({ jobId: job.id, status: "manual", relevant: null })
       } catch (persistErr) {
         errorMessages.push(
-          persistErr instanceof Error ? persistErr.message : "Could not mark needs_manual_review",
+          persistErr instanceof Error ? persistErr.message : "Could not mark manual",
         )
       }
     }
