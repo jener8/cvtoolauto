@@ -13,6 +13,7 @@ export type ProfileCopy = {
   steps: { add: string; check: string; ready: string }
   next: {
     add: string
+    directions: string
     check: (unchecked: number) => string
     readyMissing: string
     readyDone: string
@@ -20,9 +21,17 @@ export type ProfileCopy = {
   primary: {
     add: string
     check: string
+    agreeDirections: string
     goAgents: string
     addEducation: string
     addMissing: string
+  }
+  directions: {
+    title: string
+    body: string
+    agreedTitle: string
+    agreedBody: string
+    continueCheck: string
   }
   empty: {
     uploadTitle: string
@@ -157,6 +166,8 @@ const en: ProfileCopy = {
   },
   next: {
     add: "Next: Add your experience so the agents have something to work with.",
+    directions:
+      "Next: Review the work directions below. If they look right, agree to continue.",
     check: (n) =>
       n === 1
         ? "Next: Check the 1 item still waiting."
@@ -167,9 +178,17 @@ const en: ProfileCopy = {
   primary: {
     add: "Add your experience",
     check: "Check items",
+    agreeDirections: "These directions look right",
     goAgents: "Go to job agents",
     addEducation: "Add education",
     addMissing: "Add what's missing",
+  },
+  directions: {
+    title: "Your work directions",
+    body: "From your CVs, these are the directions you can look for work in. Agree to keep them in your profile for the agents.",
+    agreedTitle: "Directions agreed",
+    agreedBody: "These stay on your profile. Continue checking the remaining items, then you’re ready for the agents.",
+    continueCheck: "Continue to check items",
   },
   empty: {
     uploadTitle: "Upload your CV",
@@ -334,6 +353,8 @@ const de: ProfileCopy = {
   },
   next: {
     add: "Als Nächstes: Füge deine Erfahrung hinzu, damit die Agenten etwas zum Arbeiten haben.",
+    directions:
+      "Als Nächstes: Prüfe die Arbeitsrichtungen unten. Wenn sie stimmen, stimme zu und mach weiter.",
     check: (n) =>
       n === 1
         ? "Als Nächstes: Prüfe den 1 offenen Eintrag."
@@ -344,9 +365,18 @@ const de: ProfileCopy = {
   primary: {
     add: "Erfahrung hinzufügen",
     check: "Einträge prüfen",
+    agreeDirections: "Diese Richtungen stimmen",
     goAgents: "Zu den Job-Agenten",
     addEducation: "Ausbildung hinzufügen",
     addMissing: "Fehlendes hinzufügen",
+  },
+  directions: {
+    title: "Deine Arbeitsrichtungen",
+    body: "Aus deinen Lebensläufen: In diesen Richtungen kannst du Arbeit suchen. Stimme zu, damit sie im Profil für die Agenten bleiben.",
+    agreedTitle: "Richtungen bestätigt",
+    agreedBody:
+      "Sie bleiben in deinem Profil. Prüfe als Nächstes die übrigen Einträge — dann bist du bereit für die Agenten.",
+    continueCheck: "Weiter zu den Einträgen",
   },
   empty: {
     uploadTitle: "Lebenslauf hochladen",

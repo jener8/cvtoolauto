@@ -10,8 +10,11 @@ import {
   type ProfileLocale,
 } from "@/lib/agents/profile-copy"
 import {
+  directionLabelFromFact,
   evaluateProfileReadiness,
+  getDirectionFacts,
   groupFactsBySection,
+  isDirectionFact,
   PROFILE_SECTION_ORDER,
   resolveProfileStep,
   sourceLabelForFact,
@@ -251,18 +254,26 @@ export function AgentProfilePage() {
 
   const step = resolveProfileStep(facts)
   const readiness = evaluateProfileReadiness(facts, copy)
-  const checked = facts.filter((f) => f.status === "confirmed").length
-  const unchecked = facts.length - checked
+  const directionFacts = useMemo(() => getDirectionFacts(facts), [facts])
+  const directionsPending = directionFacts.some((f) => f.status !== "confirmed")
+  const directionsAgreed =
+    directionFacts.length > 0 && directionFacts.every((f) => f.status === "confirmed")
+  const checklistFacts = useMemo(() => facts.filter((f) => !isDirectionFact(f)), [facts])
+  const checked = checklistFacts.filter((f) => f.status === "confirmed").length
+  const unchecked = checklistFacts.length - checked
+  const uncheckedNonDirections = unchecked
   const grouped = groupFactsBySection(facts)
 
   const nextSentence =
     step === 1
       ? copy.next.add
-      : step === 2
-        ? copy.next.check(unchecked)
-        : readiness.ready
-          ? copy.next.readyDone
-          : copy.next.readyMissing
+      : directionsPending
+        ? copy.next.directions
+        : step === 2
+          ? copy.next.check(uncheckedNonDirections)
+          : readiness.ready
+            ? copy.next.readyDone
+            : copy.next.readyMissing
 
   const runImport = async (body: Record<string, unknown>) => {
     setImporting(true)
@@ -328,18 +339,17 @@ export function AgentProfilePage() {
       toast({
         title: copy.toast.importOk,
         description:
-          resumeCount > 0 && body.allWorkspaceResumes
-            ? copy.toast.importOkOwn(
-                resumeCount,
-                data.ownerLabel ?? null,
-                directions,
-              )
-            : resumeCount > 0 && directions.length > 0
-              ? copy.toast.importOkDirections(resumeCount, directions)
-              : (data.message ?? `Imported ${data.inserted ?? 0}`),
+          data.ownerLabel != null
+            ? `Imported ${resumeCount} CV${resumeCount === 1 ? "" : "s"} for ${data.ownerLabel}.`
+            : (data.message ?? `Imported ${data.inserted ?? 0}`),
       })
       setOnlyUnchecked(true)
       await refresh()
+      if (body.allWorkspaceResumes || directions.length > 0) {
+        requestAnimationFrame(() => {
+          document.getElementById("profile-directions")?.scrollIntoView({ behavior: "smooth" })
+        })
+      }
     } catch (error) {
       toast({
         title: copy.toast.importFail,
@@ -557,6 +567,48 @@ export function AgentProfilePage() {
   const scrollToEmpty = () => {
     document.getElementById("profile-add")?.scrollIntoView({ behavior: "smooth" })
   }
+  const scrollToDirections = () => {
+    document.getElementById("profile-directions")?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  const agreeDirections = async () => {
+    const pending = directionFacts.filter((f) => f.status !== "confirmed")
+    if (pending.length === 0) {
+      scrollToCheck()
+      return
+    }
+    setImporting(true)
+    try {
+      for (const fact of pending) {
+        const res = await fetch(`/api/agents/profile/${fact.id}`, {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "confirmed" }),
+        })
+        const data = (await res.json()) as { fact?: AgentProfileFact; error?: string }
+        if (!res.ok) throw new Error(data.error ?? "Could not confirm direction")
+        if (data.fact) {
+          setFacts((prev) => prev.map((f) => (f.id === fact.id ? data.fact! : f)))
+        }
+      }
+      requestAnimationFrame(() => {
+        if (uncheckedNonDirections > 0) {
+          scrollToCheck()
+        } else {
+          scrollToReady()
+        }
+      })
+    } catch (error) {
+      toast({
+        title: copy.toast.updateFail,
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      })
+    } finally {
+      setImporting(false)
+    }
+  }
 
   const primaryAction =
     step === 1 ? (
@@ -566,6 +618,14 @@ export function AgentProfilePage() {
         onClick={scrollToEmpty}
       >
         {copy.primary.add}
+      </Button>
+    ) : directionsPending ? (
+      <Button
+        style={{ backgroundColor: AGENTS_ACCENT }}
+        className="text-white hover:opacity-90"
+        onClick={scrollToDirections}
+      >
+        {copy.primary.agreeDirections}
       </Button>
     ) : step === 2 ? (
       <Button
@@ -719,6 +779,61 @@ export function AgentProfilePage() {
           <p className="text-sm font-medium text-stone-800">{nextSentence}</p>
           {primaryAction}
         </div>
+
+        {!loading && directionFacts.length > 0 ? (
+          <section
+            id="profile-directions"
+            className="mt-8 scroll-mt-6 rounded-xl border border-[#2D7A5F]/35 bg-white p-5 shadow-sm ring-1 ring-[#2D7A5F]/10"
+            aria-labelledby="directions-heading"
+          >
+            <div className="flex items-start gap-3">
+              <Compass className="mt-0.5 h-6 w-6 shrink-0 text-[#2D7A5F]" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <h2 id="directions-heading" className="text-lg font-semibold text-stone-900">
+                  {directionsAgreed ? copy.directions.agreedTitle : copy.directions.title}
+                </h2>
+                <p className="mt-1 text-sm text-stone-600">
+                  {directionsAgreed ? copy.directions.agreedBody : copy.directions.body}
+                </p>
+                <ul className="mt-4 space-y-2">
+                  {directionFacts.map((fact) => (
+                    <li
+                      key={fact.id}
+                      className="flex items-start gap-2 rounded-lg border border-stone-100 bg-stone-50 px-3 py-2.5 text-sm text-stone-900"
+                    >
+                      {fact.status === "confirmed" ? (
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#2D7A5F]" aria-hidden />
+                      ) : (
+                        <span
+                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#2D7A5F]/60"
+                          aria-hidden
+                        />
+                      )}
+                      <span className="font-medium">{directionLabelFromFact(fact)}</span>
+                    </li>
+                  ))}
+                </ul>
+                {directionsPending ? (
+                  <Button
+                    className="mt-5"
+                    style={{ backgroundColor: AGENTS_ACCENT }}
+                    disabled={importing}
+                    onClick={() => {
+                      void agreeDirections()
+                    }}
+                  >
+                    {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {copy.primary.agreeDirections}
+                  </Button>
+                ) : (
+                  <Button className="mt-5" variant="outline" onClick={scrollToCheck}>
+                    {copy.directions.continueCheck}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {loading ? (
           <div className="mt-10 flex items-center gap-2 text-sm text-stone-500">

@@ -45,6 +45,24 @@ export function sectionForCategory(category: string): ProfileSectionId {
   }
 }
 
+export function isDirectionFact(fact: AgentProfileFact): boolean {
+  const ref = fact.sourceRef ?? {}
+  if (ref.field === "career_direction") return true
+  return /^possible work direction:/i.test(fact.factText.trim())
+}
+
+export function directionLabelFromFact(fact: AgentProfileFact): string {
+  const ref = fact.sourceRef ?? {}
+  if (typeof ref.direction === "string" && ref.direction.trim()) {
+    return ref.direction.trim()
+  }
+  return fact.factText.replace(/^possible work direction:\s*/i, "").trim()
+}
+
+export function getDirectionFacts(facts: AgentProfileFact[]): AgentProfileFact[] {
+  return facts.filter(isDirectionFact)
+}
+
 export function groupFactsBySection(
   facts: AgentProfileFact[],
 ): Record<ProfileSectionId, AgentProfileFact[]> {
@@ -57,6 +75,7 @@ export function groupFactsBySection(
     projects: [],
   }
   for (const fact of facts) {
+    if (isDirectionFact(fact)) continue
     out[sectionForCategory(fact.category)].push(fact)
   }
   return out
