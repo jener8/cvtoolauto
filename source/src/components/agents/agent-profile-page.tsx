@@ -1221,7 +1221,7 @@ export function AgentProfilePage() {
                   {copy.steps.check}
                 </h2>
                 <p className="mt-1 text-sm text-stone-600">
-                  {copy.check.progress(checked, facts.length)}
+                  {copy.check.progress(checked, checklistFacts.length)}
                 </p>
               </div>
               <label className="flex items-center gap-2 text-sm text-stone-700">
