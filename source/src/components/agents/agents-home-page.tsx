@@ -19,6 +19,11 @@ import {
   type AgentsCopy,
   type AgentsLocale,
 } from "@/lib/agents/copy"
+import {
+  detectProfileLocale,
+  getProfileCopy,
+} from "@/lib/agents/profile-copy"
+import { evaluateProfileReadiness } from "@/lib/agents/profile-readiness"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
@@ -688,6 +693,18 @@ export function AgentsHomePage() {
     return map
   }, [facts])
 
+  const profileCopy = useMemo(
+    () => getProfileCopy(locale === "de" ? "de" : detectProfileLocale()),
+    [locale],
+  )
+  const profileReady = useMemo(
+    () => evaluateProfileReadiness(facts, profileCopy),
+    [facts, profileCopy],
+  )
+  const profileNotReadyReason =
+    locale === "de"
+      ? `Profil nicht bereit — noch fehlend: ${profileReady.missingLabels.join(", ") || "Einträge bestätigen"}`
+      : `Profile not ready — still missing: ${profileReady.missingLabels.join(", ") || "confirm items"}`
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
@@ -1225,6 +1242,33 @@ export function AgentsHomePage() {
           </div>
         )}
 
+        {!loading && !profileReady.ready && (
+          <div
+            className="mt-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+            role="status"
+          >
+            <p className="font-semibold">
+              {locale === "de" ? "Zuerst Profil vervollständigen" : "Complete your profile first"}
+            </p>
+            <p className="mt-1 text-amber-900/90">
+              {locale === "de"
+                ? "Die Agenten brauchen bestätigte Erfahrung, bevor sie prüfen oder schreiben."
+                : "The agents need confirmed experience before review or draft."}
+            </p>
+            <p className="mt-1 text-xs text-amber-900/80">{profileNotReadyReason}</p>
+            <Button
+              asChild
+              size="sm"
+              className="mt-3 text-white hover:opacity-90"
+              style={{ backgroundColor: AGENTS_ACCENT }}
+            >
+              <Link href="/app/agents/profile">
+                {locale === "de" ? "Profil öffnen" : "Open your profile"}
+              </Link>
+            </Button>
+          </div>
+        )}
+
         <div className="mt-8 flex flex-wrap gap-3">
           <Button
             type="button"
@@ -1243,7 +1287,8 @@ export function AgentsHomePage() {
           <Button
             type="button"
             onClick={() => void runReviewAll()}
-            disabled={busyGlobal || counts.new === 0}
+            disabled={busyGlobal || counts.new === 0 || !profileReady.ready}
+            title={!profileReady.ready ? profileNotReadyReason : undefined}
             variant="outline"
             className={`border-[#2D7A5F] text-[#2D7A5F] hover:bg-[#2D7A5F]/10 ${focusRing}`}
           >
@@ -1257,7 +1302,8 @@ export function AgentsHomePage() {
           <Button
             type="button"
             onClick={() => void runDraftAll()}
-            disabled={busyGlobal || draftEligible === 0}
+            disabled={busyGlobal || draftEligible === 0 || !profileReady.ready}
+            title={!profileReady.ready ? profileNotReadyReason : undefined}
             variant="outline"
             className={`border-[#2D7A5F] text-[#2D7A5F] hover:bg-[#2D7A5F]/10 ${focusRing}`}
           >

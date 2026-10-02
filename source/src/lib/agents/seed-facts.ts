@@ -161,6 +161,52 @@ export function extractFactsFromResume(version: ResumeVersion): SeedFact[] {
   return facts
 }
 
+/** Build unconfirmed items from pasted/uploaded CV text (no resume_versions row required). */
+export function extractFactsFromResumeText(input: {
+  resumeText: string
+  label?: string
+  importKey?: string
+}): SeedFact[] {
+  const text = input.resumeText.trim()
+  if (!text) return []
+  const importKey = (input.importKey ?? `upload:${Date.now()}`).slice(0, 80)
+  const label = input.label?.trim() || "uploaded CV"
+  const facts: SeedFact[] = []
+  let order = 0
+  const sections = parseResumeText(text)
+  sections.forEach((section, sectionIndex) => {
+    const sectionCategory = categoryForSection(section.title)
+    section.content.forEach((line, lineIndex) => {
+      const kind = lineKind(line)
+      const lineText = stripMarkupPrefix(line)
+      if (!lineText) return
+
+      let category: AgentFactCategory = sectionCategory
+      if (kind === "role") category = "role"
+      else if (kind === "employer") category = "employer"
+      else if (kind === "dates") category = "dates"
+      else if (kind === "bullet") category = "achievement"
+
+      pushFact(facts, {
+        category,
+        factText: lineText,
+        source: "resume",
+        sourceKey: `${importKey}:s${sectionIndex}:l${lineIndex}:${lineText.slice(0, 40)}`,
+        sourceRef: {
+          section: section.title,
+          sectionIndex,
+          lineIndex,
+          kind,
+          label,
+          importKey,
+        },
+        sortOrder: order++,
+      })
+    })
+  })
+  return facts
+}
+
 export function extractFactsFromQualificationProfile(
   profile: QualificationProfile | null | undefined,
 ): SeedFact[] {
@@ -299,8 +345,28 @@ export function extractFactsFromQualificationProfile(
 export function buildSeedFacts(input: {
   versions: ResumeVersion[]
   qualificationProfile?: QualificationProfile | null
+  /** When set, prefer this uploaded/pasted text over (or in addition to) workspace versions. */
+  resumeText?: string | null
+  resumeLabel?: string | null
+  resumeVersionId?: string | null
 }): { facts: SeedFact[]; resumeId: string | null; resumeName: string | null } {
-  const resume = pickSeedResume(input.versions)
+  if (input.resumeText?.trim()) {
+    const fromText = extractFactsFromResumeText({
+      resumeText: input.resumeText,
+      label: input.resumeLabel ?? "uploaded CV",
+    })
+    const fromQual = extractFactsFromQualificationProfile(input.qualificationProfile)
+    return {
+      facts: [...fromText, ...fromQual],
+      resumeId: null,
+      resumeName: input.resumeLabel ?? "uploaded CV",
+    }
+  }
+
+  const versions = input.resumeVersionId
+    ? input.versions.filter((v) => v.id === input.resumeVersionId)
+    : input.versions
+  const resume = pickSeedResume(versions.length ? versions : input.versions)
   const fromResume = resume ? extractFactsFromResume(resume) : []
   const fromQual = extractFactsFromQualificationProfile(input.qualificationProfile)
   return {

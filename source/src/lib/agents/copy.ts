@@ -171,7 +171,7 @@ const en: AgentsCopyTree = {
   subtitle:
     "Review fit explanations, edit drafts, then approve or reject. Nothing is sent or submitted to employer portals automatically.",
   backWorkspace: "Back to workspace",
-  masterProfile: "Master profile",
+  masterProfile: "Your profile",
   searchSettings: "Search settings",
   reviewNewJobs: "Review new jobs",
   draftApplications: "Draft applications",
@@ -343,7 +343,7 @@ const de: AgentsCopyTree = {
   subtitle:
     "Passung prüfen, Entwürfe bearbeiten, dann freigeben oder ablehnen. Nichts wird automatisch an Arbeitgeberportale gesendet oder dort eingereicht.",
   backWorkspace: "Zurück zum Arbeitsbereich",
-  masterProfile: "Master-Profil",
+  masterProfile: "Dein Profil",
   searchSettings: "Sucheinstellungen",
   reviewNewJobs: "Neue Jobs prüfen",
   draftApplications: "Bewerbungen entwerfen",

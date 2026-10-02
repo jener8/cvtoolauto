@@ -18,7 +18,12 @@ export async function POST(request: Request) {
   if (!gate.ok) return gate.response
 
   const { ctx } = gate
-  let body: { qualificationProfile?: QualificationProfile | null } = {}
+  let body: {
+    qualificationProfile?: QualificationProfile | null
+    resumeText?: string | null
+    resumeLabel?: string | null
+    resumeVersionId?: string | null
+  } = {}
   try {
     body = (await request.json()) as typeof body
   } catch {
@@ -44,6 +49,9 @@ export async function POST(request: Request) {
     const { facts: seedFacts, resumeId, resumeName } = buildSeedFacts({
       versions,
       qualificationProfile: body.qualificationProfile ?? null,
+      resumeText: body.resumeText ?? null,
+      resumeLabel: body.resumeLabel ?? null,
+      resumeVersionId: body.resumeVersionId ?? null,
     })
 
     if (seedFacts.length === 0) {
@@ -54,7 +62,7 @@ export async function POST(request: Request) {
         resumeId,
         resumeName,
         message:
-          "No facts found. Add a master CV and/or complete your qualification profile, then seed again.",
+          "No items found. Upload a CV, pick one from your workspace, or add items by hand.",
       })
     }
 
