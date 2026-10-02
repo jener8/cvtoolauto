@@ -1,26 +1,46 @@
-# RLS tighten proposal (`024`)
+# RLS tighten (`024`) — Option C for `interview_questions`
 
-**Status:** proposal only — **not applied** to live or DEV. Waiting for approval. Test on DEV first; apply `024` to live only on explicit command.
+**Status:** apply to **DEV only** (`dulpeyutmkhertwrwbqz`) for verification. **Do not apply to live** (`gpbqlxowvwosonatiuac`) until explicit command: `apply 024 to live`.
 
 ## What it does
 
 | File | Purpose |
 |------|---------|
-| `source/src/scripts/024_tighten_rls.sql` | Assign any `user_id IS NULL` rows on the four product tables to the app user, set `user_id NOT NULL` + `DEFAULT auth.uid()`, replace `NULL OR owner` RLS with `auth.uid() = user_id` only |
-| `source/src/scripts/024_tighten_rls_down.sql` | Restore 013-style nullable + NULL-or-owner policies (does not null out previously assigned owners) |
+| `source/src/scripts/024_tighten_rls.sql` | Backfill NULL `user_id` → app owner, set `user_id NOT NULL` + `DEFAULT auth.uid()`, tighten RLS |
+| `source/src/scripts/024_tighten_rls_down.sql` | Restore 013-style product policies + pre-024 wide-open IQ policies (does not null out assigned owners) |
 
-## Proposed orphan owner (live probe 2026-10-02)
+## Orphan owner resolution
 
-- UUID: `310a80f1-618e-410a-87de-a40c950c98fc`
-- Email: `jennygenerate@gmail.com` (`profiles` + `SUPABASE_APP_USER_EMAIL`)
+1. `profiles.id` where `email = jennygenerate@gmail.com`
+2. Else `auth.users` with the same email
+3. Else live UUID `310a80f1-…` **only if that user exists in this project's `auth.users`**
+4. If NULL `user_id` rows exist and no owner resolves → migration raises (create Auth user first)
 
-Live `user_id IS NULL` counts at probe time: **0** on `cover_letters`, `folders`, `job_applications`, `resume_versions`.
+DEV Auth UUID often differs from live.
 
-## Open: `interview_questions`
+## Four product tables
 
-Left **commented** in `024` pending choice:
+`cover_letters`, `folders`, `job_applications`, `resume_versions`:
 
-- **A** — authenticated own-row CRUD (backfill `user_id`)
-- **B** — authenticated read-only shared library (closes `{public}` `true` writes)
+- Authenticated **SELECT/INSERT/UPDATE/DELETE** only when `auth.uid() = user_id`
+- No anon access; no `NULL` bypass
+- Inserts without `user_id` get `DEFAULT auth.uid()`
 
-Also available historically: `014_drop_interview_questions.sql` if the feature should be removed.
+## `interview_questions` — **Option C** (shared board)
+
+| Op | Who | Rule |
+|----|-----|------|
+| SELECT | authenticated | **all rows** (`USING (true)`) |
+| INSERT | authenticated | `user_id` must equal `auth.uid()`; `DEFAULT auth.uid()` |
+| UPDATE | authenticated | own rows only |
+| DELETE | authenticated | own rows only |
+| — | anon | **no access** |
+
+NULL-owner IQ rows are assigned to the resolved app user before `NOT NULL`.
+
+`024` also runs `CREATE TABLE IF NOT EXISTS public.interview_questions` so DEV projects that never had the community table still get Option C policies.
+
+## Explicit non-goals
+
+- Live project is untouched until you say so.
+- Down migration restores prior IQ `{public}` policies for rollback only — do not treat that as the desired long-term state.
