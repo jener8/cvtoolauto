@@ -47,6 +47,7 @@ import {
 } from "lucide-react"
 
 type WorkspaceResume = { id: string; name: string }
+type WorkspacePerson = { key: string; displayName: string; count: number }
 
 type HandSection = "experience" | "achievement" | "education" | "skills" | "languages"
 
@@ -58,35 +59,45 @@ async function fetchFacts(): Promise<AgentProfileFact[]> {
   return data.facts ?? []
 }
 
-async function fetchWorkspaceResumes(): Promise<WorkspaceResume[]> {
+async function loadWorkspaceCvContext(): Promise<{
+  people: WorkspacePerson[]
+  resumesByPerson: Record<string, WorkspaceResume[]>
+  defaultOwnerKey: string | null
+}> {
   try {
-    const { loadAllResumesForAccount } = await import("@/lib/resume-persistence")
+    const [{ loadAllResumesForAccount }, { groupResumesByPerson, pickOwnResumePerson }] =
+      await Promise.all([
+        import("@/lib/resume-persistence"),
+        import("@/lib/agents/own-resumes"),
+      ])
     const local = await loadAllResumesForAccount()
-    const fromLocal = local
-      .filter((v) => Boolean(v.id) && Boolean(v.resumeText?.trim()))
-      .map((v) => ({
+    const withText = local.filter((v) => v.resumeText?.trim())
+    if (withText.length === 0) {
+      return { people: [], resumesByPerson: {}, defaultOwnerKey: null }
+    }
+    const groups = groupResumesByPerson(withText)
+    const people = groups
+      .filter((g) => g.key !== "unknown" || groups.length === 1)
+      .map((g) => ({
+        key: g.key,
+        displayName: g.displayName,
+        count: g.withTextCount,
+      }))
+    const resumesByPerson: Record<string, WorkspaceResume[]> = {}
+    for (const g of groups) {
+      resumesByPerson[g.key] = g.versions.map((v) => ({
         id: v.id,
         name: (v.name || "Untitled CV").trim() || "Untitled CV",
       }))
-    if (fromLocal.length > 0) return fromLocal
-
-    const agentsRes = await fetch("/api/agents/profile/workspace-cvs", {
-      credentials: "same-origin",
-    })
-    if (agentsRes.ok) {
-      const data = (await agentsRes.json()) as {
-        versions?: Array<{ id?: string; name?: string | null; hasText?: boolean }>
-      }
-      return (data.versions ?? [])
-        .filter((v) => Boolean(v.id))
-        .map((v) => ({
-          id: v.id as string,
-          name: (v.name || "Untitled CV").trim() || "Untitled CV",
-        }))
     }
-    return []
+    const picked = pickOwnResumePerson(withText)
+    return {
+      people,
+      resumesByPerson,
+      defaultOwnerKey: picked?.key ?? people[0]?.key ?? null,
+    }
   } catch {
-    return []
+    return { people: [], resumesByPerson: {}, defaultOwnerKey: null }
   }
 }
 
@@ -102,7 +113,7 @@ async function loadClientResumesForSeed(): Promise<
   const all = await loadAllResumesForAccount()
   return all
     .filter((v) => v.resumeText?.trim())
-    .slice(0, 24)
+    .slice(0, 40)
     .map((v) => ({
       id: v.id,
       name: (v.name || "Untitled CV").trim() || "Untitled CV",
@@ -168,6 +179,9 @@ export function AgentProfilePage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState("")
   const [workspaceResumes, setWorkspaceResumes] = useState<WorkspaceResume[]>([])
+  const [workspacePeople, setWorkspacePeople] = useState<WorkspacePerson[]>([])
+  const [ownerKey, setOwnerKey] = useState<string | null>(null)
+  const [resumesByPerson, setResumesByPerson] = useState<Record<string, WorkspaceResume[]>>({})
   const [showHand, setShowHand] = useState(false)
   const [handSection, setHandSection] = useState<HandSection | null>(null)
   const [adding, setAdding] = useState(false)
@@ -199,9 +213,13 @@ export function AgentProfilePage() {
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      const [next, resumes] = await Promise.all([fetchFacts(), fetchWorkspaceResumes()])
+      const [next, cvContext] = await Promise.all([fetchFacts(), loadWorkspaceCvContext()])
       setFacts(next)
-      setWorkspaceResumes(resumes)
+      setWorkspacePeople(cvContext.people)
+      setResumesByPerson(cvContext.resumesByPerson)
+      setOwnerKey((prev) =>
+        prev && cvContext.resumesByPerson[prev] ? prev : cvContext.defaultOwnerKey,
+      )
     } catch (error) {
       toast({
         title: copy.toast.loadFail,
@@ -216,6 +234,14 @@ export function AgentProfilePage() {
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  useEffect(() => {
+    if (!ownerKey) {
+      setWorkspaceResumes([])
+      return
+    }
+    setWorkspaceResumes(resumesByPerson[ownerKey] ?? [])
+  }, [ownerKey, resumesByPerson])
 
   const step = resolveProfileStep(facts)
   const readiness = evaluateProfileReadiness(facts, copy)
@@ -247,6 +273,9 @@ export function AgentProfilePage() {
           ...body,
           qualificationProfile,
           ...(clientResumes.length > 0 ? { clientResumes } : {}),
+          ...(body.allWorkspaceResumes === true && ownerKey
+            ? { ownerKey }
+            : {}),
         }),
       })
       const data = (await res.json()) as {
@@ -255,6 +284,7 @@ export function AgentProfilePage() {
         error?: string
         directions?: string[]
         resumeCount?: number
+        ownerLabel?: string | null
       }
       if (!res.ok) throw new Error(data.error ?? "Import failed")
       const directions = data.directions ?? []
@@ -270,9 +300,15 @@ export function AgentProfilePage() {
       toast({
         title: copy.toast.importOk,
         description:
-          resumeCount > 0 && (body.allWorkspaceResumes || directions.length > 0)
-            ? copy.toast.importOkDirections(resumeCount, directions)
-            : (data.message ?? `Imported ${data.inserted ?? 0}`),
+          resumeCount > 0 && body.allWorkspaceResumes
+            ? copy.toast.importOkOwn(
+                resumeCount,
+                data.ownerLabel ?? null,
+                directions,
+              )
+            : resumeCount > 0 && directions.length > 0
+              ? copy.toast.importOkDirections(resumeCount, directions)
+              : (data.message ?? `Imported ${data.inserted ?? 0}`),
       })
       setOnlyUnchecked(true)
       await refresh()
@@ -636,10 +672,39 @@ export function AgentProfilePage() {
                     ? copy.empty.allCvsBody(workspaceResumes.length)
                     : copy.empty.allCvsBodyUnknown}
                 </p>
+                {workspacePeople.length > 1 ? (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-stone-700">{copy.empty.whoseCvs}</p>
+                    <p className="mt-0.5 text-xs text-stone-500">{copy.empty.whoseCvsHint}</p>
+                    <Select
+                      value={ownerKey ?? undefined}
+                      onValueChange={(key) => setOwnerKey(key)}
+                      disabled={importing}
+                    >
+                      <SelectTrigger className="mt-2 bg-white">
+                        <SelectValue placeholder={copy.empty.whoseCvs} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {workspacePeople.map((person) => (
+                          <SelectItem key={person.key} value={person.key}>
+                            {person.displayName} ({person.count})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : workspacePeople.length === 1 ? (
+                  <p className="mt-3 text-xs text-stone-500">
+                    {copy.empty.whoseCvsHint}{" "}
+                    <span className="font-medium text-stone-700">
+                      {workspacePeople[0]?.displayName}
+                    </span>
+                  </p>
+                ) : null}
                 <Button
                   className="mt-4"
                   style={{ backgroundColor: AGENTS_ACCENT }}
-                  disabled={importing}
+                  disabled={importing || (workspacePeople.length > 0 && !ownerKey)}
                   onClick={() => {
                     void runImport({ allWorkspaceResumes: true })
                   }}

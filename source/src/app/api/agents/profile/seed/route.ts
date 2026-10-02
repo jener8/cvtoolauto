@@ -76,6 +76,8 @@ export async function POST(request: Request) {
     resumeVersionId?: string | null
     allWorkspaceResumes?: boolean
     clientResumes?: ClientResumePayload[]
+    ownerKey?: string | null
+    ownerHint?: string | null
   } = {}
   try {
     body = (await request.json()) as typeof body
@@ -116,7 +118,8 @@ export async function POST(request: Request) {
     )
     const clientVersions = normalizeClientResumes(body.clientResumes)
 
-    const { facts: seedFacts, resumeId, resumeName, directions, resumeCount } = buildSeedFacts({
+    const { facts: seedFacts, resumeId, resumeName, directions, resumeCount, ownerLabel } =
+      buildSeedFacts({
       versions,
       clientVersions,
       qualificationProfile: body.qualificationProfile ?? null,
@@ -124,6 +127,8 @@ export async function POST(request: Request) {
       resumeLabel: body.resumeLabel ?? null,
       resumeVersionId: body.resumeVersionId ?? null,
       allWorkspaceResumes: body.allWorkspaceResumes === true,
+      ownerKey: body.ownerKey ?? null,
+      ownerHint: body.ownerHint ?? null,
     })
 
     if (seedFacts.length === 0) {
@@ -135,10 +140,11 @@ export async function POST(request: Request) {
         resumeName,
         directions: [],
         resumeCount,
+        ownerLabel,
         message:
           clientVersions.length === 0 && versions.length === 0
             ? "No CVs found in this browser or the cloud. Open your workspace CVs here, or upload a file."
-            : "No readable CV text found. Upload a CV or add items by hand.",
+            : "No readable CV text found for that person. Pick your name, or upload a CV.",
       })
     }
 
@@ -204,6 +210,7 @@ export async function POST(request: Request) {
         resumeName,
         directions,
         resumeCount,
+        ownerLabel,
         totalCandidates: seedFacts.length,
       })
     }
@@ -222,6 +229,7 @@ export async function POST(request: Request) {
       resumeName,
       directions,
       resumeCount,
+      ownerLabel,
       totalCandidates: seedFacts.length,
     })
   } catch (e) {

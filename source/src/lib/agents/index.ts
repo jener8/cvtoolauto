@@ -2,6 +2,11 @@ export { isJobAgentEnabled, isJobAgentEnabledClient, isJobAgentApiEnabled } from
 export { getConfirmedFacts, listProfileFacts, mapAgentProfileFactRow } from "@/lib/agents/profile-facts"
 export { buildSeedFacts, pickSeedResume, deriveCareerDirections } from "@/lib/agents/seed-facts"
 export {
+  filterResumesToOwnPerson,
+  groupResumesByPerson,
+  pickOwnResumePerson,
+} from "@/lib/agents/own-resumes"
+export {
   getOrCreateSearchSettings,
   upsertSearchSettings,
   mapSearchSettingsRow,

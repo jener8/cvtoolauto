@@ -37,6 +37,8 @@ export type ProfileCopy = {
     allCvsBodyUnknown: string
     allCvsCta: string
     allCvsEmptyHint: string
+    whoseCvs: string
+    whoseCvsHint: string
     workspaceTitle: string
     workspaceBody: string
     workspaceCta: string
@@ -113,6 +115,11 @@ export type ProfileCopy = {
   toast: {
     importOk: string
     importOkDirections: (count: number, directions: string[]) => string
+    importOkOwn: (
+      count: number,
+      ownerLabel: string | null,
+      directions: string[],
+    ) => string
     importFail: string
     loadFail: string
     updateFail: string
@@ -174,6 +181,8 @@ const en: ProfileCopy = {
     allCvsCta: "Allow & find directions",
     allCvsEmptyHint:
       "No CVs with text found in this browser. Open your workspace first so they’re loaded here, or upload a file.",
+    whoseCvs: "Whose CVs?",
+    whoseCvsHint: "Only this person’s CVs will be added to your profile.",
     workspaceTitle: "Use one CV from your workspace",
     workspaceBody: "Import suggestions from a single CV you already saved here.",
     workspaceCta: "Pick a CV",
@@ -264,6 +273,16 @@ const en: ProfileCopy = {
             }.`
       return `Imported from ${count} CV${count === 1 ? "" : "s"}.${list} Please check each item.`
     },
+    importOkOwn: (count, ownerLabel, directions) => {
+      const who = ownerLabel ? ` for ${ownerLabel}` : ""
+      const list =
+        directions.length === 0
+          ? ""
+          : ` Directions found: ${directions.slice(0, 5).join("; ")}${
+              directions.length > 5 ? "…" : ""
+            }.`
+      return `Imported ${count} CV${count === 1 ? "" : "s"}${who} only.${list} Remove any leftover items that aren’t yours, then check each one.`
+    },
     importFail: "Could not import",
     loadFail: "Could not load your profile",
     updateFail: "Could not update item",
@@ -325,6 +344,8 @@ const de: ProfileCopy = {
     allCvsCta: "Erlauben & Richtungen finden",
     allCvsEmptyHint:
       "Keine Lebensläufe mit Text in diesem Browser. Öffne zuerst den Workspace, oder lade eine Datei hoch.",
+    whoseCvs: "Wessen Lebensläufe?",
+    whoseCvsHint: "Nur die Lebensläufe dieser Person kommen in dein Profil.",
     workspaceTitle: "Einen Lebenslauf aus dem Workspace",
     workspaceBody: "Vorschläge aus einem einzelnen hier gespeicherten Lebenslauf.",
     workspaceCta: "Lebenslauf wählen",
@@ -414,6 +435,16 @@ const de: ProfileCopy = {
               directions.length > 5 ? "…" : ""
             }.`
       return `Importiert aus ${count === 1 ? "1 Lebenslauf" : `${count} Lebensläufen`}.${list} Bitte jeden Eintrag prüfen.`
+    },
+    importOkOwn: (count, ownerLabel, directions) => {
+      const who = ownerLabel ? ` für ${ownerLabel}` : ""
+      const list =
+        directions.length === 0
+          ? ""
+          : ` Gefundene Richtungen: ${directions.slice(0, 5).join("; ")}${
+              directions.length > 5 ? "…" : ""
+            }.`
+      return `Nur ${count === 1 ? "1 Lebenslauf" : `${count} Lebensläufe`}${who} importiert.${list} Entferne fremde Einträge, dann jeden prüfen.`
     },
     importFail: "Import fehlgeschlagen",
     loadFail: "Profil konnte nicht geladen werden",

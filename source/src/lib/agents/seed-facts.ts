@@ -3,6 +3,7 @@ import { parseResumeText } from "@/lib/parse-resume-text"
 import { isResumeTemplateVersion } from "@/lib/resume-classification"
 import type { ResumeVersion } from "@/lib/types"
 import type { AgentFactCategory, AgentProfileFactInsert } from "@/lib/agents/types"
+import { filterResumesToOwnPerson } from "@/lib/agents/own-resumes"
 
 type SeedFact = AgentProfileFactInsert & { sourceKey: string }
 
@@ -356,12 +357,17 @@ export function buildSeedFacts(input: {
    * the profile UI sends these so “review my saved CVs” still works.
    */
   clientVersions?: ResumeVersion[]
+  /** When set, only seed CVs for this person key (name:/email:…). */
+  ownerKey?: string | null
+  /** Soft match on contact name/email when ownerKey is absent. */
+  ownerHint?: string | null
 }): {
   facts: SeedFact[]
   resumeId: string | null
   resumeName: string | null
   directions: string[]
   resumeCount: number
+  ownerLabel: string | null
 } {
   if (input.resumeText?.trim()) {
     const fromText = extractFactsFromResumeText({
@@ -375,13 +381,22 @@ export function buildSeedFacts(input: {
       resumeName: input.resumeLabel ?? "uploaded CV",
       directions: [],
       resumeCount: 1,
+      ownerLabel: null,
     }
   }
 
   const mergedVersions = mergeSeedVersions(input.versions, input.clientVersions ?? [])
 
   if (input.allWorkspaceResumes) {
-    const withText = mergedVersions.filter((v) => v.resumeText?.trim())
+    const ownOnly = filterResumesToOwnPerson(mergedVersions, {
+      ownerKey: input.ownerKey,
+      ownerHint: input.ownerHint,
+    })
+    const withText = ownOnly.filter((v) => v.resumeText?.trim())
+    const ownerLabel =
+      withText[0]?.contactInfo?.name?.trim() ||
+      withText[0]?.contactInfo?.email?.trim() ||
+      null
     const seenKeys = new Set<string>()
     const merged: SeedFact[] = []
     for (const version of withText) {
@@ -402,7 +417,7 @@ export function buildSeedFacts(input: {
         sourceKey: `directions:all:${direction.toLowerCase().replace(/\s+/g, "-").slice(0, 60)}`,
         sourceRef: {
           field: "career_direction",
-          label: "all workspace CVs",
+          label: ownerLabel ? `CVs for ${ownerLabel}` : "your CVs only",
           direction,
         },
         sortOrder: order++,
@@ -415,9 +430,12 @@ export function buildSeedFacts(input: {
       resumeName:
         withText.length === 0
           ? null
-          : `${withText.length} workspace CV${withText.length === 1 ? "" : "s"}`,
+          : ownerLabel
+            ? `${withText.length} CV${withText.length === 1 ? "" : "s"} for ${ownerLabel}`
+            : `${withText.length} workspace CV${withText.length === 1 ? "" : "s"}`,
       directions,
       resumeCount: withText.length,
+      ownerLabel,
     }
   }
 
@@ -433,6 +451,8 @@ export function buildSeedFacts(input: {
     resumeName: resume?.name ?? null,
     directions: resume ? deriveCareerDirections([resume]) : [],
     resumeCount: resume ? 1 : 0,
+    ownerLabel:
+      resume?.contactInfo?.name?.trim() || resume?.contactInfo?.email?.trim() || null,
   }
 }
 
