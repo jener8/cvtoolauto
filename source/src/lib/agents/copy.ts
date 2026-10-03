@@ -24,6 +24,20 @@ type AgentsCopyTree = {
   findJobsHint: string
   controlBannerTitle: string
   controlBannerBody: string
+  dashboardTitle: string
+  dashboardHint: string
+  dashboardOpen: string
+  dashboardBack: string
+  dashboardEmpty: string
+  dashboardSteps: {
+    find: { title: string; body: string }
+    choose: { title: string; body: string }
+    documents: { title: string; body: string }
+    send: { title: string; body: string }
+  }
+  toolsTitle: string
+  toolsToggle: string
+  toolsHide: string
   refresh: string
   loadingQueue: string
   lastReview: (v: {
@@ -186,6 +200,32 @@ const en: AgentsCopyTree = {
   controlBannerTitle: "You decide every step",
   controlBannerBody:
     "1) Choose which jobs to approach. 2) Check and edit how the CV and letter look. 3) Only then send — and you can undo for 30 seconds.",
+  dashboardTitle: "Your control board",
+  dashboardHint: "See every step here. Click one to open it and choose what happens.",
+  dashboardOpen: "Open this step",
+  dashboardBack: "Back to board",
+  dashboardEmpty: "Nothing waiting here yet.",
+  dashboardSteps: {
+    find: {
+      title: "Find fits",
+      body: "Search and score jobs. No contact with employers.",
+    },
+    choose: {
+      title: "Choose jobs",
+      body: "Pick which jobs to approach. Skip the rest.",
+    },
+    documents: {
+      title: "Check CV & letter",
+      body: "Read and edit drafts until they look right.",
+    },
+    send: {
+      title: "Send",
+      body: "Only when you are ready. You can undo for 30 seconds.",
+    },
+  },
+  toolsTitle: "Tools",
+  toolsToggle: "Show tools (find jobs, settings)",
+  toolsHide: "Hide tools",
   refresh: "Refresh",
   loadingQueue: "Loading queue…",
   lastReview: (v) =>
@@ -364,6 +404,32 @@ const de: AgentsCopyTree = {
   controlBannerTitle: "Du entscheidest jeden Schritt",
   controlBannerBody:
     "1) Wähle, welche Jobs angegangen werden. 2) Prüfe und bearbeite CV und Anschreiben. 3) Erst dann senden — 30 Sekunden zum Rückgängigmachen.",
+  dashboardTitle: "Dein Steuerungsboard",
+  dashboardHint: "Sieh alle Schritte auf einen Blick. Klicke einen an, um ihn zu öffnen und zu wählen.",
+  dashboardOpen: "Diesen Schritt öffnen",
+  dashboardBack: "Zurück zum Board",
+  dashboardEmpty: "Hier wartet gerade nichts.",
+  dashboardSteps: {
+    find: {
+      title: "Passungen finden",
+      body: "Jobs suchen und bewerten. Kein Kontakt zu Arbeitgebern.",
+    },
+    choose: {
+      title: "Jobs wählen",
+      body: "Wähle, welche Jobs angegangen werden. Den Rest überspringen.",
+    },
+    documents: {
+      title: "CV & Anschreiben prüfen",
+      body: "Entwürfe lesen und bearbeiten, bis sie stimmen.",
+    },
+    send: {
+      title: "Senden",
+      body: "Nur wenn du bereit bist. 30 Sekunden zum Rückgängigmachen.",
+    },
+  },
+  toolsTitle: "Werkzeuge",
+  toolsToggle: "Werkzeuge zeigen (Jobs finden, Einstellungen)",
+  toolsHide: "Werkzeuge ausblenden",
   refresh: "Aktualisieren",
   loadingQueue: "Warteschlange wird geladen…",
   lastReview: (v) =>

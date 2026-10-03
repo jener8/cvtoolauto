@@ -684,6 +684,11 @@ export function AgentsHomePage() {
   /** Gate 1 multi-select — shortlist / skip only. */
   const [selectedGate1, setSelectedGate1] = useState<Set<string>>(new Set())
   const [gate1Busy, setGate1Busy] = useState(false)
+  /** null = board overview; otherwise the open control step */
+  const [boardStep, setBoardStep] = useState<"find" | "choose" | "documents" | "send" | null>(
+    null,
+  )
+  const [showTools, setShowTools] = useState(false)
   /** Optimistic: live when last start_send reported gmailConnected. */
   const [gmailLive, setGmailLive] = useState(false)
 
@@ -1277,159 +1282,266 @@ export function AgentsHomePage() {
           </div>
         )}
 
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void runPipelineNow()}
-            disabled={busyGlobal}
-            title={copy.findJobsHint}
-            className={`border-[#2D7A5F] text-[#2D7A5F] hover:bg-[#2D7A5F]/10 ${focusRing}`}
-          >
-            {runningPipeline ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <Play className="mr-2 h-4 w-4" aria-hidden />
-            )}
-            {copy.findJobs}
-          </Button>
-          <Button
-            type="button"
-            onClick={() => void runReviewAll()}
-            disabled={busyGlobal || counts.new === 0 || !profileReady.ready}
-            title={!profileReady.ready ? profileNotReadyReason : undefined}
-            variant="outline"
-            className={`border-[#2D7A5F] text-[#2D7A5F] hover:bg-[#2D7A5F]/10 ${focusRing}`}
-          >
-            {reviewingAll ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <Sparkles className="mr-2 h-4 w-4" aria-hidden />
-            )}
-            {copy.reviewNewJobs}
-          </Button>
-          <Button
-            type="button"
-            onClick={() => void runDraftAll()}
-            disabled={busyGlobal || draftEligible === 0 || !profileReady.ready}
-            title={
-              !profileReady.ready
-                ? profileNotReadyReason
-                : draftEligible === 0
-                  ? "Shortlist jobs first — drafts only run for jobs you chose"
-                  : undefined
-            }
-            variant="outline"
-            className={`border-[#2D7A5F] text-[#2D7A5F] hover:bg-[#2D7A5F]/10 ${focusRing}`}
-          >
-            {draftingAll ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <FileText className="mr-2 h-4 w-4" aria-hidden />
-            )}
-            {copy.draftApplications}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void refresh()}
-            disabled={loading}
-            className={focusRing}
-          >
-            {loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
-            )}
-            {copy.refresh}
-          </Button>
-          <Button variant="outline" asChild className={focusRing}>
-            <Link href="/app/agents/profile">
-              <UserCheck className="mr-2 h-4 w-4" aria-hidden />
-              {copy.masterProfile}
-            </Link>
-          </Button>
-          <Button variant="outline" asChild className={focusRing}>
-            <Link href="/app/agents/settings">
-              <Search className="mr-2 h-4 w-4" aria-hidden />
-              {copy.searchSettings}
-            </Link>
-          </Button>
-        </div>
+        {/* Control board — all steps in one view */}
+        <section className="mt-8" aria-labelledby="dashboard-heading">
+          <h2 id="dashboard-heading" className="text-xl font-semibold text-stone-900">
+            {copy.dashboardTitle}
+          </h2>
+          <p className="mt-2 text-base leading-relaxed text-stone-700">{copy.dashboardHint}</p>
 
-        {lastPipeline && (
-          <p className="mt-4 text-sm text-stone-600">
-            {copy.lastPipeline({
-              fetched: lastPipeline.fetched ?? 0,
-              relevant: lastPipeline.relevant ?? 0,
-              drafted: lastPipeline.drafted ?? 0,
-              cap: lastPipeline.dailyCap ?? 5,
-              errors: lastPipeline.errors ?? 0,
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {(
+              [
+                {
+                  id: "find" as const,
+                  step: 1,
+                  title: copy.dashboardSteps.find.title,
+                  body: copy.dashboardSteps.find.body,
+                  count: counts.new + counts.potential_fit + counts.manual,
+                  countLabel: locale === "de" ? "in Pipeline" : "in pipeline",
+                },
+                {
+                  id: "choose" as const,
+                  step: 2,
+                  title: copy.dashboardSteps.choose.title,
+                  body: copy.dashboardSteps.choose.body,
+                  count: queueChoose.length,
+                  countLabel: locale === "de" ? "zu wählen" : "to choose",
+                },
+                {
+                  id: "documents" as const,
+                  step: 3,
+                  title: copy.dashboardSteps.documents.title,
+                  body: copy.dashboardSteps.documents.body,
+                  count: queueDocuments.length,
+                  countLabel: locale === "de" ? "zu prüfen" : "to check",
+                },
+                {
+                  id: "send" as const,
+                  step: 4,
+                  title: copy.dashboardSteps.send.title,
+                  body: copy.dashboardSteps.send.body,
+                  count: queueSend.filter((j) => j.status === "documents_approved").length,
+                  countLabel: locale === "de" ? "bereit" : "ready",
+                },
+              ] as const
+            ).map((card) => {
+              const active = boardStep === card.id
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => {
+                    setBoardStep(card.id)
+                    if (card.id === "find") setShowTools(true)
+                    requestAnimationFrame(() => {
+                      document
+                        .getElementById(
+                          card.id === "find"
+                            ? "board-tools"
+                            : card.id === "choose"
+                              ? "queue-choose"
+                              : card.id === "documents"
+                                ? "queue-documents"
+                                : "queue-send",
+                        )
+                        ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                    })
+                  }}
+                  className={`rounded-2xl border-2 bg-white p-5 text-left shadow-sm transition ${focusRing} ${
+                    active
+                      ? "border-[#2D7A5F] ring-2 ring-[#2D7A5F]/20"
+                      : "border-stone-200 hover:border-[#2D7A5F]/50"
+                  }`}
+                  aria-pressed={active}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                      style={{ backgroundColor: AGENTS_ACCENT }}
+                      aria-hidden
+                    >
+                      {card.step}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-lg font-semibold text-stone-900">{card.title}</p>
+                      <p className="mt-1 text-base leading-relaxed text-stone-600">{card.body}</p>
+                      <p className="mt-3 text-2xl font-semibold tabular-nums text-stone-900">
+                        {card.count}{" "}
+                        <span className="text-sm font-medium text-stone-500">{card.countLabel}</span>
+                      </p>
+                      <span className="mt-3 inline-flex min-h-11 items-center text-base font-semibold text-[#2D7A5F]">
+                        {copy.dashboardOpen} →
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              )
             })}
-          </p>
-        )}
-        {lastReview && (
-          <div className="mt-1 text-sm text-stone-600">
-            <p>
-              {copy.lastReview({
-                reviewed: lastReview.reviewed ?? 0,
-                relevant: lastReview.relevant ?? 0,
-                notRelevant: lastReview.notRelevant ?? 0,
-                manual: lastReview.needsManualReview ?? 0,
-                errors: lastReview.errors ?? 0,
-              })}
-            </p>
-            {(lastReview.refuseReason ||
-              (lastReview.errorMessages && lastReview.errorMessages.length > 0)) && (
-              <p className="mt-1 text-red-800" role="status">
-                {lastReview.refuseReason || lastReview.errorMessages?.[0]}
+          </div>
+
+          {boardStep ? (
+            <div className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className={`min-h-12 ${focusRing}`}
+                onClick={() => setBoardStep(null)}
+              >
+                {copy.dashboardBack}
+              </Button>
+            </div>
+          ) : null}
+        </section>
+
+        {/* Tools — only when Find step open, or toggled */}
+        {(boardStep === "find" || showTools) && (
+          <section id="board-tools" className="mt-8 scroll-mt-6 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold text-stone-900">{copy.toolsTitle}</h3>
+              {boardStep !== "find" ? (
+                <button
+                  type="button"
+                  className="min-h-11 text-base font-medium text-stone-700 underline underline-offset-2"
+                  onClick={() => setShowTools(false)}
+                >
+                  {copy.toolsHide}
+                </button>
+              ) : null}
+            </div>
+            <p className="mt-2 text-base text-stone-600">{copy.findJobsHint}</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Button
+                type="button"
+                size="lg"
+                className={`min-h-12 text-white hover:opacity-90 ${focusRing}`}
+                style={{ backgroundColor: AGENTS_ACCENT }}
+                onClick={() => void runPipelineNow()}
+                disabled={busyGlobal}
+                title={copy.findJobsHint}
+              >
+                {runningPipeline ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <Play className="mr-2 h-4 w-4" aria-hidden />
+                )}
+                {copy.findJobs}
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                className={`min-h-12 border-[#2D7A5F] text-[#2D7A5F] hover:bg-[#2D7A5F]/10 ${focusRing}`}
+                variant="outline"
+                onClick={() => void runReviewAll()}
+                disabled={busyGlobal || counts.new === 0 || !profileReady.ready}
+                title={!profileReady.ready ? profileNotReadyReason : undefined}
+              >
+                {reviewingAll ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" aria-hidden />
+                )}
+                {copy.reviewNewJobs}
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                className={`min-h-12 border-[#2D7A5F] text-[#2D7A5F] hover:bg-[#2D7A5F]/10 ${focusRing}`}
+                variant="outline"
+                onClick={() => void runDraftAll()}
+                disabled={busyGlobal || draftEligible === 0 || !profileReady.ready}
+                title={
+                  !profileReady.ready
+                    ? profileNotReadyReason
+                    : draftEligible === 0
+                      ? "Shortlist jobs first — drafts only run for jobs you chose"
+                      : undefined
+                }
+              >
+                {draftingAll ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <FileText className="mr-2 h-4 w-4" aria-hidden />
+                )}
+                {copy.draftApplications}
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                className={`min-h-12 ${focusRing}`}
+                onClick={() => void refresh()}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
+                )}
+                {copy.refresh}
+              </Button>
+              <Button size="lg" variant="outline" asChild className={`min-h-12 ${focusRing}`}>
+                <Link href="/app/agents/profile">
+                  <UserCheck className="mr-2 h-4 w-4" aria-hidden />
+                  {copy.masterProfile}
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild className={`min-h-12 ${focusRing}`}>
+                <Link href="/app/agents/settings">
+                  <Search className="mr-2 h-4 w-4" aria-hidden />
+                  {copy.searchSettings}
+                </Link>
+              </Button>
+            </div>
+            {lastPipeline && (
+              <p className="mt-4 text-sm text-stone-600">
+                {copy.lastPipeline({
+                  fetched: lastPipeline.fetched ?? 0,
+                  relevant: lastPipeline.relevant ?? 0,
+                  drafted: lastPipeline.drafted ?? 0,
+                  cap: lastPipeline.dailyCap ?? 5,
+                  errors: lastPipeline.errors ?? 0,
+                })}
               </p>
             )}
-          </div>
-        )}
-        {lastDraft && (
-          <p className="mt-1 text-sm text-stone-600">
-            {copy.lastDraft({
-              drafted: lastDraft.drafted ?? 0,
-              flags: lastDraft.flagsTotal ?? 0,
-              cap: lastDraft.dailyCap ?? 5,
-              already: lastDraft.draftedTodayBefore ?? 0,
-              errors: lastDraft.errors ?? 0,
-            })}
-          </p>
+            {lastReview && (
+              <div className="mt-1 text-sm text-stone-600">
+                <p>
+                  {copy.lastReview({
+                    reviewed: lastReview.reviewed ?? 0,
+                    relevant: lastReview.relevant ?? 0,
+                    notRelevant: lastReview.notRelevant ?? 0,
+                    manual: lastReview.needsManualReview ?? 0,
+                    errors: lastReview.errors ?? 0,
+                  })}
+                </p>
+              </div>
+            )}
+            {lastDraft && (
+              <p className="mt-1 text-sm text-stone-600">
+                {copy.lastDraft({
+                  drafted: lastDraft.drafted ?? 0,
+                  flags: lastDraft.flagsTotal ?? 0,
+                  cap: lastDraft.dailyCap ?? 5,
+                  already: lastDraft.draftedTodayBefore ?? 0,
+                  errors: lastDraft.errors ?? 0,
+                })}
+              </p>
+            )}
+          </section>
         )}
 
-        {/* Overview cards → three gates */}
-        <div className="mt-8 grid gap-3 sm:grid-cols-3">
-          {(
-            [
-              {
-                href: "#queue-choose",
-                label: copy.queues.overviewChoose,
-                count: queueChoose.length,
-              },
-              {
-                href: "#queue-documents",
-                label: copy.queues.overviewDocuments,
-                count: queueDocuments.length,
-              },
-              {
-                href: "#queue-send",
-                label: copy.queues.overviewSend,
-                count: queueSend.filter((j) => j.status === "documents_approved").length,
-              },
-            ] as const
-          ).map((card) => (
-            <a
-              key={card.href}
-              href={card.href}
-              className={`rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:border-[#2D7A5F]/40 hover:bg-[#2D7A5F]/5 ${focusRing}`}
+        {boardStep === null && !showTools ? (
+          <div className="mt-6">
+            <button
+              type="button"
+              className="min-h-11 text-base font-medium text-stone-700 underline underline-offset-2"
+              onClick={() => setShowTools(true)}
             >
-              <p className="text-sm font-medium text-stone-600">{card.label}</p>
-              <p className="mt-1 text-2xl font-semibold text-stone-900">{card.count}</p>
-            </a>
-          ))}
-        </div>
+              {copy.toolsToggle}
+            </button>
+          </div>
+        ) : null}
 
         {loading ? (
           <div className="mt-12 flex items-center gap-2 text-stone-500" role="status">
@@ -1439,6 +1551,7 @@ export function AgentsHomePage() {
         ) : (
           <>
             {/* Gate 1 — Choose jobs */}
+            {boardStep === "choose" ? (
             <section id="queue-choose" className="mt-10 scroll-mt-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold text-stone-900">
@@ -1562,8 +1675,10 @@ export function AgentsHomePage() {
                 </ul>
               )}
             </section>
+            ) : null}
 
             {/* Gate 2 — Check documents */}
+            {boardStep === "documents" ? (
             <section id="queue-documents" className="mt-12 scroll-mt-6">
               <h2 className="text-lg font-semibold text-stone-900">
                 {copy.queues.documents(queueDocuments.length)}
@@ -1709,8 +1824,10 @@ export function AgentsHomePage() {
                 </ul>
               )}
             </section>
+            ) : null}
 
             {/* Gate 3 — Ready to send */}
+            {boardStep === "send" ? (
             <section id="queue-send" className="mt-12 scroll-mt-6">
               <h2 className="text-lg font-semibold text-stone-900">
                 {copy.queues.send(queueSend.length)}
@@ -1935,10 +2052,13 @@ export function AgentsHomePage() {
                 </ul>
               )}
             </section>
+            ) : null}
           </>
         )}
 
-        {/* Full list filter tabs (below gates) */}
+        {showTools && boardStep === "find" ? (
+<>
+        {/* Full list filter tabs (optional under Find tools) */}
         <div className="mt-14 border-t border-stone-200 pt-8">
           <h2 className="text-base font-semibold text-stone-900">
             {locale === "de" ? "Alle Jobs" : "All jobs"}
@@ -2182,7 +2302,10 @@ export function AgentsHomePage() {
         </div>
       </div>
 
-      <AlertDialog
+      </>
+        ) : null}
+
+        <AlertDialog
         open={confirmSendJobId != null}
         onOpenChange={(open) => {
           if (!open) setConfirmSendJobId(null)
