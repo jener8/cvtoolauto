@@ -183,13 +183,14 @@ const en: ProfileCopy = {
         ? "Do this now: Go to Ready."
         : "Do this now: Press the green button to keep your items and continue.",
     readyMissing: "Do this now: Add what is still missing.",
-    readyDone: "You are ready. You can open job agents.",
+    readyDone:
+      "You are ready. Open job agents when you want — you still choose every job and approve every CV before anything is sent.",
   },
   primary: {
     add: "Add your experience",
     check: "Continue",
     agreeDirections: "Yes — these directions are right",
-    goAgents: "Open job agents",
+    goAgents: "Open job agents (nothing sends yet)",
     addEducation: "Add education",
     addMissing: "Add what is missing",
   },
@@ -382,13 +383,13 @@ const de: ProfileCopy = {
         ? "Jetzt: Gehe zu Bereit."
         : "Jetzt: Drücke den grünen Knopf, um deine Einträge zu behalten und weiterzugehen.",
     readyMissing: "Jetzt: Ergänze, was noch fehlt.",
-    readyDone: "Du bist bereit. Du kannst die Job-Agenten öffnen.",
+    readyDone: "Du bist bereit. Öffne die Job-Agenten, wenn du magst — du wählst weiter jeden Job und prüfst jedes CV, bevor etwas gesendet wird.",
   },
   primary: {
     add: "Erfahrung hinzufügen",
     check: "Weiter",
     agreeDirections: "Ja — diese Richtungen stimmen",
-    goAgents: "Job-Agenten öffnen",
+    goAgents: "Job-Agenten öffnen (noch kein Versand)",
     addEducation: "Ausbildung hinzufügen",
     addMissing: "Fehlendes hinzufügen",
   },

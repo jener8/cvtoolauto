@@ -1225,6 +1225,14 @@ export function AgentsHomePage() {
         </h1>
         <p className="mt-3 text-base leading-relaxed text-stone-600">{copy.subtitle}</p>
 
+        <div
+          className="mt-6 rounded-xl border-2 border-[#2D7A5F] bg-white p-5 shadow-sm"
+          role="note"
+        >
+          <p className="text-base font-semibold text-stone-900">{copy.controlBannerTitle}</p>
+          <p className="mt-2 text-base leading-relaxed text-stone-700">{copy.controlBannerBody}</p>
+        </div>
+
         {pageError && (
           <div
             className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
@@ -1272,17 +1280,18 @@ export function AgentsHomePage() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Button
             type="button"
+            variant="outline"
             onClick={() => void runPipelineNow()}
             disabled={busyGlobal}
-            style={{ backgroundColor: AGENTS_ACCENT }}
-            className={`text-white hover:opacity-90 ${focusRing}`}
+            title={copy.findJobsHint}
+            className={`border-[#2D7A5F] text-[#2D7A5F] hover:bg-[#2D7A5F]/10 ${focusRing}`}
           >
             {runningPipeline ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
             ) : (
               <Play className="mr-2 h-4 w-4" aria-hidden />
             )}
-            {copy.runNow}
+            {copy.findJobs}
           </Button>
           <Button
             type="button"
@@ -1303,7 +1312,13 @@ export function AgentsHomePage() {
             type="button"
             onClick={() => void runDraftAll()}
             disabled={busyGlobal || draftEligible === 0 || !profileReady.ready}
-            title={!profileReady.ready ? profileNotReadyReason : undefined}
+            title={
+              !profileReady.ready
+                ? profileNotReadyReason
+                : draftEligible === 0
+                  ? "Shortlist jobs first — drafts only run for jobs you chose"
+                  : undefined
+            }
             variant="outline"
             className={`border-[#2D7A5F] text-[#2D7A5F] hover:bg-[#2D7A5F]/10 ${focusRing}`}
           >

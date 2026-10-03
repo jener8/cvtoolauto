@@ -20,6 +20,10 @@ type AgentsCopyTree = {
   reviewNewJobs: string
   draftApplications: string
   runNow: string
+  findJobs: string
+  findJobsHint: string
+  controlBannerTitle: string
+  controlBannerBody: string
   refresh: string
   loadingQueue: string
   lastReview: (v: {
@@ -169,13 +173,19 @@ const en: AgentsCopyTree = {
   brand: "EquitAI",
   title: "Job agents",
   subtitle:
-    "Review fit explanations, edit drafts, then approve or reject. Nothing is sent or submitted to employer portals automatically.",
+    "You stay in control. Nothing is emailed or submitted until you say so — after you choose the jobs and approve the CV and letter.",
   backWorkspace: "Back to workspace",
   masterProfile: "Your profile",
   searchSettings: "Search settings",
   reviewNewJobs: "Review new jobs",
-  draftApplications: "Draft applications",
-  runNow: "Run now",
+  draftApplications: "Write drafts for shortlisted jobs",
+  runNow: "Find jobs",
+  findJobs: "Find jobs",
+  findJobsHint:
+    "Searches and scores fits only. Does not write applications or contact employers.",
+  controlBannerTitle: "You decide every step",
+  controlBannerBody:
+    "1) Choose which jobs to approach. 2) Check and edit how the CV and letter look. 3) Only then send — and you can undo for 30 seconds.",
   refresh: "Refresh",
   loadingQueue: "Loading queue…",
   lastReview: (v) =>
@@ -341,13 +351,19 @@ const de: AgentsCopyTree = {
   brand: "EquitAI",
   title: "Job-Agenten",
   subtitle:
-    "Passung prüfen, Entwürfe bearbeiten, dann freigeben oder ablehnen. Nichts wird automatisch an Arbeitgeberportale gesendet oder dort eingereicht.",
+    "Du bleibst in Kontrolle. Nichts wird gemailt oder eingereicht, bevor du es sagst — erst Jobs wählen, dann CV und Anschreiben prüfen.",
   backWorkspace: "Zurück zum Arbeitsbereich",
   masterProfile: "Dein Profil",
   searchSettings: "Sucheinstellungen",
   reviewNewJobs: "Neue Jobs prüfen",
-  draftApplications: "Bewerbungen entwerfen",
-  runNow: "Jetzt ausführen",
+  draftApplications: "Entwürfe für ausgewählte Jobs schreiben",
+  runNow: "Jobs finden",
+  findJobs: "Jobs finden",
+  findJobsHint:
+    "Sucht und bewertet nur. Schreibt keine Bewerbungen und kontaktiert keine Arbeitgeber.",
+  controlBannerTitle: "Du entscheidest jeden Schritt",
+  controlBannerBody:
+    "1) Wähle, welche Jobs angegangen werden. 2) Prüfe und bearbeite CV und Anschreiben. 3) Erst dann senden — 30 Sekunden zum Rückgängigmachen.",
   refresh: "Aktualisieren",
   loadingQueue: "Warteschlange wird geladen…",
   lastReview: (v) =>
