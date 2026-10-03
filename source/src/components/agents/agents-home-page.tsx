@@ -1828,6 +1828,7 @@ export function AgentsHomePage() {
 
             {/* Gate 3 — Ready to send */}
             {boardStep === "send" ? (
+            <>
             <section id="queue-send" className="mt-12 scroll-mt-6">
               <h2 className="text-lg font-semibold text-stone-900">
                 {copy.queues.send(queueSend.length)}
@@ -2052,6 +2053,7 @@ export function AgentsHomePage() {
                 </ul>
               )}
             </section>
+            </>
             ) : null}
           </>
         )}
@@ -2300,7 +2302,6 @@ export function AgentsHomePage() {
             </ul>
           )}
         </div>
-      </div>
 
       </>
         ) : null}
@@ -2367,6 +2368,7 @@ export function AgentsHomePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   )
 }
