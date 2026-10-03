@@ -11,7 +11,9 @@ import {
   IconTestPipe,
   IconTrendingUp,
   IconUserHeart,
+  IconUserSearch,
 } from "@tabler/icons-react"
+import { isJobAgentEnabledClient } from "@/lib/agents/feature-flag"
 
 /** Primary workspace navigation — EquitAI shell. */
 export type WorkspaceNavId =
@@ -26,6 +28,7 @@ export type WorkspaceNavId =
   | "progress"
   | "scenarioLab"
   | "aiCoach"
+  | "agents"
   | "settings"
 
 export type WorkspaceNavGroupId =
@@ -127,7 +130,21 @@ export const WORKSPACE_NAV_ITEMS: WorkspaceNavItem[] = [
     icon: IconRobot,
     group: "tools",
   },
+  {
+    id: "agents",
+    label: "Agents",
+    subtext: "Job search & drafts",
+    icon: IconUserSearch,
+    group: "tools",
+  },
 ]
+
+/** Nav items visible for the current client flags. */
+export function getVisibleWorkspaceNavItems(): WorkspaceNavItem[] {
+  return WORKSPACE_NAV_ITEMS.filter(
+    (item) => item.id !== "agents" || isJobAgentEnabledClient(),
+  )
+}
 
 export type AppSectionView =
   | "folders"
@@ -219,6 +236,9 @@ export function viewFromWorkspaceNav(id: WorkspaceNavId): AppSectionView {
       return "scenarioLab"
     case "aiCoach":
       return "aiCoach"
+    case "agents":
+      // Handled as a route push in the sidebar; keep a safe fallback.
+      return "careerHome"
     case "settings":
       return "settings"
     default:
