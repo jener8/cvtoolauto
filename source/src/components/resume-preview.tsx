@@ -72,9 +72,11 @@ import {
 } from "@/lib/resume-page-breaks"
 import {
   autoPaginateResumeInnerHtml,
+  isPdfBulletLine,
   PDF_MANUAL_PAGE_BREAK_PREFERENCE_HTML,
   pdfPageLabelHtml,
   splitContentIntoSegments,
+  splitEntryLinesIntoPdfChunks,
   splitExperienceLinesIntoJobs,
 } from "@/lib/pdf-auto-pagination"
 import { isPdfDebugEnabled } from "@/lib/pdf-debug"
@@ -1614,11 +1616,34 @@ export function ResumePreview({
     return renderUniversalMarkdown(lines)
   }
 
-  const PDF_KEEP_TOGETHER_BLOCKS = new Set(["job", "experience-start", "skills-tools-grid"])
+  const PDF_KEEP_TOGETHER_BLOCKS = new Set([
+    "job-head",
+    "job-tail",
+    "experience-start",
+    "skills-tools-grid",
+  ])
 
-  const wrapPdfBlock = (kind: string, html: string) => {
+  const wrapPdfBlock = (kind: string, html: string, continuation = false) => {
     const keepClass = PDF_KEEP_TOGETHER_BLOCKS.has(kind) ? " pdf-block-keep-together" : ""
-    return `<div data-pdf-block="${kind}" class="pdf-resume-block${keepClass}">${html}</div>`
+    const contClass = continuation ? " pdf-job-continuation" : ""
+    return `<div data-pdf-block="${kind}" class="pdf-resume-block${keepClass}${contClass}">${html}</div>`
+  }
+
+  const pushEntryPdfChunks = (
+    parts: string[],
+    entryLines: string[],
+    renderEntry: (lines: string[]) => string,
+    wrapBody: (body: string) => string,
+  ): number => {
+    const chunks = splitEntryLinesIntoPdfChunks(entryLines)
+    let pushed = 0
+    for (const chunk of chunks) {
+      const body = wrapBody(renderEntry(chunk.lines))
+      if (!body.trim()) continue
+      parts.push(wrapPdfBlock(chunk.kind, body, chunk.continuation))
+      pushed += 1
+    }
+    return pushed
   }
 
   const renderExperiencePdfBlocks = (
@@ -1642,16 +1667,17 @@ export function ResumePreview({
       }
       const jobs = splitExperienceLinesIntoJobs(seg.lines)
       for (const jobLines of jobs) {
-        const body = wrapBody(renderJob(jobLines))
-        if (!body.trim()) continue
         // Keep section title as its own block so a long first job (common after
         // EN→DE translation) can move to page 2 without dragging EXPERIENCE
         // off page 1 and leaving a huge white gap under PROFILE.
+        const staging: string[] = []
+        const count = pushEntryPdfChunks(staging, jobLines, renderJob, wrapBody)
+        if (count === 0) continue
         if (!sectionTitlePlaced && sectionTitleHTML) {
           parts.push(wrapPdfBlock("section-title", sectionTitleHTML))
           sectionTitlePlaced = true
         }
-        parts.push(wrapPdfBlock("job", body))
+        parts.push(...staging)
       }
     }
 
@@ -1668,8 +1694,10 @@ export function ResumePreview({
     renderLines: (lines: string[]) => string,
     sectionMargin: string,
     wrapBody?: (body: string) => string,
+    options?: { allowBulletSplit?: boolean },
   ): string => {
     const wrap = wrapBody ?? ((body: string) => body)
+    const allowBulletSplit = options?.allowBulletSplit !== false
     const segments = splitContentIntoSegments(content)
     const parts: string[] = []
     let sectionTitlePlaced = false
@@ -1681,6 +1709,29 @@ export function ResumePreview({
         )
         continue
       }
+
+      const useSplit =
+        allowBulletSplit &&
+        (sectionHasStructuredEntries(seg.lines) ||
+          seg.lines.filter(isPdfBulletLine).length > 4)
+
+      if (useSplit) {
+        const entries = sectionHasStructuredEntries(seg.lines)
+          ? splitSectionIntoEntryBlocks(seg.lines)
+          : [seg.lines]
+        for (const entryLines of entries) {
+          const staging: string[] = []
+          const count = pushEntryPdfChunks(staging, entryLines, renderLines, wrap)
+          if (count === 0) continue
+          if (!sectionTitlePlaced && sectionTitleHTML) {
+            parts.push(wrapPdfBlock("section-title", sectionTitleHTML))
+            sectionTitlePlaced = true
+          }
+          parts.push(...staging)
+        }
+        continue
+      }
+
       const body = wrap(renderLines(seg.lines))
       if (!body.trim()) continue
       if (!sectionTitlePlaced) {
@@ -1809,6 +1860,8 @@ export function ResumePreview({
             section.content,
             renderLines,
             `${style.sectionSpacing}px`,
+            undefined,
+            { allowBulletSplit: resolveSectionColumnCount(section) <= 1 },
           )
         })
         .join("")
@@ -1902,6 +1955,8 @@ export function ResumePreview({
             section.content,
             renderLines,
             "12px",
+            undefined,
+            { allowBulletSplit: resolveSectionColumnCount(section) <= 1 },
           )
         })
         .join("")
@@ -1999,6 +2054,7 @@ export function ResumePreview({
           renderLines,
           `${style.sectionSpacing}px`,
           (body) => `<div style="clear: both;">${body}</div>`,
+          { allowBulletSplit: resolveSectionColumnCount(section) <= 1 },
         )
       })
       .join("")
@@ -2204,6 +2260,8 @@ export function ResumePreview({
           section.content,
           renderATSSectionLines,
           "16px",
+          undefined,
+          { allowBulletSplit: resolveSectionColumnCount(section) <= 1 },
         )
       })
       .join("")

@@ -4078,6 +4078,32 @@
   page-break-inside: avoid;
 }
 
+/*
+  Split jobs/education entries into head / bullet / tail blocks for pagination.
+  Continuation chunks re-open a <ul>; strip the extra list top/bottom gap so the
+  split job looks identical to a single unsplit list.
+*/
+.pdf-job-continuation > *:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.pdf-job-continuation > ul:first-child,
+.pdf-job-continuation ul {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.pdf-resume-block:has(+ .pdf-job-continuation) ul:last-of-type {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.pdf-job-continuation:has(+ .pdf-job-continuation) ul:last-of-type {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
 /* Skills / tools / multi-column list sections (preview + PDF).
    Layout uses inline CSS Grid from renderCVColumnListHtml. */
 .cv-column-list,
