@@ -106,6 +106,172 @@ export function splitExperienceLinesIntoJobs(lines: string[]): string[][] {
   return jobs.length > 0 ? jobs : [lines]
 }
 
+/** True for markdown / bullet-list item lines (`-` or `•`). */
+export function isPdfBulletLine(line: string): boolean {
+  const t = line.trim()
+  return t.startsWith("-") || t.startsWith("•")
+}
+
+export type PdfEntryChunkKind = "job-head" | "job-bullet" | "job-tail"
+
+export type PdfEntryChunk = {
+  kind: PdfEntryChunkKind
+  lines: string[]
+  /** Continuation of a prior chunk in the same entry (no extra list top gap). */
+  continuation: boolean
+}
+
+/**
+ * Split one job/education entry into paginate-able chunks:
+ * - ≤4 bullets → single `job-head` (whole entry stays together)
+ * - otherwise → `job-head` (header + first 2 bullets), middle `job-bullet`s,
+ *   and `job-tail` (last 2 bullets) so a page never starts/ends on one stray bullet
+ */
+export function splitEntryLinesIntoPdfChunks(lines: string[]): PdfEntryChunk[] {
+  if (lines.length === 0) return []
+
+  const bulletIndexes: number[] = []
+  for (let i = 0; i < lines.length; i++) {
+    if (isPdfBulletLine(lines[i])) bulletIndexes.push(i)
+  }
+
+  if (bulletIndexes.length <= 4) {
+    return [{ kind: "job-head", lines: [...lines], continuation: false }]
+  }
+
+  // Everything before the 3rd bullet (header + first 2 bullets + interstitial lines).
+  const headEndExclusive = bulletIndexes[2]
+  const tailStartIdx = bulletIndexes[bulletIndexes.length - 2]
+
+  const chunks: PdfEntryChunk[] = []
+  chunks.push({
+    kind: "job-head",
+    lines: lines.slice(0, headEndExclusive),
+    continuation: false,
+  })
+
+  // Middle bullets (after the first two, before the last two), each alone.
+  // Include any non-bullet lines that sit between this bullet and the next boundary.
+  for (let bi = 2; bi < bulletIndexes.length - 2; bi++) {
+    const start = bulletIndexes[bi]
+    const nextBoundary =
+      bi + 1 < bulletIndexes.length - 2 ? bulletIndexes[bi + 1] : tailStartIdx
+    chunks.push({
+      kind: "job-bullet",
+      lines: lines.slice(start, nextBoundary),
+      continuation: true,
+    })
+  }
+
+  chunks.push({
+    kind: "job-tail",
+    lines: lines.slice(tailStartIdx),
+    continuation: true,
+  })
+
+  return chunks
+}
+
+export type PdfPackBlock = { kind: string; height: number }
+
+export interface PackPdfBlocksResult {
+  /** Each page is an ordered list of source block indices. */
+  pages: number[][]
+  /** Sum of block heights packed onto each page. */
+  pageUsedHeights: number[]
+  hadOverflow: boolean
+}
+
+/**
+ * Pure packer mirroring `autoPaginateResumeInnerHtml` page-break rules
+ * (manual breaks, section-title orphan prevention, tall-block overflow).
+ */
+export function packPdfBlocks(
+  blocks: PdfPackBlock[],
+  maxH: number,
+): PackPdfBlocksResult {
+  const pages: number[][] = []
+  const pageUsedHeights: number[] = []
+  let current: number[] = []
+  let currentKinds: string[] = []
+  let currentHeights: number[] = []
+  let used = 0
+  let hadOverflow = blocks.some((b) => b.height > maxH + 0.5)
+
+  const pushBlock = (index: number) => {
+    current.push(index)
+    currentKinds.push(blocks[index].kind)
+    currentHeights.push(blocks[index].height)
+    used += blocks[index].height
+  }
+
+  const flushPage = (keepTrailingSectionTitle: boolean) => {
+    if (current.length === 0) return
+
+    let carry: number | null = null
+    if (
+      keepTrailingSectionTitle &&
+      currentKinds[currentKinds.length - 1] === "section-title" &&
+      current.length > 1
+    ) {
+      const idx = current.pop()!
+      currentKinds.pop()
+      const h = currentHeights.pop()!
+      used -= h
+      carry = idx
+    }
+
+    if (current.length === 1 && currentKinds[0] === "section-title") {
+      if (carry !== null) pushBlock(carry)
+      return
+    }
+
+    if (current.length > 0) {
+      pages.push(current)
+      pageUsedHeights.push(used)
+    }
+    current = []
+    currentKinds = []
+    currentHeights = []
+    used = 0
+    if (carry !== null) pushBlock(carry)
+  }
+
+  for (let i = 0; i < blocks.length; i++) {
+    const kind = blocks[i].kind
+    const h = blocks[i].height
+
+    if (kind === MANUAL_PAGE_BREAK_BLOCK_KIND) {
+      flushPage(true)
+      continue
+    }
+
+    if (h > maxH + 0.5) {
+      hadOverflow = true
+    }
+
+    if (current.length > 0 && used + h > maxH + 0.5) {
+      if (current.length === 1 && currentKinds[0] === "section-title") {
+        pushBlock(i)
+        continue
+      }
+      flushPage(true)
+      if (current.length > 0 && used + h > maxH + 0.5) {
+        pushBlock(i)
+        continue
+      }
+    }
+    pushBlock(i)
+  }
+  flushPage(false)
+
+  return {
+    pages,
+    pageUsedHeights,
+    hadOverflow,
+  }
+}
+
 export interface AutoPaginateResult {
   /** Full surface HTML: one or more `<section class="pdf-page">…</section>`. */
   html: string
@@ -161,94 +327,14 @@ export function autoPaginateResumeInnerHtml(
 
     const heights = blocks.map((el) => el.getBoundingClientRect().height)
     const kinds = blocks.map((el) => el.getAttribute("data-pdf-block") ?? "")
-    let hadOverflow = heights.some((h) => h > maxH + 0.5)
-
-    const pages: HTMLElement[][] = []
-    let current: HTMLElement[] = []
-    let currentKinds: string[] = []
-    let currentHeights: number[] = []
-    let used = 0
-
-    const pushBlock = (el: HTMLElement, kind: string, h: number) => {
-      current.push(el)
-      currentKinds.push(kind)
-      currentHeights.push(h)
-      used += h
-    }
-
-    /**
-     * Flush the current page. When `keepTrailingSectionTitle` is true, a trailing
-     * `section-title` is carried onto the next page so EXPERIENCE/EDUCATION
-     * headings never sit alone above a blank A4 (classic orphan-title bug).
-     */
-    const flushPage = (keepTrailingSectionTitle: boolean) => {
-      if (current.length === 0) return
-
-      let carry: { el: HTMLElement; kind: string; h: number } | null = null
-      if (
-        keepTrailingSectionTitle &&
-        currentKinds[currentKinds.length - 1] === "section-title" &&
-        current.length > 1
-      ) {
-        const el = current.pop()!
-        const kind = currentKinds.pop()!
-        const h = currentHeights.pop()!
-        used -= h
-        carry = { el, kind, h }
-      }
-
-      // Never emit a page whose only content is a section title.
-      if (current.length === 1 && currentKinds[0] === "section-title") {
-        if (carry) {
-          pushBlock(carry.el, carry.kind, carry.h)
-        }
-        return
-      }
-
-      if (current.length > 0) {
-        pages.push(current)
-      }
-      current = []
-      currentKinds = []
-      currentHeights = []
-      used = 0
-      if (carry) {
-        pushBlock(carry.el, carry.kind, carry.h)
-      }
-    }
-
-    for (let i = 0; i < blocks.length; i++) {
-      const kind = kinds[i]
-      const h = heights[i]
-
-      if (kind === MANUAL_PAGE_BREAK_BLOCK_KIND) {
-        // ---PAGE BREAK--- must always start a new A4 page at this exact point.
-        flushPage(true)
-        continue
-      }
-
-      if (h > maxH + 0.5) {
-        hadOverflow = true
-      }
-
-      if (current.length > 0 && used + h > maxH + 0.5) {
-        // Lone section-title + oversized next block: keep them together on one
-        // page (page will auto-grow) rather than orphaning the heading.
-        if (current.length === 1 && currentKinds[0] === "section-title") {
-          pushBlock(blocks[i], kind, h)
-          continue
-        }
-        flushPage(true)
-        // After carrying a section-title, if it still doesn't fit with `h`,
-        // force them onto the same page instead of looping forever.
-        if (current.length > 0 && used + h > maxH + 0.5) {
-          pushBlock(blocks[i], kind, h)
-          continue
-        }
-      }
-      pushBlock(blocks[i], kind, h)
-    }
-    flushPage(false)
+    const packed = packPdfBlocks(
+      kinds.map((kind, i) => ({ kind, height: heights[i] })),
+      maxH,
+    )
+    let hadOverflow = packed.hadOverflow
+    const pages: HTMLElement[][] = packed.pages.map((indices) =>
+      indices.map((i) => blocks[i]),
+    )
 
     const measurePageHeight = (pageBlocks: HTMLElement[]): number => {
       const scratch = ownerDocument.createElement("div")
