@@ -149,7 +149,19 @@ export function renderCVColumnListHtml(
     })
     .join("")
 
-  return `<table class="cv-column-list cv-column-list--cols-${columns} pdf-block-keep-together" style="width: 100%; border-collapse: collapse; table-layout: fixed; margin: ${bullet.bulletMargin}px 0; padding: 0; font-size: ${bullet.fontSize}px; line-height: ${bullet.lineHeight};"><tbody><tr>${cells}</tr></tbody></table>`
+  // Do NOT mark the whole grid as keep-together — that forced skills onto a late
+  // page and left large blank regions. Individual items already use break-inside: avoid.
+  return `<table class="cv-column-list cv-column-list--cols-${columns}" style="width: 100%; border-collapse: collapse; table-layout: fixed; margin: ${bullet.bulletMargin}px 0; padding: 0; font-size: ${bullet.fontSize}px; line-height: ${bullet.lineHeight};"><tbody><tr>${cells}</tr></tbody></table>`
+}
+
+/** One skill/tool item as a standalone HTML fragment (for per-item PDF blocks). */
+export function renderCVColumnListItemHtml(
+  item: string,
+  bullet: ColumnListBulletStyle,
+): string {
+  const inline = (text: string) =>
+    formattedTextToHtml(text, { linkColor: bullet.linkColor, underline: true })
+  return `<div class="cv-column-list__item" style="margin: ${bullet.bulletMargin / 2}px 0; padding-left: ${bullet.bulletIndent}px; line-height: ${bullet.lineHeight}; position: relative; font-size: ${bullet.fontSize}px; color: #000000;"><span style="position: absolute; left: 0; top: 0; line-height: ${bullet.lineHeight}; font-size: ${bullet.size}; color: ${bullet.color};">${bullet.symbol}</span>${inline(item)}</div>`
 }
 
 /**
@@ -214,6 +226,6 @@ export function renderCVColumnBlocksHtml(blockHtmls: string[], columns: 2 | 3): 
     })
     .join("")
 
-  return `<table class="cv-column-list cv-column-list--cols-${columns} pdf-block-keep-together" style="width: 100%; border-collapse: collapse; table-layout: fixed; margin: 4px 0; padding: 0;"><tbody><tr>${cells}</tr></tbody></table>`
+  return `<table class="cv-column-list cv-column-list--cols-${columns}" style="width: 100%; border-collapse: collapse; table-layout: fixed; margin: 4px 0; padding: 0;"><tbody><tr>${cells}</tr></tbody></table>`
 }
 

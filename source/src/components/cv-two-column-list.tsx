@@ -31,7 +31,7 @@ export function CVTwoColumnList({
 
   return (
     <div
-      className={cn("cv-two-column-list pdf-block-keep-together", className)}
+      className={cn("cv-two-column-list", className)}
       style={{
         margin: style?.margin,
         fontSize: `${fontSize}px`,

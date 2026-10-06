@@ -465,7 +465,7 @@ export function resolveExportProvenance(resume: ResumeVersion | null) {
 export function buildExportTransparencyAppendixHtml(
   opts: TransparencyStatementOptions = {},
 ): string {
-  return `<section class="pdf-page pdf-page--auto export-transparency-appendix" style="box-sizing:border-box;width:210mm;min-height:auto;padding:18mm 18mm 22mm 18mm;background:#ffffff;font-family:Inter,Arial,Helvetica,sans-serif;color:#000000;">${buildTransparencyPageHtml(opts)}</section>`
+  return `<section class="pdf-page pdf-page--auto export-transparency-appendix" style="box-sizing:border-box;width:210mm;min-height:auto;padding:15mm;background:#ffffff;font-family:Inter,Arial,Helvetica,sans-serif;color:#000000;">${buildTransparencyPageHtml(opts)}</section>`
 }
 
 function transparencyOptionsFromResume(
