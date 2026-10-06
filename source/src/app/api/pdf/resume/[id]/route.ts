@@ -1,11 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { chromium } from "playwright"
+import { getServerCvUser } from "@/lib/cv-auth-session-server"
+import { sessionMayAccessFolderId } from "@/lib/folder-access-server"
 import { generatePdfToken } from "@/lib/pdf-token"
 import {
   DEFAULT_PDF_EXPORT_PRESET,
   PDF_EXPORT_PRESETS,
   parsePdfExportPreset,
 } from "@/lib/pdf-export-presets"
+import { createServerServiceSupabaseClient } from "@/lib/supabase/server-service-client"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -13,6 +16,11 @@ export const dynamic = "force-dynamic"
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null
   try {
+    const user = await getServerCvUser()
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const params = await context.params
     const resumeId = params.id
     const searchParams = request.nextUrl.searchParams
@@ -20,6 +28,27 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const presetConfig = PDF_EXPORT_PRESETS[preset]
     const includeTransparency = searchParams.get("transparency") === "1"
     const includeMetadata = searchParams.get("metadata") !== "0"
+
+    const supabase = await createServerServiceSupabaseClient()
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase unavailable" }, { status: 503 })
+    }
+    const { data: resumeRow, error: resumeError } = await supabase
+      .from("resume_versions")
+      .select("id, folder_id")
+      .eq("id", resumeId)
+      .maybeSingle()
+    if (resumeError || !resumeRow) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
+    const allowed = await sessionMayAccessFolderId(
+      user,
+      resumeRow.folder_id ? String(resumeRow.folder_id) : null,
+      supabase,
+    )
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
     // Generate a signed token for server-side access
     const userId = "authenticated-user"

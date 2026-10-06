@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { chromium } from "playwright"
 import { buildCoverLetterPrintDocument } from "@/lib/cover-letter-export-html"
+import { getServerCvUser } from "@/lib/cv-auth-session-server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -13,6 +14,11 @@ export const dynamic = "force-dynamic"
 export async function POST(request: NextRequest) {
   let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null
   try {
+    const user = await getServerCvUser()
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const body = (await request.json()) as { html?: unknown; filename?: unknown }
     const letterHtml = typeof body.html === "string" ? body.html.trim() : ""
     if (!letterHtml || letterHtml.length > 6_000_000) {

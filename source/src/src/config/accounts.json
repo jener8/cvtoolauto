@@ -8,13 +8,6 @@
     "passwordHash": "0b5dccc460bd71f98105e6b8ff3dc7c8cc06d44bf7c1166a068115895321e484"
   },
   {
-    "username": "Test",
-    "surname": "Demo",
-    "role": "demo",
-    "created": "01/01/2026",
-    "passwordHash": "2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea"
-  },
-  {
     "username": "Helena",
     "surname": "CHANGE_ME",
     "role": "user",

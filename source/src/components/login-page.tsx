@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ExternalLink, Info, KeyRound, LogIn, Mail, ShieldCheck } from "lucide-react"
+import { ExternalLink, KeyRound, LogIn, Mail, ShieldCheck } from "lucide-react"
 import { getCvUser, setCvUser, fetchCvUserFromSession } from "@/lib/cv-auth"
 import { ensureSupabaseAuthSession } from "@/lib/supabase/app-auth"
 import { openAppForUser } from "@/lib/cv-workspace-routing"
@@ -172,13 +172,6 @@ export function LoginPage() {
               {submitting ? "Signing in…" : "Sign in"}
             </button>
           </form>
-
-          <div className="test-hint">
-            <Info className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
-            <span>
-              Try the demo: username <strong>Test</strong> with the demo password
-            </span>
-          </div>
 
           <div className="login-divider">
             <div className="login-divider-line" />
