@@ -33,20 +33,29 @@ assert(
 assert(/MANUAL_PAGE_BREAK_BLOCK_KIND/.test(paginationSource), "missing MANUAL_PAGE_BREAK_BLOCK_KIND")
 assert(/splitEntryLinesIntoPdfChunks/.test(paginationSource), "missing splitEntryLinesIntoPdfChunks")
 assert(/packPdfBlocks/.test(paginationSource), "missing packPdfBlocks")
-assert(/"job-head"/.test(paginationSource) && /"job-tail"/.test(paginationSource), "missing job-head/job-tail kinds")
+assert(/"job-head"/.test(paginationSource), "missing job-head kind")
+assert(/PDF_PAGE_MARGIN_TOP_MM = 15/.test(paginationSource), "page margins must be 15mm")
+assert(/pdf-job-continuation--page-start/.test(paginationSource), "page-start continuation class missing")
 
-assert(
-  /PDF_KEEP_TOGETHER_BLOCKS = new Set\(\[[\s\S]*?"job-head"[\s\S]*?"job-tail"/.test(previewSource),
-  "PDF_KEEP_TOGETHER_BLOCKS must include job-head and job-tail",
-)
+assert(/PDF_KEEP_TOGETHER_BLOCKS = new Set\(\[[\s\S]*?"job-head"/.test(previewSource), "keep job-head")
 {
   const keepSet = previewSource.match(/PDF_KEEP_TOGETHER_BLOCKS = new Set\(\[([\s\S]*?)\]\)/)?.[1] ?? ""
-  assert(!/\b"job"\b/.test(keepSet), 'PDF_KEEP_TOGETHER_BLOCKS must not include atomic "job"')
-  assert(/experience-start/.test(keepSet) && /skills-tools-grid/.test(keepSet), "keep experience-start and skills-tools-grid")
+  assert(!/\b"job"\b/.test(keepSet), 'must not keep atomic "job"')
+  assert(!/skills-tools-grid/.test(keepSet), "must not keep whole skills grid")
+  assert(!/job-tail/.test(keepSet), "job-tail keep-together removed")
+  assert(/skill-item/.test(keepSet), "keep skill-item")
 }
 assert(/pdf-job-continuation/.test(previewSource), "resume-preview must emit pdf-job-continuation")
 assert(/pdf-job-continuation/.test(cssSource), "globals.css must style pdf-job-continuation")
+assert(/margin:\s*15mm/.test(cssSource), "@page margins must be 15mm")
+assert(/resume-section-block\s*\{\s*break-inside:\s*auto/.test(cssSource), "sections must not keep-together")
 assert(/splitEntryLinesIntoPdfChunks/.test(previewSource), "resume-preview must use splitEntryLinesIntoPdfChunks")
+assert(/renderSkillItemsPdfBlocks/.test(previewSource), "skills must split into per-item PDF blocks")
+{
+  const colSource = readFileSync(join(root, "lib/cv-two-column-section.ts"), "utf8")
+  const tableReturn = colSource.match(/return `<table class="cv-column-list[\s\S]*?<\/table>`/)?.[0] ?? ""
+  assert(!/pdf-block-keep-together/.test(tableReturn), "skills table must not be pdf-block-keep-together")
+}
 
 const cases = spawnSync(
   "npx",

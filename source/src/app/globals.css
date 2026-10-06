@@ -3939,9 +3939,10 @@
    PDF + Resume Layout
 ============================================================ */
 
+/* Page margins apply on every printed sheet (including continuations). */
 @page {
   size: A4;
-  margin: 0;
+  margin: 15mm;
 }
 
 @media print {
@@ -3971,29 +3972,32 @@
    A4 PAGE
 ============================================================ */
 
+/*
+  Print: one JS-packed sheet fills the @page content box (no extra padding,
+  no fixed 297mm height — that combo caused Chromium blank pages on overflow).
+  Screen: full A4 card with 15mm padding to mirror @page margins.
+*/
 .pdf-page {
-  width: 210mm;
-  height: 297mm;
+  width: 100%;
+  height: auto;
   box-sizing: border-box;
-
-  /* INTERNAL SAFE AREA */
-  padding: 18mm 18mm 22mm 18mm;
+  padding: 0;
+  margin: 0;
 
   background: #ffffff;
   color: #000000;
 
   position: relative;
-
-  overflow: visible;
+  overflow: hidden;
 
   break-after: page;
   page-break-after: always;
 }
 
-/* When a packed page still overflows (unsplittable tall job), grow instead of clipping. */
+/* Single unsplittable block taller than the content area. */
 .pdf-page--auto {
   height: auto;
-  min-height: 297mm;
+  min-height: 0;
   overflow: visible;
   page-break-after: auto;
   break-after: auto;
@@ -4013,13 +4017,20 @@
 
 @media screen {
   .pdf-page {
+    width: 210mm;
+    min-height: 297mm;
+    height: 297mm;
+    padding: 15mm;
     margin: 0 auto;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-
-    /* IMPORTANT:
-       NO RED/PINK OUTLINES HERE
-    */
+    overflow: hidden;
     outline: none;
+  }
+
+  .pdf-page--auto {
+    height: auto;
+    min-height: 297mm;
+    overflow: visible;
   }
 
   .pdf-page + .pdf-page {
@@ -4042,46 +4053,67 @@
 
 @media print {
   .pdf-page {
+    width: 100%;
+    height: auto;
+    max-height: 267mm; /* 297mm − 15mm − 15mm @page margins */
+    padding: 0;
     margin: 0;
     box-shadow: none;
     outline: none;
+    overflow: hidden;
 
     break-after: page;
     page-break-after: always;
   }
 
-  /* Pagination is pre-computed in JS — do not let print reflow blocks across pages. */
-  .pdf-page .resume-section-block,
-  .pdf-page .pdf-resume-block,
-  .pdf-page .pdf-block-keep-together {
+  .pdf-page--auto {
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* Pagination is pre-computed in JS — do not let print reflow large wrappers. */
+  .pdf-page .resume-section-block {
     break-inside: auto;
     page-break-inside: auto;
   }
 }
 
 /* ============================================================
-   KEEP BLOCKS TOGETHER
+   KEEP BLOCKS TOGETHER (small units only)
 ============================================================ */
 
+/* Whole sections must flow — never keep an entire EXPERIENCE/SKILLS block together. */
 .resume-section-block {
+  break-inside: auto;
+  page-break-inside: auto;
+}
+
+.pdf-page h2,
+.pdf-page h3,
+.pdf-resume-block[data-pdf-block="section-title"] {
+  break-after: avoid-page;
+  page-break-after: avoid;
   break-inside: avoid;
   page-break-inside: avoid;
 }
 
-.pdf-resume-block {
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-
+/* Only small keep-together units (job-head = title/company/dates + first bullet). */
 .pdf-block-keep-together {
   break-inside: avoid;
   page-break-inside: avoid;
 }
 
+.pdf-resume-block[data-pdf-block="job-head"],
+.pdf-resume-block[data-pdf-block="skill-item"],
+.pdf-resume-block[data-pdf-block="education-entry"] {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 /*
-  Split jobs/education entries into head / bullet / tail blocks for pagination.
-  Continuation chunks re-open a <ul>; strip the extra list top/bottom gap so the
-  split job looks identical to a single unsplit list.
+  Mid-page continuation chunks re-open a <ul>; strip the extra list top gap.
+  When a continuation starts a new page, restore top spacing so the first
+  bullet is not flush against the @page margin.
 */
 .pdf-job-continuation > *:first-child {
   margin-top: 0 !important;
@@ -4090,6 +4122,16 @@
 
 .pdf-job-continuation > ul:first-child,
 .pdf-job-continuation ul {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.pdf-job-continuation--page-start {
+  padding-top: 0.35em;
+}
+
+.pdf-job-continuation--page-start > ul:first-child,
+.pdf-job-continuation--page-start ul {
   margin-top: 0 !important;
   padding-top: 0 !important;
 }

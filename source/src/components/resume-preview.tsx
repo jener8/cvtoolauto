@@ -59,6 +59,7 @@ import {
   parseTwoColumnSectionItems,
   renderCVColumnBlocksHtml,
   renderCVColumnListHtml,
+  renderCVColumnListItemHtml,
   resolveSectionColumnCount,
   sectionHasStructuredEntries,
   splitSectionIntoEntryBlocks,
@@ -993,7 +994,7 @@ export function ResumePreview({
           <style>
             @page {
               size: A4;
-              margin: 0;
+              margin: 15mm;
             }
 
             * {
@@ -1009,17 +1010,15 @@ export function ResumePreview({
               color: #000000;
             }
 
-            /* Page primitive — mirrors globals.css .pdf-page exactly.
-               box-sizing: border-box + internal padding gives every page
-               a consistent safe margin without changing the 210x297mm
-               page size. Bottom padding is larger so the last printed
-               line can never sit flush against the bottom edge. */
+            /* Mirrors globals.css — @page margins provide safe area on every sheet. */
             .pdf-page {
-              width: 210mm;
-              height: 297mm;
+              width: 100%;
+              height: auto;
+              max-height: 267mm;
               box-sizing: border-box;
-              padding: 18mm 18mm 22mm 18mm;
-              overflow: visible;
+              padding: 0;
+              margin: 0;
+              overflow: hidden;
               background: #ffffff;
               position: relative;
               page-break-after: always;
@@ -1028,14 +1027,12 @@ export function ResumePreview({
 
             @media print {
               .pdf-page {
-                overflow: visible;
+                overflow: hidden;
                 break-after: page;
                 page-break-after: always;
               }
 
-              .pdf-page .resume-section-block,
-              .pdf-page .pdf-resume-block,
-              .pdf-page .pdf-block-keep-together {
+              .pdf-page .resume-section-block {
                 break-inside: auto;
                 page-break-inside: auto;
               }
@@ -1046,7 +1043,8 @@ export function ResumePreview({
             }
             .pdf-page--auto {
               height: auto;
-              min-height: 297mm;
+              max-height: none;
+              min-height: 0;
               overflow: visible;
               page-break-after: auto;
               break-after: auto;
@@ -1054,19 +1052,26 @@ export function ResumePreview({
               break-inside: auto;
             }
 
-            /* Only relevant inside .pdf-page--auto (natural flow). Fixed
-               .pdf-page sections are filled by measured pagination. */
             .resume-section-block {
               break-inside: auto;
               page-break-inside: auto;
             }
-            .resume-section-block > h2,
-            .resume-section-block > h3 {
+            .pdf-page h2,
+            .pdf-page h3 {
               break-after: avoid-page;
               page-break-after: avoid;
               break-inside: avoid;
               page-break-inside: avoid;
             }
+            .pdf-block-keep-together,
+            .pdf-resume-block[data-pdf-block="job-head"],
+            .pdf-resume-block[data-pdf-block="skill-item"],
+            .pdf-resume-block[data-pdf-block="education-entry"] {
+              break-inside: avoid;
+              page-break-inside: avoid;
+            }
+            .pdf-job-continuation ul { margin-top: 0 !important; padding-top: 0 !important; }
+            .pdf-job-continuation--page-start { padding-top: 0.35em; }
 
             ${CV_TWO_COLUMN_LIST_CSS}
 
@@ -1616,11 +1621,11 @@ export function ResumePreview({
     return renderUniversalMarkdown(lines)
   }
 
+  /** Only small units — never whole sections, skills grids, or experience lists. */
   const PDF_KEEP_TOGETHER_BLOCKS = new Set([
     "job-head",
-    "job-tail",
-    "experience-start",
-    "skills-tools-grid",
+    "skill-item",
+    "education-entry",
   ])
 
   const wrapPdfBlock = (kind: string, html: string, continuation = false) => {
@@ -1634,16 +1639,40 @@ export function ResumePreview({
     entryLines: string[],
     renderEntry: (lines: string[]) => string,
     wrapBody: (body: string) => string,
+    options?: { entryKind?: "job-head" | "education-entry" },
   ): number => {
     const chunks = splitEntryLinesIntoPdfChunks(entryLines)
+    const headKind = options?.entryKind ?? "job-head"
     let pushed = 0
     for (const chunk of chunks) {
       const body = wrapBody(renderEntry(chunk.lines))
       if (!body.trim()) continue
-      parts.push(wrapPdfBlock(chunk.kind, body, chunk.continuation))
+      const kind = chunk.kind === "job-head" ? headKind : chunk.kind
+      parts.push(wrapPdfBlock(kind, body, chunk.continuation))
       pushed += 1
     }
     return pushed
+  }
+
+  /** Skills / tools: one PDF block per item so the grid never moves as one slab. */
+  const renderSkillItemsPdfBlocks = (
+    sectionTitleHTML: string,
+    items: string[],
+    sectionMargin: string,
+    wrapBody?: (body: string) => string,
+  ): string => {
+    const wrap = wrapBody ?? ((body: string) => body)
+    const bullet = getColumnBulletStyle()
+    const parts: string[] = []
+    if (sectionTitleHTML) {
+      parts.push(wrapPdfBlock("section-title", sectionTitleHTML))
+    }
+    for (const item of items) {
+      const html = wrap(renderCVColumnListItemHtml(item, bullet))
+      if (!html.trim()) continue
+      parts.push(wrapPdfBlock("skill-item", html))
+    }
+    return `<div class="resume-section-block" style="margin-bottom: ${sectionMargin};">${parts.join("")}</div>`
   }
 
   const renderExperiencePdfBlocks = (
@@ -1719,9 +1748,12 @@ export function ResumePreview({
         const entries = sectionHasStructuredEntries(seg.lines)
           ? splitSectionIntoEntryBlocks(seg.lines)
           : [seg.lines]
+        const asEducation = sectionHasStructuredEntries(seg.lines)
         for (const entryLines of entries) {
           const staging: string[] = []
-          const count = pushEntryPdfChunks(staging, entryLines, renderLines, wrap)
+          const count = pushEntryPdfChunks(staging, entryLines, renderLines, wrap, {
+            entryKind: asEducation ? "education-entry" : "job-head",
+          })
           if (count === 0) continue
           if (!sectionTitlePlaced && sectionTitleHTML) {
             parts.push(wrapPdfBlock("section-title", sectionTitleHTML))
@@ -1732,14 +1764,15 @@ export function ResumePreview({
         continue
       }
 
+      // Flat short lists: still split title from body so headings are not glued
+      // to an unsplittable slab that leaves blank space on the previous page.
+      if (!sectionTitlePlaced && sectionTitleHTML) {
+        parts.push(wrapPdfBlock("section-title", sectionTitleHTML))
+        sectionTitlePlaced = true
+      }
       const body = wrap(renderLines(seg.lines))
       if (!body.trim()) continue
-      if (!sectionTitlePlaced) {
-        parts.push(wrapPdfBlock("section-start", `${sectionTitleHTML}${body}`))
-        sectionTitlePlaced = true
-      } else {
-        parts.push(wrapPdfBlock("section", body))
-      }
+      parts.push(wrapPdfBlock("section", body))
     }
 
     if (parts.length === 0 && sectionTitleHTML) {
@@ -1747,6 +1780,30 @@ export function ResumePreview({
     }
 
     return `<div class="resume-section-block" style="margin-bottom: ${sectionMargin};">${parts.join("")}</div>`
+  }
+
+  /** Non-experience sections: per-item skills blocks; never one atomic multi-column slab. */
+  const renderNonExperiencePdfSection = (
+    section: ParsedResumeSection,
+    sectionTitleHTML: string,
+    sectionMargin: string,
+    wrapBody?: (body: string) => string,
+  ): string => {
+    const columnCount = resolveSectionColumnCount(section)
+    if (columnCount > 1 && !sectionHasStructuredEntries(section.content)) {
+      const items = parseTwoColumnSectionItems(section.content)
+      if (items.length > 0) {
+        return renderSkillItemsPdfBlocks(sectionTitleHTML, items, sectionMargin, wrapBody)
+      }
+    }
+    return renderSectionPdfBlocks(
+      sectionTitleHTML,
+      section.content,
+      resolveSectionLineRenderer(section),
+      sectionMargin,
+      wrapBody,
+      { allowBulletSplit: true },
+    )
   }
 
   const isPageBreakSectionTitle = (title: string) => isManualPageBreakLine(title.trim())
@@ -1854,14 +1911,10 @@ export function ResumePreview({
             )
           }
 
-          const renderLines = resolveSectionLineRenderer(section)
-          return renderSectionPdfBlocks(
+          return renderNonExperiencePdfSection(
+            section,
             sectionTitleHTML,
-            section.content,
-            renderLines,
             `${style.sectionSpacing}px`,
-            undefined,
-            { allowBulletSplit: resolveSectionColumnCount(section) <= 1 },
           )
         })
         .join("")
@@ -1949,15 +2002,7 @@ export function ResumePreview({
             )
           }
 
-          const renderLines = resolveSectionLineRenderer(section)
-          return renderSectionPdfBlocks(
-            sectionTitleHTML,
-            section.content,
-            renderLines,
-            "12px",
-            undefined,
-            { allowBulletSplit: resolveSectionColumnCount(section) <= 1 },
-          )
+          return renderNonExperiencePdfSection(section, sectionTitleHTML, "12px")
         })
         .join("")
 
@@ -2047,14 +2092,11 @@ export function ResumePreview({
           )
         }
 
-        const renderLines = resolveSectionLineRenderer(section)
-        return renderSectionPdfBlocks(
+        return renderNonExperiencePdfSection(
+          section,
           sectionTitleHTML,
-          section.content,
-          renderLines,
           `${style.sectionSpacing}px`,
           (body) => `<div style="clear: both;">${body}</div>`,
-          { allowBulletSplit: resolveSectionColumnCount(section) <= 1 },
         )
       })
       .join("")
@@ -2249,20 +2291,7 @@ export function ResumePreview({
           )
         }
 
-        const renderATSSectionLines = (lines: string[]) => {
-          const columnHtml = renderColumnSectionPlainText(section, lines)
-          if (columnHtml) return columnHtml
-          return renderATSMarkdown(lines)
-        }
-
-        return renderSectionPdfBlocks(
-          sectionTitleHTML,
-          section.content,
-          renderATSSectionLines,
-          "16px",
-          undefined,
-          { allowBulletSplit: resolveSectionColumnCount(section) <= 1 },
-        )
+        return renderNonExperiencePdfSection(section, sectionTitleHTML, "16px")
       })
       .join("")
 
