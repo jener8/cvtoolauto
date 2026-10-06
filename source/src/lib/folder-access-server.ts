@@ -3,7 +3,7 @@ import type { CvUser } from "@/lib/cv-auth-types"
 import { getWorkspaceSlugForUser } from "@/lib/cv-workspace-routing"
 
 export type FolderAccessOk = { ok: true; folderId: string }
-export type FolderAccessErr = { ok: false; status: 400 | 403 | 503; error: string }
+export type FolderAccessErr = { ok: false; status: 403 | 503; error: string }
 export type FolderAccessResult = FolderAccessOk | FolderAccessErr
 
 /**
@@ -41,7 +41,7 @@ export async function listAllowedFolders(
 
 /**
  * Require a folderId query/body value that belongs to the session user.
- * Missing folderId → 400. Wrong folder → 403.
+ * Missing folderId or wrong folder → 403.
  */
 export async function requireSessionFolderAccess(
   user: CvUser,
@@ -50,7 +50,7 @@ export async function requireSessionFolderAccess(
 ): Promise<FolderAccessResult> {
   const id = folderId?.trim()
   if (!id) {
-    return { ok: false, status: 400, error: "folderId is required" }
+    return { ok: false, status: 403, error: "Forbidden" }
   }
 
   const { folders, error } = await listAllowedFolders(user, supabase)
