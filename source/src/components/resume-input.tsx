@@ -315,6 +315,7 @@ interface ContactInfo {
   portfolio: string;
   portfolios: string[];
   showPortfolio: boolean;
+  showLinkedInOnCv?: boolean;
   professionalTitle: string;
   name: string;
   language: "en" | "de";

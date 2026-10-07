@@ -85,7 +85,7 @@ export async function GET(request: Request) {
     const access = await requireSessionFolderAccess(user, folderId, supabase)
     if (!access.ok) {
       return NextResponse.json(
-        { error: access.error, offline: true },
+        { error: access.error, offline: true, letters: [] },
         { status: access.status },
       )
     }

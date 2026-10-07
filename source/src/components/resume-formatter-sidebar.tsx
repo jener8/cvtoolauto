@@ -80,6 +80,7 @@ export type FormatterContactInfo = {
   portfolio: string
   portfolios: string[]
   showPortfolio: boolean
+  showLinkedInOnCv?: boolean
   professionalTitle: string
   name: string
   language: "en" | "de"
@@ -623,9 +624,25 @@ export function ResumeFormatterSidebar(props: ResumeFormatterSidebarProps) {
           <FormatterDarkField label="LinkedIn">
             <FormatterDarkInput
               value={contactInfo.linkedin}
-              onChange={(e) => setContactInfo({ ...contactInfo, linkedin: e.target.value })}
+              onChange={(e) => {
+                const linkedin = e.target.value
+                setContactInfo({
+                  ...contactInfo,
+                  linkedin,
+                  // Keep preference; empty URL disables the switch in UI
+                  showLinkedInOnCv: contactInfo.showLinkedInOnCv !== false,
+                })
+              }}
             />
           </FormatterDarkField>
+          <FormatterToggleRow
+            label={contactInfo.language === "de" ? "Im Lebenslauf anzeigen" : "Show on CV"}
+            checked={contactInfo.showLinkedInOnCv !== false}
+            disabled={!contactInfo.linkedin.trim()}
+            onChange={(checked) =>
+              setContactInfo({ ...contactInfo, showLinkedInOnCv: checked })
+            }
+          />
         </FormatterPopoverSection>
         <FormatterPopoverSection label="Portfolio & websites">
           <p className="formatter-popover-hint">Up to 3 websites shown on your resume</p>

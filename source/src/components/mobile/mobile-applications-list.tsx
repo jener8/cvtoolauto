@@ -15,16 +15,21 @@ import {
   getStageShortLabel,
   STAGE_OUTCOMES,
 } from "@/lib/application-pipeline-ui"
-import { normalizeJobApplication } from "@/lib/application-outcome"
 import {
+  normalizeJobApplication,
+  type ApplicationOutcomeFilter,
+} from "@/lib/application-outcome"
+import {
+  filterJobApplications,
   hasApplicationCoverLetter,
   resolveApplicationRole,
   sortJobApplicationsByDate,
+  type JobApplicationDateSort,
 } from "@/lib/job-application-display"
 import { resolveResumeForJob } from "@/lib/resolve-application-resume"
 import { hasResumeCoverLetterContent } from "@/lib/resume-cover-letter"
 import { deleteJobApplicationById, saveJobApplications } from "@/lib/storage"
-import { getStageOutcomeLabel } from "@/lib/translations"
+import { getOutcomeFilterLabel, getStageOutcomeLabel } from "@/lib/translations"
 import type { ApplicationStageRecord, JobApplication, ResumeVersion } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import {
@@ -40,6 +45,18 @@ import {
   Search,
   Trash2,
 } from "lucide-react"
+
+const MOBILE_OUTCOME_FILTERS: ApplicationOutcomeFilter[] = [
+  "all",
+  "active",
+  "interview",
+  "offer",
+  "rejected",
+  "declined",
+  "no_response",
+  "withdrawn",
+  "hired",
+]
 
 type MobileApplicationsListProps = {
   applications: JobApplication[]
@@ -415,21 +432,20 @@ export function MobileApplicationsList({
 }: MobileApplicationsListProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [query, setQuery] = useState("")
+  const [dateSort, setDateSort] = useState<JobApplicationDateSort>("newest")
+  const [outcomeFilter, setOutcomeFilter] = useState<ApplicationOutcomeFilter>("all")
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    const matched = !q
-      ? applications
-      : applications.filter((job) => {
-          const role = resolveApplicationRole(job)
-          return (
-            role.jobTitle.toLowerCase().includes(q) ||
-            role.company.toLowerCase().includes(q) ||
-            (role.location?.toLowerCase().includes(q) ?? false)
-          )
-        })
-    return sortJobApplicationsByDate(matched, "newest")
-  }, [applications, query])
+    const matched = filterJobApplications(applications, {
+      query,
+      outcomeFilter,
+      stageFilter: "all",
+      versions: resumes,
+    })
+    return sortJobApplicationsByDate(matched, dateSort)
+  }, [applications, query, outcomeFilter, dateSort, resumes])
+
+  const hasActiveFilters = Boolean(query.trim()) || outcomeFilter !== "all"
 
   const selected = selectedId
     ? applications.find((job) => job.id === selectedId) ?? null
@@ -493,6 +509,7 @@ export function MobileApplicationsList({
         </div>
 
         <label className="relative mt-3 block">
+          <span className="sr-only">Search company or role</span>
           <Search
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
             aria-hidden
@@ -506,6 +523,36 @@ export function MobileApplicationsList({
             enterKeyHint="search"
           />
         </label>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <label className="block min-w-0">
+            <span className="text-[11px] font-medium text-zinc-500">Sort</span>
+            <select
+              value={dateSort}
+              onChange={(e) => setDateSort(e.target.value as JobApplicationDateSort)}
+              className="mt-1 h-11 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 focus:bg-white"
+              aria-label="Sort applications by date"
+            >
+              <option value="newest">Youngest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+          </label>
+          <label className="block min-w-0">
+            <span className="text-[11px] font-medium text-zinc-500">Status</span>
+            <select
+              value={outcomeFilter}
+              onChange={(e) => setOutcomeFilter(e.target.value as ApplicationOutcomeFilter)}
+              className="mt-1 h-11 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 focus:bg-white"
+              aria-label="Filter applications by status"
+            >
+              {MOBILE_OUTCOME_FILTERS.map((filter) => (
+                <option key={filter} value={filter}>
+                  {filter === "all" ? "All statuses" : getOutcomeFilterLabel("en", filter)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -534,14 +581,25 @@ export function MobileApplicationsList({
               <Briefcase className="h-5 w-5 text-zinc-500" aria-hidden />
             </div>
             <p className="mt-4 text-sm font-medium text-zinc-900">
-              {query.trim() ? "No matching applications" : "No applications yet"}
+              {hasActiveFilters ? "No matching applications" : "No applications yet"}
             </p>
             <p className="mt-1 max-w-xs text-xs leading-relaxed text-zinc-500">
-              {query.trim()
-                ? "Try a different search."
+              {hasActiveFilters
+                ? "Try a different search or status filter."
                 : "Create an application with the same wizard you use on desktop."}
             </p>
-            {!query.trim() && onCreateApplication ? (
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("")
+                  setOutcomeFilter("all")
+                }}
+                className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-800 active:bg-zinc-50"
+              >
+                Clear filters
+              </button>
+            ) : onCreateApplication ? (
               <button
                 type="button"
                 onClick={onCreateApplication}

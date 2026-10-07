@@ -74,6 +74,28 @@ export function visiblePortfolioUrls(
   return normalizePortfolioUrls(contact.portfolios, contact.portfolio)
 }
 
+/** Missing/undefined showLinkedInOnCv means ON (existing CVs unchanged). */
+export function resolveShowLinkedInOnCv(source: {
+  showLinkedInOnCv?: unknown
+}): boolean {
+  return source.showLinkedInOnCv !== false
+}
+
+/** Show LinkedIn in header/PDF only when URL is set and not explicitly hidden. */
+export function shouldShowLinkedInOnResume(
+  contact: Pick<ResumeContactInfo, "linkedin" | "showLinkedInOnCv">,
+): boolean {
+  if (!contact.linkedin?.trim()) return false
+  return resolveShowLinkedInOnCv(contact)
+}
+
+export function visibleLinkedInUrl(
+  contact: Pick<ResumeContactInfo, "linkedin" | "showLinkedInOnCv">,
+): string {
+  if (!shouldShowLinkedInOnResume(contact)) return ""
+  return contact.linkedin.trim()
+}
+
 /** Display label in header (no scheme, trimmed trailing slash). */
 export function formatPortfolioUrlForDisplay(url: string): string {
   const trimmed = url.trim()
@@ -170,6 +192,7 @@ export function defaultResumeContactInfo(
     email: "",
     phone: "",
     linkedin: "",
+    showLinkedInOnCv: true as boolean | undefined,
     portfolio: "",
     portfolios: [] as string[],
     address: "",
@@ -188,6 +211,7 @@ export function defaultResumeContactInfo(
     portfolios,
     portfolio: portfolios[0] ?? "",
     showPortfolio: resolveShowPortfolio(merged, portfolios),
+    showLinkedInOnCv: resolveShowLinkedInOnCv(merged),
   }
 }
 
@@ -228,6 +252,10 @@ export function normalizeContactInfo(
     email: pickString(source.email, folder.email),
     phone: pickString(source.phone, folder.phone),
     linkedin: pickString(source.linkedin, folder.linkedin),
+    showLinkedInOnCv:
+      source.showLinkedInOnCv === false || source.show_linkedin_on_cv === false
+        ? false
+        : true,
     address: pickString(source.address, source.location, folder.address),
     citizenship: pickString(source.citizenship, folder.citizenship),
     portfolios,

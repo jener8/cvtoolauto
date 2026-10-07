@@ -249,6 +249,8 @@ export interface ResumeVersion {
   contactInfo: {
     email: string
     linkedin: string
+    /** When false, hide LinkedIn from CV header/PDF; undefined defaults to shown */
+    showLinkedInOnCv?: boolean
     phone: string
     address: string
     citizenship: string
