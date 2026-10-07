@@ -199,4 +199,21 @@ function jobLines(bulletCount: number, title = "Engineer"): string[] {
   assert.ok(Math.abs(maxH - expected) < 0.5, `maxH ${maxH} vs expected ${expected}`)
 }
 
+// --- Near-miss job-head must not pack into a slot that only fits ~1 bullet ---
+{
+  const used = maxH - 100
+  const blocks: PdfPackBlock[] = [
+    { kind: "header", height: used },
+    // job-head taller than remaining−slack (12px) but would have fit without slack
+    { kind: "job-head", height: 95 },
+    { kind: "job-bullet", height: 80 },
+  ]
+  const r = packPdfBlocks(blocks, maxH)
+  assert.equal(r.pages.length, 2, "near-miss job-head moves to next page (keep ≥2 bullets)")
+  assert.deepEqual(
+    r.pages[1].map((i) => blocks[i].kind),
+    ["job-head", "job-bullet"],
+  )
+}
+
 console.log("test-pdf-auto-pagination-cases: ok")

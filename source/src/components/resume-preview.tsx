@@ -75,11 +75,15 @@ import {
 import {
   autoPaginateResumeInnerHtml,
   isPdfBulletLine,
+  PDF_FONTS_READY_TIMEOUT_MS,
   PDF_MANUAL_PAGE_BREAK_PREFERENCE_HTML,
+  PDF_PAGINATION_TIMEOUT_MS,
   pdfPageLabelHtml,
   splitContentIntoSegments,
   splitEntryLinesIntoPdfChunks,
   splitExperienceLinesIntoJobs,
+  waitForDocumentFonts,
+  withPdfTimeout,
 } from "@/lib/pdf-auto-pagination"
 import { isPdfDebugEnabled } from "@/lib/pdf-debug"
 import { normalizeCvSectionKey } from "@/lib/import-cv-structure"
@@ -909,11 +913,26 @@ export function ResumePreview({
       // Convert accent color to hex for PDF compatibility
       const rgbAccentColor = hexAccentColor.startsWith("#") ? hexAccentColor : "#C9975B"
 
-      // Create a new window for printing
+      // Create a new window for printing (about:blank). Vercel preview often
+      // lands here because Playwright `/api/pdf/resume/[id]` is unavailable.
       const printWindow = window.open("", "_blank", "width=800,height=600")
       if (!printWindow) {
         throw new Error("Could not open print window. Please allow popups.")
       }
+
+      let printWindowClosed = false
+      const closePrintWindow = () => {
+        if (printWindowClosed) return
+        printWindowClosed = true
+        try {
+          if (!printWindow.closed) printWindow.close()
+        } catch {
+          /* ignore */
+        }
+      }
+      // Hard guarantee: never leave the popup alive to freeze the opener on refresh.
+      // Longer than a normal Save-as-PDF dialog; shorter than an abandoned tab.
+      const printWatchdog = window.setTimeout(closePrintWindow, 65_000)
 
       tempContainer = document.createElement("div")
       tempContainer.style.cssText = "position:fixed;left:-9999px;top:0;width:794px;background:#fff;"
@@ -939,39 +958,63 @@ export function ResumePreview({
       }
       walkAndReplaceColors(clone)
 
+      // Measure/paginate only after fonts are ready on the opener, so the
+      // cloned .pdf-page HTML matches print metrics (with a timeout guard).
+      await waitForDocumentFonts(document, PDF_FONTS_READY_TIMEOUT_MS)
+
       // Print bootstrap:
-      //   - Detach from opener so the popup can't keep a handle on the parent.
-      //   - Wait for `document.fonts.ready` before firing `window.print()`
-      //     (otherwise text can shift between preview and PDF).
-      //   - Auto-close after print so the user doesn't have to close the
-      //     popup manually (which is what was leaving the main site stuck).
+      //   - Wait for fonts (with timeout) before print — never hang forever.
+      //   - Always close after print/cancel (afterprint + fallbacks).
+      //   - Do not keep a live opener handle that can stall parent refresh.
       const printScript = `
-        try { window.opener = null; } catch (e) {}
-        var __printed = false;
-        function __closeSelf() { try { window.close(); } catch (e) {} }
-        window.addEventListener('afterprint', function() {
-          __printed = true;
-          setTimeout(__closeSelf, 50);
-        });
-        window.addEventListener('focus', function() {
-          setTimeout(function() { if (!__printed) __closeSelf(); }, 800);
-        });
-        window.addEventListener('load', function() {
-          (document.fonts && document.fonts.ready
-            ? document.fonts.ready
-            : Promise.resolve()
-          ).then(function() {
-            setTimeout(function() { window.print(); }, 150);
+        (function() {
+          var closed = false;
+          var printed = false;
+          function closeSelf() {
+            if (closed) return;
+            closed = true;
+            try { window.close(); } catch (e) {}
+          }
+          function raceFonts(ms) {
+            if (!document.fonts || !document.fonts.ready) return Promise.resolve();
+            return new Promise(function(resolve) {
+              var done = false;
+              var finish = function() { if (done) return; done = true; resolve(); };
+              var t = setTimeout(finish, ms);
+              document.fonts.ready.then(function() { clearTimeout(t); finish(); }, function() { clearTimeout(t); finish(); });
+            });
+          }
+          window.addEventListener('afterprint', function() {
+            printed = true;
+            setTimeout(closeSelf, 50);
           });
-        });
+          // Safari / cancel: afterprint may be missing — close once focus returns
+          // after the dialog, but never while the dialog is still open.
+          window.addEventListener('focus', function() {
+            setTimeout(function() {
+              if (!printed) closeSelf();
+            }, 800);
+          });
+          // Absolute ceiling so a hung fonts.ready / missing afterprint cannot
+          // leave the popup alive and stall the opener on refresh.
+          setTimeout(closeSelf, 60000);
+          function startPrint() {
+            raceFonts(${PDF_FONTS_READY_TIMEOUT_MS}).then(function() {
+              setTimeout(function() {
+                try { window.print(); } catch (e) { closeSelf(); }
+              }, 100);
+            });
+          }
+          if (document.readyState === 'complete') startPrint();
+          else window.addEventListener('load', startPrint);
+        })();
       `
 
       // The popup prints the SAME HTML that the preview already rendered
-      // (clone.innerHTML, which contains the .pdf-page wrappers). The CSS
-      // here is intentionally minimal — it only defines the page primitive
-      // and the rules required for deterministic pagination. Everything
-      // else (typography, colors, layout) is already inline on the rendered
-      // nodes. This guarantees the PDF matches the preview page-by-page.
+      // (clone.innerHTML, which contains the .pdf-page wrappers).
+      // Margins: about:blank often ignores @page margins inconsistently, so
+      // we put the 15mm safe area on .pdf-page padding and set @page margin:0
+      // (matches screen preview + measurement content box of 180×267mm).
       const provenance = resolveExportProvenance(version)
       const exportMeta = buildExportMetadataComments({
         model: provenance.model,
@@ -995,7 +1038,7 @@ export function ResumePreview({
           <style>
             @page {
               size: A4;
-              margin: 15mm;
+              margin: 0;
             }
 
             * {
@@ -1011,14 +1054,18 @@ export function ResumePreview({
               color: #000000;
             }
 
-            /* Mirrors globals.css — @page margins provide safe area on every sheet. */
+            /*
+              Safe area via padding (not @page) so left/right/top/bottom margins
+              survive about:blank Chromium print. Content box = 180×267mm —
+              same as pdf-auto-pagination measurement.
+            */
             .pdf-page {
-              width: 100%;
+              width: 210mm;
               height: auto;
-              max-height: 267mm;
+              max-height: 297mm;
               box-sizing: border-box;
-              padding: 0;
-              margin: 0;
+              padding: 15mm;
+              margin: 0 auto;
               overflow: hidden;
               background: #ffffff;
               position: relative;
@@ -1028,6 +1075,10 @@ export function ResumePreview({
 
             @media print {
               .pdf-page {
+                width: 210mm;
+                max-height: 297mm;
+                padding: 15mm;
+                margin: 0;
                 overflow: hidden;
                 break-after: page;
                 page-break-after: always;
@@ -1112,6 +1163,16 @@ export function ResumePreview({
 
       printWindow.document.write(printContent)
       printWindow.document.close()
+
+      // If the popup is closed early (cancel), clear the watchdog.
+      const pollClosed = window.setInterval(() => {
+        if (printWindow.closed) {
+          window.clearInterval(pollClosed)
+          window.clearTimeout(printWatchdog)
+          printWindowClosed = true
+        }
+      }, 300)
+      window.setTimeout(() => window.clearInterval(pollClosed), 25_000)
 
       toast({
         title: "Print Dialog Opened",
@@ -2506,8 +2567,15 @@ export function ResumePreview({
       )
 
     const timer = window.setTimeout(() => {
-      void Promise.all([document.fonts.ready, waitImages()]).then(() => {
+      void withPdfTimeout(
+        Promise.all([waitForDocumentFonts(document), waitImages()]).then(() => "ready" as const),
+        PDF_PAGINATION_TIMEOUT_MS,
+        () => "timeout" as const,
+      ).then((reason) => {
         if (cancelled) return
+        if (reason === "timeout") {
+          console.warn("[resume-preview] Pagination timed out; packing with current fonts")
+        }
         runPagination()
       })
     }, 120)

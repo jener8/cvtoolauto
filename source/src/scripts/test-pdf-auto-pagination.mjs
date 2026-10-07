@@ -51,6 +51,13 @@ assert(/margin:\s*15mm/.test(cssSource), "@page margins must be 15mm")
 assert(/resume-section-block\s*\{\s*break-inside:\s*auto/.test(cssSource), "sections must not keep-together")
 assert(/splitEntryLinesIntoPdfChunks/.test(previewSource), "resume-preview must use splitEntryLinesIntoPdfChunks")
 assert(/renderSkillItemsPdfBlocks/.test(previewSource), "skills must split into per-item PDF blocks")
+assert(/waitForDocumentFonts/.test(previewSource), "preview must wait for fonts with timeout")
+assert(/PDF_PAGINATION_TIMEOUT_MS/.test(previewSource), "pagination must have a hang timeout")
+assert(/padding:\s*15mm/.test(previewSource), "about:blank print CSS must pad .pdf-page 15mm")
+assert(/@page\s*\{\s*size:\s*A4;\s*margin:\s*0;/.test(previewSource), "about:blank print uses @page margin 0 + padding")
+assert(/closePrintWindow|closeSelf/.test(previewSource), "print path must close/cleanup popup")
+assert(/FIT_SLACK_PX|maxH - 12/.test(paginationSource), "job-head near-miss slack required")
+assert(/waitForDocumentFonts/.test(paginationSource), "fonts helper must exist")
 {
   const colSource = readFileSync(join(root, "lib/cv-two-column-section.ts"), "utf8")
   const tableReturn = colSource.match(/return `<table class="cv-column-list[\s\S]*?<\/table>`/)?.[0] ?? ""

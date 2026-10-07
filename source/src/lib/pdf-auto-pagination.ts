@@ -8,6 +8,71 @@ export const PDF_MANUAL_PAGE_BREAK_PREFERENCE_HTML =
 
 const MANUAL_PAGE_BREAK_BLOCK_KIND = "manual-page-break-preference"
 
+/**
+ * Never let `document.fonts.ready` hang pagination/print forever (seen after
+ * print-dialog cancel and on slow webfont loads in production previews).
+ */
+export const PDF_FONTS_READY_TIMEOUT_MS = 3000
+export const PDF_PAGINATION_TIMEOUT_MS = 8000
+
+/** Resolve when document fonts are ready, or after `timeoutMs` — whichever first. */
+export function waitForDocumentFonts(
+  doc: Document,
+  timeoutMs: number = PDF_FONTS_READY_TIMEOUT_MS,
+): Promise<void> {
+  const fonts = doc.fonts
+  if (!fonts?.ready) return Promise.resolve()
+  return new Promise((resolve) => {
+    let settled = false
+    const done = () => {
+      if (settled) return
+      settled = true
+      resolve()
+    }
+    const timer = setTimeout(done, timeoutMs)
+    fonts.ready.then(
+      () => {
+        clearTimeout(timer)
+        done()
+      },
+      () => {
+        clearTimeout(timer)
+        done()
+      },
+    )
+  })
+}
+
+/** Race a promise against a timeout so pagination can never block the UI. */
+export function withPdfTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  onTimeout: () => T,
+): Promise<T> {
+  return new Promise((resolve) => {
+    let settled = false
+    const timer = setTimeout(() => {
+      if (settled) return
+      settled = true
+      resolve(onTimeout())
+    }, timeoutMs)
+    promise.then(
+      (value) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        resolve(value)
+      },
+      () => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        resolve(onTimeout())
+      },
+    )
+  })
+}
+
 /** Shown only when an ancestor has `.pdf-debug` (see `app/globals.css`). */
 export function pdfPageLabelHtml(pageNumber: number): string {
   return `<span class="page-label" aria-hidden="true">Page ${pageNumber} · A4 (210 × 297 mm)</span>`
@@ -273,7 +338,10 @@ export function packPdfBlocks(
       hadOverflow = true
     }
 
-    if (current.length > 0 && used + h > maxH + 0.5) {
+    // job-head needs slack so a near-miss slot cannot clip to header + 1 bullet.
+    const fitLimit =
+      kind === "job-head" || kind === "education-entry" ? maxH - 12 : maxH + 0.5
+    if (current.length > 0 && used + h > fitLimit) {
       if (current.length === 1 && currentKinds[0] === "section-title") {
         pushBlock(i)
         continue
@@ -294,7 +362,7 @@ export function packPdfBlocks(
       } else {
         flushPage(true)
       }
-      if (current.length > 0 && used + h > maxH + 0.5) {
+      if (current.length > 0 && used + h > fitLimit) {
         pushBlock(i)
         continue
       }
@@ -410,6 +478,9 @@ export function autoPaginateResumeInnerHtml(
       let current: HTMLElement[] = []
       let currentKinds: string[] = []
       let hadOverflow = false
+      // Near-miss slack so job-head (header + ≥2 bullets) is never packed into a
+      // slot that only fits header + 1 bullet after webfont metrics settle.
+      const FIT_SLACK_PX = 12
 
       const pushBlock = (el: HTMLElement, kind: string) => {
         current.push(el)
@@ -443,6 +514,13 @@ export function autoPaginateResumeInnerHtml(
         if (carryEl && carryKind) pushBlock(carryEl, carryKind)
       }
 
+      /** job-head / education-entry must fully fit; near-miss → next page. */
+      const exceedsPage = (trialH: number, kind: string) => {
+        const limit =
+          kind === "job-head" || kind === "education-entry" ? maxH - FIT_SLACK_PX : maxH + 0.5
+        return trialH > limit
+      }
+
       for (let i = 0; i < blocks.length; i++) {
         const kind = kinds[i]
         const el = blocks[i]
@@ -460,7 +538,7 @@ export function autoPaginateResumeInnerHtml(
 
         if (current.length > 0) {
           const trialH = measureEls([...current, el])
-          if (trialH > maxH + 0.5) {
+          if (exceedsPage(trialH, kind)) {
             if (current.length === 1 && currentKinds[0] === "section-title") {
               pushBlock(el, kind)
               continue
@@ -477,11 +555,14 @@ export function autoPaginateResumeInnerHtml(
               flushPage(true)
               pushBlock(peelEl, peelKind)
             } else {
+              // Keep-together: if job-head does not fully fit in the remaining
+              // space, move the whole unit (header + ≥2 bullets) to the next page
+              // rather than packing a near-miss that clips to header + 1 bullet.
               flushPage(true)
             }
             if (current.length > 0) {
               const afterCarryH = measureEls([...current, el])
-              if (afterCarryH > maxH + 0.5) {
+              if (exceedsPage(afterCarryH, kind)) {
                 pushBlock(el, kind)
                 continue
               }

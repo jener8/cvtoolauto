@@ -91,9 +91,16 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       timeout: 20000,
     })
 
-    // Match on-screen typography/layout (no font substitution, no image resizing)
+    // Match on-screen typography/layout (no font substitution, no image resizing).
+    // Race fonts.ready so a hung FontFaceSet can never stall PDF generation.
     await page.evaluate(async () => {
-      await document.fonts.ready
+      const fontsReady = document.fonts?.ready
+        ? Promise.race([
+            document.fonts.ready.then(() => undefined),
+            new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+          ])
+        : Promise.resolve()
+      await fontsReady
       await Promise.all(
         Array.from(document.images).map(
           (img) =>
