@@ -148,19 +148,26 @@ export function FormatterToggleRow({
   description,
   checked,
   onChange,
+  disabled = false,
 }: {
   label: string
   description?: string
   checked: boolean
   onChange: (checked: boolean) => void
+  disabled?: boolean
 }) {
   return (
     <button
       type="button"
       className="formatter-toggle-row"
-      onClick={() => onChange(!checked)}
+      onClick={() => {
+        if (disabled) return
+        onChange(!checked)
+      }}
       role="switch"
       aria-checked={checked}
+      aria-disabled={disabled || undefined}
+      disabled={disabled}
     >
       <span className="formatter-toggle-row__text">
         <span className="formatter-toggle-row__label">{label}</span>

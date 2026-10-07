@@ -16,6 +16,7 @@ export interface ResumeData {
     location?: string
     website?: string
     linkedin?: string
+    showLinkedInOnCv?: boolean
     github?: string
   }
   profileImage?: string
@@ -35,7 +36,7 @@ export function renderResumeHtmlForPdf(data: ResumeData, accentColorRgb: string)
           ${contactInfo.email ? `<div>E-Mail: ${contactInfo.email}</div>` : ""}
           ${contactInfo.phone ? `<div>Telefon: ${contactInfo.phone}</div>` : ""}
           ${contactInfo.website ? `<div>Website: ${contactInfo.website}</div>` : ""}
-          ${contactInfo.linkedin ? `<div>LinkedIn: ${contactInfo.linkedin}</div>` : ""}
+          ${contactInfo.linkedin && contactInfo.showLinkedInOnCv !== false ? `<div>LinkedIn: ${contactInfo.linkedin}</div>` : ""}
           ${contactInfo.github ? `<div>GitHub: ${contactInfo.github}</div>` : ""}
           ${contactInfo.location && typeof contactInfo.location === "string" && contactInfo.location.includes("Staatsangehörigkeit") ? `<div>${contactInfo.location}</div>` : ""}
         </div>

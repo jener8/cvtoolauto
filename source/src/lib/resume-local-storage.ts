@@ -133,6 +133,9 @@ function minimalContact(contact: ResumeVersion["contactInfo"]): Record<string, u
   } else if (c.showPortfolio === true) {
     out.sp = true
   }
+  if (c.showLinkedInOnCv === false) {
+    out.sli = false
+  }
   if (portfolioUrls[0]) put("po", portfolioUrls[0])
   put("pt", c.professionalTitle)
   put("nm", c.name)
@@ -153,6 +156,7 @@ function expandContact(raw: Record<string, unknown> | undefined): ResumeVersion[
     citizenship: (raw.cz as string) ?? "",
     portfolios: (raw.pf as string[]) ?? [],
     showPortfolio: raw.sp,
+    showLinkedInOnCv: raw.sli === false ? false : true,
     professionalTitle: (raw.pt as string) ?? "",
     name: (raw.nm as string) ?? "",
     language: (raw.l as "en" | "de") ?? "en",

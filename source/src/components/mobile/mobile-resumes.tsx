@@ -535,6 +535,18 @@ function ResumeEditor({
                   placeholder="linkedin.com/in/…"
                 />
               </Field>
+              <label className="flex items-center justify-between gap-2 text-sm text-zinc-700">
+                <span>{contact.language === "de" ? "Im Lebenslauf anzeigen" : "Show on CV"}</span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  aria-checked={contact.showLinkedInOnCv !== false}
+                  checked={contact.showLinkedInOnCv !== false}
+                  disabled={!contact.linkedin.trim()}
+                  onChange={(e) => patchContact({ showLinkedInOnCv: e.target.checked })}
+                  className="h-4 w-4 rounded border-zinc-300"
+                />
+              </label>
               <Field label="Address">
                 <input
                   value={contact.address}

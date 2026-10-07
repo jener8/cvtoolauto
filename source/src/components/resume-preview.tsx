@@ -16,6 +16,7 @@ import {
   portfolioLinksJoinedHtml,
   type ResumeContactInfo,
   visiblePortfolioUrls,
+  visibleLinkedInUrl,
 } from "@/lib/contact-info"
 import type { ResumeVersion } from "@/lib/types"
 import html2canvas from "html2canvas"
@@ -1160,7 +1161,8 @@ export function ResumePreview({
       if (displayVersion.contactInfo.email) contactParts.push(displayVersion.contactInfo.email)
       if (displayVersion.contactInfo.phone) contactParts.push(displayVersion.contactInfo.phone)
       if (displayVersion.contactInfo.address) contactParts.push(displayVersion.contactInfo.address)
-      if (displayVersion.contactInfo.linkedin) contactParts.push(displayVersion.contactInfo.linkedin)
+      const linkedInForHeader = visibleLinkedInUrl(displayVersion.contactInfo)
+      if (linkedInForHeader) contactParts.push(linkedInForHeader)
       const docxPortfolios = visiblePortfolioUrls(displayVersion.contactInfo)
       if (docxPortfolios.length > 0) {
         contactParts.push(
@@ -1859,7 +1861,7 @@ export function ResumePreview({
               ${professionalTitle ? `<p style="font-size: ${titleFontSize}px; font-weight: 600; margin: 0 0 16px 0; color: ${hexAccentColor}; line-height: ${style.lineHeight};">${professionalTitle}</p>` : ""}
               ${displayVersion.contactInfo.address ? `<p style="font-size: ${contactFontSize}px; margin: 4px 0; color: #000000; line-height: ${style.lineHeight};">${labels.location}: ${displayVersion.contactInfo.address}</p>` : ""}
               ${displayVersion.contactInfo.email ? `<p style="font-size: ${contactFontSize}px; margin: 4px 0; color: #000000; line-height: ${style.lineHeight};">${labels.email}: ${displayVersion.contactInfo.email}</p>` : ""}
-              ${displayVersion.contactInfo.linkedin ? `<p style="font-size: ${contactFontSize}px; margin: 4px 0; color: #000000; line-height: ${style.lineHeight};">${labels.linkedin}: <a href="${displayVersion.contactInfo.linkedin.startsWith("http") ? displayVersion.contactInfo.linkedin : `https://${displayVersion.contactInfo.linkedin}`}" target="_blank" style="color: ${hexAccentColor}; text-decoration: underline;">${displayVersion.contactInfo.linkedin}</a></p>` : ""}
+              ${visibleLinkedInUrl(displayVersion.contactInfo) ? `<p style="font-size: ${contactFontSize}px; margin: 4px 0; color: #000000; line-height: ${style.lineHeight};">${labels.linkedin}: <a href="${displayVersion.contactInfo.linkedin.startsWith("http") ? displayVersion.contactInfo.linkedin : `https://${displayVersion.contactInfo.linkedin}`}" target="_blank" style="color: ${hexAccentColor}; text-decoration: underline;">${displayVersion.contactInfo.linkedin}</a></p>` : ""}
               ${displayVersion.contactInfo.phone ? `<p style="font-size: ${contactFontSize}px; margin: 4px 0; color: #000000; line-height: ${style.lineHeight};">${labels.phone}: ${displayVersion.contactInfo.phone}</p>` : ""}
               ${displayVersion.contactInfo.citizenship ? `<p style="font-size: ${contactFontSize}px; margin: 4px 0; color: #000000; line-height: ${style.lineHeight};">${labels.citizenship}: ${displayVersion.contactInfo.citizenship}</p>` : ""}
               ${(() => {
@@ -1949,7 +1951,7 @@ export function ResumePreview({
       if (displayVersion.contactInfo.email) contactItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px;">&#9993; ${displayVersion.contactInfo.email}</span>`)
       if (displayVersion.contactInfo.phone) contactItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px;">&#9742; ${displayVersion.contactInfo.phone}</span>`)
       if (displayVersion.contactInfo.address) contactItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px;">&#9906; ${displayVersion.contactInfo.address}</span>`)
-      if (displayVersion.contactInfo.linkedin) contactItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px;">&#128279; <a href="${displayVersion.contactInfo.linkedin.startsWith("http") ? displayVersion.contactInfo.linkedin : `https://${displayVersion.contactInfo.linkedin}`}" target="_blank" style="color: ${hexAccentColor}; text-decoration: none;">LinkedIn</a></span>`)
+      if (visibleLinkedInUrl(displayVersion.contactInfo)) contactItems.push(`<span style="display: inline-flex; align-items: center; gap: 4px;">&#128279; <a href="${displayVersion.contactInfo.linkedin.startsWith("http") ? displayVersion.contactInfo.linkedin : `https://${displayVersion.contactInfo.linkedin}`}" target="_blank" style="color: ${hexAccentColor}; text-decoration: none;">LinkedIn</a></span>`)
       const portfolioUrls = visiblePortfolioUrls(displayVersion.contactInfo)
       if (portfolioUrls.length > 0) {
         contactItems.push(
@@ -2035,7 +2037,7 @@ export function ResumePreview({
     if (displayVersion.contactInfo.email) contactItems.push(`<p style="margin: 6px 0; font-size: 12px; color: #333333;">${displayVersion.contactInfo.email}</p>`)
     if (displayVersion.contactInfo.phone) contactItems.push(`<p style="margin: 6px 0; font-size: 12px; color: #333333;">${displayVersion.contactInfo.phone}</p>`)
     if (displayVersion.contactInfo.address) contactItems.push(`<p style="margin: 6px 0; font-size: 12px; color: #333333;">${displayVersion.contactInfo.address}</p>`)
-    if (displayVersion.contactInfo.linkedin) contactItems.push(`<p style="margin: 6px 0; font-size: 12px;"><a href="${displayVersion.contactInfo.linkedin.startsWith("http") ? displayVersion.contactInfo.linkedin : `https://${displayVersion.contactInfo.linkedin}`}" target="_blank" style="color: ${hexAccentColor}; text-decoration: none;">${displayVersion.contactInfo.linkedin}</a></p>`)
+    if (visibleLinkedInUrl(displayVersion.contactInfo)) contactItems.push(`<p style="margin: 6px 0; font-size: 12px;"><a href="${displayVersion.contactInfo.linkedin.startsWith("http") ? displayVersion.contactInfo.linkedin : `https://${displayVersion.contactInfo.linkedin}`}" target="_blank" style="color: ${hexAccentColor}; text-decoration: none;">${displayVersion.contactInfo.linkedin}</a></p>`)
     const portfolioUrls = visiblePortfolioUrls(displayVersion.contactInfo)
     if (portfolioUrls.length > 0) {
       contactItems.push(
@@ -2187,7 +2189,7 @@ export function ResumePreview({
           ${displayVersion.contactInfo.address ? `${labels.location}: ${displayVersion.contactInfo.address} | ` : ""}
           ${displayVersion.contactInfo.email ? `${labels.email}: ${displayVersion.contactInfo.email} | ` : ""}
           ${displayVersion.contactInfo.phone ? `${labels.phone}: ${displayVersion.contactInfo.phone}` : ""}
-          ${displayVersion.contactInfo.linkedin ? `<br/>${labels.linkedin}: <a href="${displayVersion.contactInfo.linkedin.startsWith("http") ? displayVersion.contactInfo.linkedin : `https://${displayVersion.contactInfo.linkedin}`}" target="_blank" style="color: ${hexAccentColor}; text-decoration: underline;">${displayVersion.contactInfo.linkedin}</a>` : ""}
+          ${visibleLinkedInUrl(displayVersion.contactInfo) ? `<br/>${labels.linkedin}: <a href="${displayVersion.contactInfo.linkedin.startsWith("http") ? displayVersion.contactInfo.linkedin : `https://${displayVersion.contactInfo.linkedin}`}" target="_blank" style="color: ${hexAccentColor}; text-decoration: underline;">${displayVersion.contactInfo.linkedin}</a>` : ""}
           ${(() => {
             const portfolioUrls = visiblePortfolioUrls(displayVersion.contactInfo)
             return portfolioUrls.length
@@ -2328,7 +2330,7 @@ export function ResumePreview({
           ${displayVersion.contactInfo.phone ? ` | ${displayVersion.contactInfo.phone}` : ""}
         </p>
         <p style="font-size: 12px; color: #000000; margin: 2px 0;">
-          ${displayVersion.contactInfo.linkedin ? `<a href="${displayVersion.contactInfo.linkedin.startsWith("http") ? displayVersion.contactInfo.linkedin : `https://${displayVersion.contactInfo.linkedin}`}" target="_blank" style="color: #000000; text-decoration: underline;">${displayVersion.contactInfo.linkedin}</a>` : ""}
+          ${visibleLinkedInUrl(displayVersion.contactInfo) ? `<a href="${displayVersion.contactInfo.linkedin.startsWith("http") ? displayVersion.contactInfo.linkedin : `https://${displayVersion.contactInfo.linkedin}`}" target="_blank" style="color: #000000; text-decoration: underline;">${displayVersion.contactInfo.linkedin}</a>` : ""}
           ${(() => {
             const portfolioUrls = visiblePortfolioUrls(displayVersion.contactInfo)
             return portfolioUrls.length

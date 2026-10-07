@@ -1,6 +1,7 @@
 "use client"
 
 import type { ResumeVersion } from "@/types/resume"
+import { visibleLinkedInUrl } from "@/lib/contact-info"
 
 interface ResumePrintViewProps {
   version: ResumeVersion
@@ -103,11 +104,11 @@ export function ResumePrintView({ version, accentColorRgb }: ResumePrintViewProp
               <strong>Phone:</strong> {version.contactInfo.phone}
             </div>
           )}
-          {version.contactInfo?.linkedin && (
+          {version.contactInfo && visibleLinkedInUrl(version.contactInfo) ? (
             <div>
-              <strong>LinkedIn:</strong> {version.contactInfo.linkedin}
+              <strong>LinkedIn:</strong> {visibleLinkedInUrl(version.contactInfo)}
             </div>
-          )}
+          ) : null}
           {version.contactInfo?.address && (
             <div>
               <strong>Address:</strong> {version.contactInfo.address}
