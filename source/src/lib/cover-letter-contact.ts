@@ -1,4 +1,4 @@
-import type { ContactInfo } from "@/lib/types"
+import type { ContactInfo, ResumeVersion } from "@/lib/types"
 import type { UserProfile } from "@/lib/user-profile"
 
 export type CoverLetterApplicantContact = {
@@ -107,6 +107,73 @@ function pickSavedOrFallback(
   }
   return pickField(...fallbacks)
 }
+
+
+export type PrefillResumeSource = Pick<
+  ResumeVersion,
+  "id" | "contactInfo" | "updatedAt" | "createdAt" | "timestamp"
+>
+
+function resumeEditTime(version: PrefillResumeSource): number {
+  return version.updatedAt ?? version.createdAt ?? version.timestamp ?? 0
+}
+
+/**
+ * Prefer the linked CV's contactInfo; if missing, use the most recently edited
+ * CV in the provided workspace list.
+ */
+export function resolvePrefillResumeContact(options: {
+  linkedResumeId?: string | null
+  resumeVersions: PrefillResumeSource[]
+  contactInfoProp?: Partial<ContactInfo> | null
+}): Partial<ContactInfo> | null {
+  const { linkedResumeId, resumeVersions, contactInfoProp } = options
+  const linked = linkedResumeId
+    ? resumeVersions.find((version) => version.id === linkedResumeId)
+    : undefined
+  if (linked?.contactInfo) return linked.contactInfo
+  if (contactInfoProp) return contactInfoProp
+  if (resumeVersions.length === 0) return null
+  const sorted = [...resumeVersions].sort((a, b) => resumeEditTime(b) - resumeEditTime(a))
+  return sorted[0]?.contactInfo ?? null
+}
+
+/**
+ * Prefill sender fields for a NEW cover letter from CV contact only.
+ * Empty / placeholder CV values stay empty — never invent placeholders as values.
+ */
+export function buildNewCoverLetterApplicantPrefill(options: {
+  resumeContact?: Partial<ContactInfo> | null
+  language?: "en" | "de"
+}): CoverLetterApplicantContact {
+  const language = options.language ?? "en"
+  const resume = options.resumeContact
+  return {
+    applicantName: sanitizeCoverLetterField(resume?.name),
+    applicantAddress: sanitizeCoverLetterField(resume?.address),
+    applicantEmail: sanitizeCoverLetterField(resume?.email),
+    applicantPhone: sanitizeCoverLetterField(resume?.phone),
+    letterDate: formatCoverLetterDate(language),
+  }
+}
+
+/** True when the letter already stores any real applicant field (do not re-prefill). */
+export function coverLetterHasSavedApplicantDetails(
+  coverLetter?: Partial<CoverLetterApplicantContact> | null,
+): boolean {
+  if (!coverLetter) return false
+  return Boolean(
+    sanitizeCoverLetterField(coverLetter.applicantName) ||
+      sanitizeCoverLetterField(coverLetter.applicantAddress) ||
+      sanitizeCoverLetterField(coverLetter.applicantEmail) ||
+      sanitizeCoverLetterField(coverLetter.applicantPhone),
+  )
+}
+
+export const COVER_LETTER_PREFILL_NOTE = {
+  en: "Filled in from your CV. You can change anything here.",
+  de: "Aus Ihrem Lebenslauf übernommen. Sie können hier alles ändern.",
+} as const
 
 /** Fallback: cover letter details → user profile → resume contact. */
 export function resolveCoverLetterApplicantContact(

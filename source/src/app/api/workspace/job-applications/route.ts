@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getServerCvUser } from "@/lib/cv-auth-session-server"
+import { requireSessionFolderAccess } from "@/lib/folder-access-server"
 import { mapJobApplicationRow } from "@/lib/job-application-map"
 import { getSupabaseEnv, SUPABASE_REQUEST_TIMEOUT_MS } from "@/lib/supabase/config"
 import {
@@ -68,15 +69,22 @@ export async function GET(request: Request) {
       )
     }
 
+    const access = await requireSessionFolderAccess(user, folderId, supabase)
+    if (!access.ok) {
+      return NextResponse.json(
+        { error: access.error, offline: true, applications: [] },
+        { status: access.status },
+      )
+    }
+    const allowedFolderId = access.folderId
+
     let query = supabase
       .from("job_applications")
       .select("*")
       .order("applied_date", { ascending: false })
       .abortSignal(controller.signal)
 
-    if (folderId) {
-      query = query.eq("folder_id", folderId)
-    }
+    query = query.eq("folder_id", allowedFolderId)
 
     const { data, error } = await query
 

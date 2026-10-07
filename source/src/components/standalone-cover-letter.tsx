@@ -86,9 +86,13 @@ import {
   type CoverLetterVersionSnapshot,
 } from "@/lib/cover-letter-ai"
 import {
+  buildNewCoverLetterApplicantPrefill,
+  COVER_LETTER_PREFILL_NOTE,
+  coverLetterHasSavedApplicantDetails,
   formatCoverLetterDate,
   resolveCoverLetterApplicantContact,
   resolveCoverLetterSalutation,
+  resolvePrefillResumeContact,
   sanitizeCoverLetterField,
 } from "@/lib/cover-letter-contact"
 import { loadUserProfile } from "@/lib/user-profile"
@@ -134,20 +138,40 @@ function applicantFieldsFromSource(
   contactInfo?: ContactInfo,
   linked?: ResumeVersion | null,
   language: "en" | "de" = "en",
+  options?: {
+    isNewLetter?: boolean
+    resumeVersions?: ResumeVersion[]
+    resumeId?: string
+  },
 ) {
   const header = coverLetterHeaderFields(source)
-  const resolved = resolveCoverLetterApplicantContact({
-    coverLetter: source,
-    userProfile: loadUserProfile(),
-    resumeContact: contactInfo ?? linked?.contactInfo,
-    language,
-  })
+  const resumeContact =
+    resolvePrefillResumeContact({
+      linkedResumeId: options?.resumeId ?? linked?.id,
+      resumeVersions: options?.resumeVersions ?? (linked ? [linked] : []),
+      contactInfoProp: contactInfo ?? linked?.contactInfo,
+    }) ?? contactInfo ?? linked?.contactInfo
+
+  const isNew =
+    options?.isNewLetter === true ||
+    (!coverLetterHasSavedApplicantDetails(source) &&
+      !(source.contentEn?.trim() || source.contentDe?.trim()))
+
+  const resolved = isNew
+    ? buildNewCoverLetterApplicantPrefill({ resumeContact, language })
+    : resolveCoverLetterApplicantContact({
+        coverLetter: source,
+        userProfile: loadUserProfile(),
+        resumeContact,
+        language,
+      })
   return {
     ...resolved,
     recipientCompany:
       header.recipientCompany || linked?.contactInfo?.targetCompany?.trim() || "",
     profileImage: header.profileImage ?? linked?.profileImage ?? null,
     companyLogo: header.companyLogo ?? linked?.companyLogo ?? null,
+    prefilledFromCv: isNew,
   }
 }
 
@@ -209,7 +233,13 @@ export function StandaloneCoverLetter({
     contactInfo,
     initialLinked,
     (contactInfo?.language as "en" | "de") ?? "en",
+    {
+      isNewLetter: !hasExistingStandaloneContent(coverLetter as CoverLetterStored),
+      resumeVersions,
+      resumeId,
+    },
   )
+  const [showPrefillNote, setShowPrefillNote] = useState(Boolean(initialApplicant.prefilledFromCv))
   const [applicantName, setApplicantName] = useState(initialApplicant.applicantName)
   const [applicantAddress, setApplicantAddress] = useState(initialApplicant.applicantAddress)
   const [applicantEmail, setApplicantEmail] = useState(initialApplicant.applicantEmail)
@@ -464,7 +494,11 @@ export function StandaloneCoverLetter({
       lastHydratedFromPropRef.current = signature
 
       const linked = resumeVersions.find((v) => v.id === resumeId)
-      const fields = applicantFieldsFromSource(source, contactInfo, linked, language)
+      const fields = applicantFieldsFromSource(source, contactInfo, linked, language, {
+        isNewLetter: isNewDraftRef.current,
+        resumeVersions,
+        resumeId,
+      })
 
       if (!isNewDraftRef.current) {
         const bodies = getStandaloneBodies(source)
@@ -480,6 +514,7 @@ export function StandaloneCoverLetter({
         setRecipientCompany(fields.recipientCompany)
         setProfileImage(fields.profileImage)
         setCompanyLogo(fields.companyLogo)
+        setShowPrefillNote(false)
       }
 
       if (options?.resetMode) {
@@ -518,6 +553,7 @@ export function StandaloneCoverLetter({
             contactInfo,
             linked,
             language,
+            { isNewLetter: true, resumeVersions, resumeId },
           )
           setApplicantName(defaults.applicantName)
           setApplicantAddress(defaults.applicantAddress)
@@ -527,6 +563,7 @@ export function StandaloneCoverLetter({
           setRecipientCompany("")
           setProfileImage(null)
           setCompanyLogo(null)
+          setShowPrefillNote(true)
         }
       }
     },
@@ -1263,6 +1300,12 @@ export function StandaloneCoverLetter({
                     />
                   </div>
 
+                  {showPrefillNote ? (
+                    <p className="text-sm text-muted-foreground" role="note">
+                      {COVER_LETTER_PREFILL_NOTE[language === "de" ? "de" : "en"]}
+                    </p>
+                  ) : null}
+
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Your name</Label>
@@ -1493,6 +1536,11 @@ export function StandaloneCoverLetter({
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4">
                     <div className="space-y-3">
+                      {showPrefillNote ? (
+                        <p className="text-xs text-muted-foreground" role="note">
+                          {COVER_LETTER_PREFILL_NOTE[language === "de" ? "de" : "en"]}
+                        </p>
+                      ) : null}
                       <div>
                         <Label htmlFor="applicant-name" className="text-xs">Full Name</Label>
                         <Input

@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getServerCvUser } from "@/lib/cv-auth-session-server"
+import { listAllowedFolders } from "@/lib/folder-access-server"
 import { mapFolderRow } from "@/lib/folder-map"
 import { getSupabaseEnv, SUPABASE_REQUEST_TIMEOUT_MS } from "@/lib/supabase/config"
 import { createServerServiceSupabaseClient } from "@/lib/supabase/server-service-client"
@@ -6,6 +8,14 @@ import { createServerServiceSupabaseClient } from "@/lib/supabase/server-service
 export const runtime = "nodejs"
 
 export async function GET() {
+  const user = await getServerCvUser()
+  if (!user) {
+    return NextResponse.json(
+      { error: "Unauthorized", offline: true, folders: [] },
+      { status: 401 },
+    )
+  }
+
   const env = getSupabaseEnv()
 
   if (!env) {
@@ -35,6 +45,14 @@ export async function GET() {
       )
     }
 
+    const { folders: allowed, error: allowError } = await listAllowedFolders(user, supabase)
+    if (allowError) {
+      console.error("[api/folders] allow-list error:", allowError)
+      return NextResponse.json({ error: allowError, offline: true, folders: [] }, { status: 503 })
+    }
+
+    const allowedIds = new Set(allowed.map((f) => f.id))
+
     const { data, error } = await supabase
       .from("folders")
       .select("id, name, contact_info, created_at, updated_at")
@@ -47,7 +65,9 @@ export async function GET() {
     }
 
     const folders =
-      data?.map((row) => mapFolderRow(row as Record<string, unknown>, false)) ?? []
+      data
+        ?.filter((row) => allowedIds.has(String(row.id)))
+        .map((row) => mapFolderRow(row as Record<string, unknown>, false)) ?? []
 
     return NextResponse.json({ folders, offline: false })
   } catch (e) {

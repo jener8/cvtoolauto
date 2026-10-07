@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { mapResumeVersionRow } from "@/lib/resume-persistence"
 import { getServerCvUser } from "@/lib/cv-auth-session-server"
+import { requireSessionFolderAccess } from "@/lib/folder-access-server"
 import { getSupabaseEnv, SUPABASE_REQUEST_TIMEOUT_MS } from "@/lib/supabase/config"
 import {
   getSupabaseServerAuthStatus,
@@ -82,15 +83,22 @@ export async function GET(request: Request) {
       )
     }
 
+    const access = await requireSessionFolderAccess(user, folderId, supabase)
+    if (!access.ok) {
+      return NextResponse.json(
+        { error: access.error, offline: true, versions: [] },
+        { status: access.status },
+      )
+    }
+    const allowedFolderId = access.folderId
+
     let query = supabase
       .from("resume_versions")
       .select("*")
       .order("created_at", { ascending: false })
       .abortSignal(controller.signal)
 
-    if (folderId) {
-      query = query.eq("folder_id", folderId)
-    }
+    query = query.eq("folder_id", allowedFolderId)
     if (ids.length > 0) {
       query = query.in("id", ids)
     }

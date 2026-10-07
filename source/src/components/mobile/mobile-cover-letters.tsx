@@ -8,6 +8,8 @@ import {
 } from "@/components/mobile/mobile-ai-coach"
 import {
   formatCoverLetterDate,
+  buildNewCoverLetterApplicantPrefill,
+  coverLetterHasSavedApplicantDetails,
   resolveCoverLetterApplicantContact,
   resolveCoverLetterSalutation,
 } from "@/lib/cover-letter-contact"
@@ -100,17 +102,22 @@ function CoverLetterEditor({
         ? "de"
         : "en"
 
-  const seededApplicant = resolveCoverLetterApplicantContact({
-    coverLetter: {
-      ...(initial.applicantName?.trim() ? { applicantName: initial.applicantName } : {}),
-      ...(initial.applicantAddress?.trim() ? { applicantAddress: initial.applicantAddress } : {}),
-      ...(initial.applicantEmail?.trim() ? { applicantEmail: initial.applicantEmail } : {}),
-      ...(initial.applicantPhone?.trim() ? { applicantPhone: initial.applicantPhone } : {}),
-      ...(initial.letterDate?.trim() ? { letterDate: initial.letterDate } : {}),
-    },
-    resumeContact: resume.contactInfo,
-    language: initialLang,
-  })
+  const seededApplicant = coverLetterHasSavedApplicantDetails(initial)
+    ? resolveCoverLetterApplicantContact({
+        coverLetter: {
+          ...(initial.applicantName?.trim() ? { applicantName: initial.applicantName } : {}),
+          ...(initial.applicantAddress?.trim() ? { applicantAddress: initial.applicantAddress } : {}),
+          ...(initial.applicantEmail?.trim() ? { applicantEmail: initial.applicantEmail } : {}),
+          ...(initial.applicantPhone?.trim() ? { applicantPhone: initial.applicantPhone } : {}),
+          ...(initial.letterDate?.trim() ? { letterDate: initial.letterDate } : {}),
+        },
+        resumeContact: resume.contactInfo,
+        language: initialLang,
+      })
+    : buildNewCoverLetterApplicantPrefill({
+        resumeContact: resume.contactInfo,
+        language: initialLang,
+      })
 
   const [tab, setTab] = useState<EditorTab>("preview")
   const [letterName, setLetterName] = useState(initial.name)
