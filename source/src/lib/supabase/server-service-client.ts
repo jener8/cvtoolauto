@@ -16,19 +16,29 @@ export function getLastServerServiceSignInError(): string | null {
   return lastSignInErrorMessage
 }
 
+function clearServerServiceClientCache(): void {
+  cachedClient = null
+  cachedSessionValidUntilMs = 0
+}
+
 /** Server-side Supabase client signed in as the shared app service user (for RLS). */
 export async function createServerServiceSupabaseClient(): Promise<SupabaseClient | null> {
   const now = Date.now()
   if (cachedClient && cachedSessionValidUntilMs > now) {
-    return cachedClient
+    const { data } = await cachedClient.auth.getSession()
+    if (data.session?.user?.id) {
+      return cachedClient
+    }
+    // Cache can outlive an in-memory session (HMR / shared client); re-auth.
+    clearServerServiceClientCache()
+  } else {
+    cachedClient = null
   }
-  cachedClient = null
 
   const env = getSupabaseEnv()
   const status = getSupabaseServerAuthStatus()
   if (!env || !status.configured) {
     if (status.missing.length > 0) {
-      const now = Date.now()
       if (now - lastSignInWarningAt > 60_000) {
         lastSignInWarningAt = now
         console.warn(
@@ -55,6 +65,7 @@ export async function createServerServiceSupabaseClient(): Promise<SupabaseClien
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error || !data.session) {
     lastSignInErrorMessage = error?.message ?? "no session"
+    clearServerServiceClientCache()
     if (now - lastSignInWarningAt > 60_000) {
       lastSignInWarningAt = now
       console.warn("[supabase] Service user sign-in failed:", lastSignInErrorMessage)
@@ -69,4 +80,23 @@ export async function createServerServiceSupabaseClient(): Promise<SupabaseClien
     expiresAtMs > now ? expiresAtMs - 5 * 60_000 : now + 55 * 60_000
 
   return supabase
+}
+
+/** Resolve auth.uid() for the service user (getUser, then getSession fallback). */
+export async function resolveServerServiceUserId(
+  supabase: SupabaseClient,
+): Promise<{ userId: string | null; errorMessage: string | null }> {
+  const { data: userData, error: userError } = await supabase.auth.getUser()
+  if (userData.user?.id) {
+    return { userId: userData.user.id, errorMessage: null }
+  }
+
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+  if (sessionData.session?.user?.id) {
+    return { userId: sessionData.session.user.id, errorMessage: null }
+  }
+
+  const errorMessage =
+    userError?.message || sessionError?.message || "no user on session"
+  return { userId: null, errorMessage }
 }

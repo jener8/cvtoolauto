@@ -33,14 +33,16 @@ import {
   CircleHelp,
   Database,
   Info,
+  Linkedin,
   LogOut,
   Settings,
   Shield,
   Sparkles,
   Trash2,
-  Linkedin,
+  Bot,
 } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
+import { isJobAgentEnabledClient } from "@/lib/agents/feature-flag"
 import { getCvUser } from "@/lib/cv-auth"
 import { signOutFromApp } from "@/lib/sign-out"
 import { clearAllCvLocalStorage } from "@/lib/storage"
@@ -317,6 +319,14 @@ export function ProfileMenu({ userName, userEmail, profileImage, onSaveProfile }
               <span>Data Integrity</span>
             </Link>
           </DropdownMenuItem>
+          {isJobAgentEnabledClient() ? (
+            <DropdownMenuItem asChild>
+              <Link href="/app/agents" className="flex items-center" onClick={() => setMenuOpen(false)}>
+                <Bot className="mr-2 h-4 w-4" />
+                <span>Job agents</span>
+              </Link>
+            </DropdownMenuItem>
+          ) : null}
           {cvUser?.role === "admin" ? (
             <DropdownMenuItem asChild>
               <Link href="/admin" className="flex items-center" onClick={() => setMenuOpen(false)}>

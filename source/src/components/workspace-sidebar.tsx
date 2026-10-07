@@ -7,8 +7,9 @@ import type { CareerJourneyGuide } from "@/lib/career-journey-guide"
 import type { WorkspaceJourneyProgress } from "@/lib/workspace-journey-progress"
 import {
   WORKSPACE_NAV_GROUPS,
-  WORKSPACE_NAV_ITEMS,
+  getVisibleWorkspaceNavItems,
   type WorkspaceNavId,
+  type WorkspaceNavItem,
 } from "@/lib/workspace-navigation"
 import { signOutFromApp } from "@/lib/sign-out"
 import { cn } from "@/lib/utils"
@@ -94,14 +95,25 @@ export function WorkspaceSidebar({
     </Avatar>
   )
 
-  const renderNavItem = (item: (typeof WORKSPACE_NAV_ITEMS)[number]) => {
+  const navItems = getVisibleWorkspaceNavItems()
+
+  const handleNavClick = (item: WorkspaceNavItem) => {
+    // Agents lives on its own route, not an in-app section view.
+    if (item.id === "agents") {
+      router.push("/app/agents")
+      return
+    }
+    onNavigate?.(item.id)
+  }
+
+  const renderNavItem = (item: WorkspaceNavItem) => {
     const Icon = item.icon
     const isActive = activeNav === item.id
     return (
       <button
         key={item.id}
         type="button"
-        onClick={() => onNavigate?.(item.id)}
+        onClick={() => handleNavClick(item)}
         title={!sidebarOpen ? item.label : undefined}
         className={cn(
           "app-sidebar__nav-item",
@@ -202,7 +214,8 @@ export function WorkspaceSidebar({
 
       <nav className="app-sidebar__nav">
         {WORKSPACE_NAV_GROUPS.map((group) => {
-          const items = WORKSPACE_NAV_ITEMS.filter((i) => i.group === group.id)
+          const items = navItems.filter((i) => i.group === group.id)
+          if (items.length === 0) return null
           return (
             <div key={group.id} className="app-sidebar__nav-group">
               {items.map(renderNavItem)}

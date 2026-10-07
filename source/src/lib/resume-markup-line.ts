@@ -18,19 +18,22 @@ export function normalizeResumeMarkupLine(line: string): string {
 }
 
 /**
- * Parse a complete `#` / `##` / `###` prefix.
+ * Parse a complete heading-hash prefix (`#` … `######`).
  * Returns cleaned `text` with ZERO markup hashes — never a partial strip like
- * `### PROFILE` → `# PROFILE` (the classic `.replace("##","")` bug).
+ * `### PROFILE` → `# PROFILE` (the classic `.replace("##","")` bug) or
+ * `#### November 2023` → `# November 2023` (#{1,3} leaving a leftover `#`).
  */
 export function matchResumeHeadingPrefix(
   line: string,
 ): { level: 1 | 2 | 3; text: string } | null {
   const trimmed = normalizeResumeMarkupLine(line).trim()
   // Prefer spaced form; also accept glued hashes (`###PROFILE`) so we never leave a `#`.
-  const match = trimmed.match(/^(#{1,3})\s+(.+)$/) ?? trimmed.match(/^(#{1,3})(\S.*)$/)
+  // Consume up to 6 hashes so #### dates cannot leave a visible leftover `#`.
+  const match = trimmed.match(/^(#{1,6})\s+(.+)$/) ?? trimmed.match(/^(#{1,6})(\S.*)$/)
   if (!match) return null
-  const level = match[1].length as 1 | 2 | 3
-  const text = match[2].trim()
+  const level = Math.min(match[1].length, 3) as 1 | 2 | 3
+  // Belt-and-suspenders: drop any residual leading hashes in the capture.
+  const text = match[2].trim().replace(/^#+\s*/, "").trim()
   if (!text) return null
   return { level, text }
 }
