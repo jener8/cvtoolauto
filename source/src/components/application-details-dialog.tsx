@@ -5,7 +5,6 @@ import { ApplicationPipelineEditor } from "@/components/application-pipeline-edi
 import { ApplicationRoleFields } from "@/components/application-role-fields"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { getCurrentOutcome, getCurrentStage, getPipeline } from "@/lib/application-pipeline"
 import { getStatusBadgeClass } from "@/lib/application-outcome"
 import {
@@ -104,8 +103,8 @@ export function ApplicationDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0 sm:max-w-3xl">
+        <DialogHeader className="px-6 pt-6 pb-4 pr-14 border-b shrink-0">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <ApplicationRoleFields
@@ -141,7 +140,8 @@ export function ApplicationDetailsDialog({
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0 px-6">
+        {/* Native overflow so wheel/trackpad scrolls over interactive pipeline rows (Radix ScrollArea traps). */}
+        <div className="relative flex-1 min-h-0 overflow-y-auto overscroll-contain px-6">
           <div className="py-5 space-y-5">
             <DetailSection title="Application details">
               <p className="text-xs text-muted-foreground">
@@ -170,7 +170,7 @@ export function ApplicationDetailsDialog({
 
             <DetailSection title="Job description">
               {(job.jobDescription?.trim() || resumeVersion?.jobDescription?.trim()) ? (
-                <div className="text-sm leading-relaxed whitespace-pre-wrap break-words text-muted-foreground max-h-[min(70vh,36rem)] overflow-y-auto rounded-md border bg-muted/20 p-3">
+                <div className="text-sm leading-relaxed whitespace-pre-wrap break-words text-muted-foreground rounded-md border bg-muted/20 p-3">
                   {job.jobDescription?.trim() || resumeVersion?.jobDescription?.trim()}
                 </div>
               ) : (
@@ -342,7 +342,7 @@ export function ApplicationDetailsDialog({
               </DetailSection>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         <div className="flex justify-end gap-2 px-6 py-4 border-t shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
