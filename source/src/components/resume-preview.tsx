@@ -1063,6 +1063,7 @@ export function ResumePreview({
               break-inside: avoid;
               page-break-inside: avoid;
             }
+            /* job-head = title/company/dates + first 2 bullets only — never whole sections. */
             .pdf-block-keep-together,
             .pdf-resume-block[data-pdf-block="job-head"],
             .pdf-resume-block[data-pdf-block="skill-item"],
@@ -1696,9 +1697,9 @@ export function ResumePreview({
       }
       const jobs = splitExperienceLinesIntoJobs(seg.lines)
       for (const jobLines of jobs) {
-        // Keep section title as its own block so a long first job (common after
-        // EN→DE translation) can move to page 2 without dragging EXPERIENCE
-        // off page 1 and leaving a huge white gap under PROFILE.
+        // Keep section title as its own block (orphan-title rule). Job bodies
+        // split into job-head (header + first 2 bullets) + bullet pairs so
+        // Berufserfahrung can start filling leftover space under PROFILE.
         const staging: string[] = []
         const count = pushEntryPdfChunks(staging, jobLines, renderJob, wrapBody)
         if (count === 0) continue

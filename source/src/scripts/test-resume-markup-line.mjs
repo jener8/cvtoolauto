@@ -12,9 +12,12 @@ function matchResumeHeadingPrefix(line) {
   const trimmed = line
     .replace(/[\uFF03\u2317\u266F\uFE5F]/g, "#")
     .trim()
-  const match = trimmed.match(/^(#{1,3})\s+(.+)$/) ?? trimmed.match(/^(#{1,3})(\S.*)$/)
+  // Consume up to 6 hashes so #### dates never leave a leftover `#`.
+  const match = trimmed.match(/^(#{1,6})\s+(.+)$/) ?? trimmed.match(/^(#{1,6})(\S.*)$/)
   if (!match) return null
-  return { level: match[1].length, text: match[2].trim() }
+  const level = Math.min(match[1].length, 3)
+  const text = match[2].trim().replace(/^#+\s*/, "").trim()
+  return { level, text }
 }
 
 function fragileOld(line) {
@@ -31,6 +34,8 @@ const cases = [
   ["# SENIOR UX / AI EXPERIENCE DESIGNER", 1, "SENIOR UX / AI EXPERIENCE DESIGNER"],
   ["## Bundesdruckerei-Gruppe, Berlin", 2, "Bundesdruckerei-Gruppe, Berlin"],
   ["### November 2023 – today", 3, "November 2023 – today"],
+  ["#### November 2023 - heute", 3, "November 2023 - heute"],
+  ["####November 2023 - heute", 3, "November 2023 - heute"],
   ["# FOUNDER / PRODUCT DESIGNER", 1, "FOUNDER / PRODUCT DESIGNER"],
   ["## EquitAI · Open Initiative", 2, "EquitAI · Open Initiative"],
   ["### 2025 – today", 3, "2025 – today"],

@@ -4097,7 +4097,7 @@
   page-break-inside: avoid;
 }
 
-/* Only small keep-together units (job-head = title/company/dates + first bullet). */
+/* Only small keep-together units (job-head = title/company/dates + first 2 bullets). */
 .pdf-block-keep-together {
   break-inside: avoid;
   page-break-inside: avoid;

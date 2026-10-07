@@ -121,10 +121,10 @@ export function splitExperienceLinesIntoJobs(lines: string[]): string[][] {
   return jobs.length > 0 ? jobs : [lines]
 }
 
-/** True for markdown / bullet-list item lines (`-` or `•`). */
+/** True for markdown / bullet-list item lines (`-`, `•`, `*`, en/em dashes, etc.). */
 export function isPdfBulletLine(line: string): boolean {
   const t = line.trim()
-  return t.startsWith("-") || t.startsWith("•")
+  return /^[-•▪▫●○■□*–—]\s+\S/.test(t) || t.startsWith("-") || t.startsWith("•")
 }
 
 export type PdfEntryChunkKind = "job-head" | "job-bullet"
@@ -138,9 +138,12 @@ export type PdfEntryChunk = {
 
 /**
  * Split one job/education entry into paginate-able chunks:
- * - `job-head`: header lines (title/company/date/…) + the first bullet (keep together)
- * - `job-bullet`: each following bullet as its own block (flows freely)
+ * - `job-head`: header lines (title/company/date/…) + the first 2 bullets (keep together)
+ * - `job-bullet`: following bullets in groups of 2 (never a lone bullet chunk when avoidable)
+ * - ≤2 bullets (or ≤3 to avoid a trailing orphan) → whole entry as `job-head`
  * - No bullets → whole entry as `job-head`
+ *
+ * Sections themselves are never atomic — only this small keep-together unit is.
  */
 export function splitEntryLinesIntoPdfChunks(lines: string[]): PdfEntryChunk[] {
   if (lines.length === 0) return []
@@ -154,12 +157,13 @@ export function splitEntryLinesIntoPdfChunks(lines: string[]): PdfEntryChunk[] {
     return [{ kind: "job-head", lines: [...lines], continuation: false }]
   }
 
-  if (bulletIndexes.length === 1) {
+  // Keep whole entry when small so we never emit a single trailing bullet chunk.
+  if (bulletIndexes.length <= 3) {
     return [{ kind: "job-head", lines: [...lines], continuation: false }]
   }
 
-  // Header + first bullet (everything before the 2nd bullet).
-  const headEndExclusive = bulletIndexes[1]
+  // Header + first 2 bullets (everything before the 3rd bullet).
+  const headEndExclusive = bulletIndexes[2]
   const chunks: PdfEntryChunk[] = [
     {
       kind: "job-head",
@@ -168,14 +172,21 @@ export function splitEntryLinesIntoPdfChunks(lines: string[]): PdfEntryChunk[] {
     },
   ]
 
-  for (let bi = 1; bi < bulletIndexes.length; bi++) {
+  // Remaining bullets in pairs (take 3 when 3 remain so the last page never
+  // starts with a single orphan bullet).
+  let bi = 2
+  while (bi < bulletIndexes.length) {
+    const remaining = bulletIndexes.length - bi
+    const take = remaining <= 3 ? remaining : 2
     const start = bulletIndexes[bi]
-    const end = bi + 1 < bulletIndexes.length ? bulletIndexes[bi + 1] : lines.length
+    const endBi = bi + take
+    const end = endBi < bulletIndexes.length ? bulletIndexes[endBi] : lines.length
     chunks.push({
       kind: "job-bullet",
       lines: lines.slice(start, end),
       continuation: true,
     })
+    bi += take
   }
 
   return chunks
@@ -193,7 +204,7 @@ export interface PackPdfBlocksResult {
 
 /**
  * Pure packer (height-sum). Prefer measure-based packing in `autoPaginateResumeInnerHtml`
- * for real DOM; this remains for unit tests and as the orphan-title rule reference.
+ * for real DOM; this remains for unit tests and as the orphan-title / absorb reference.
  */
 export function packPdfBlocks(
   blocks: PdfPackBlock[],
@@ -201,6 +212,8 @@ export function packPdfBlocks(
 ): PackPdfBlocksResult {
   const pages: number[][] = []
   const pageUsedHeights: number[] = []
+  /** Page indices that end because of a manual `---PAGE BREAK---` (never absorb across). */
+  const manualBreakAfterPage = new Set<number>()
   let current: number[] = []
   let currentKinds: string[] = []
   let currentHeights: number[] = []
@@ -252,6 +265,7 @@ export function packPdfBlocks(
 
     if (kind === MANUAL_PAGE_BREAK_BLOCK_KIND) {
       flushPage(true)
+      if (pages.length > 0) manualBreakAfterPage.add(pages.length - 1)
       continue
     }
 
@@ -264,7 +278,22 @@ export function packPdfBlocks(
         pushBlock(i)
         continue
       }
-      flushPage(true)
+      // Orphan/widow: if the next page would start with a lone job-bullet,
+      // peel the previous job-bullet so the new page starts with ≥2 bullets.
+      if (
+        kind === "job-bullet" &&
+        currentKinds[currentKinds.length - 1] === "job-bullet" &&
+        current.length > 1
+      ) {
+        const peelIdx = current.pop()!
+        currentKinds.pop()
+        const peelH = currentHeights.pop()!
+        used -= peelH
+        flushPage(true)
+        pushBlock(peelIdx)
+      } else {
+        flushPage(true)
+      }
       if (current.length > 0 && used + h > maxH + 0.5) {
         pushBlock(i)
         continue
@@ -273,6 +302,28 @@ export function packPdfBlocks(
     pushBlock(i)
   }
   flushPage(false)
+
+  // Absorb a short final page into the previous page when height-sum fits
+  // (e.g. Sprachen alone when a small gap remains). Never across manual breaks.
+  const ABSORB_SLACK_PX = 10
+  while (pages.length >= 2) {
+    const prevIdx = pages.length - 2
+    if (manualBreakAfterPage.has(prevIdx)) break
+    const last = pages[pages.length - 1]
+    const prev = pages[prevIdx]
+    const lastH = last.reduce((s, i) => s + blocks[i].height, 0)
+    const prevH = pageUsedHeights[prevIdx]
+    // Only pull back a short trailer (avoids collapsing intentional sparse pages).
+    if (lastH > maxH * 0.22) break
+    if (prevH + lastH <= maxH + ABSORB_SLACK_PX) {
+      pages[prevIdx] = [...prev, ...last]
+      pageUsedHeights[prevIdx] = prevH + lastH
+      pages.pop()
+      pageUsedHeights.pop()
+      continue
+    }
+    break
+  }
 
   return {
     pages,
@@ -355,6 +406,7 @@ export function autoPaginateResumeInnerHtml(
 
     try {
       const pages: HTMLElement[][] = []
+      const manualBreakAfterPage = new Set<number>()
       let current: HTMLElement[] = []
       let currentKinds: string[] = []
       let hadOverflow = false
@@ -397,6 +449,7 @@ export function autoPaginateResumeInnerHtml(
 
         if (kind === MANUAL_PAGE_BREAK_BLOCK_KIND) {
           flushPage(true)
+          if (pages.length > 0) manualBreakAfterPage.add(pages.length - 1)
           continue
         }
 
@@ -412,7 +465,20 @@ export function autoPaginateResumeInnerHtml(
               pushBlock(el, kind)
               continue
             }
-            flushPage(true)
+            // Orphan/widow: never start the next page with a single job-bullet
+            // when the previous page ends with another job-bullet — peel one back.
+            if (
+              kind === "job-bullet" &&
+              currentKinds[currentKinds.length - 1] === "job-bullet" &&
+              current.length > 1
+            ) {
+              const peelEl = current.pop()!
+              const peelKind = currentKinds.pop()!
+              flushPage(true)
+              pushBlock(peelEl, peelKind)
+            } else {
+              flushPage(true)
+            }
             if (current.length > 0) {
               const afterCarryH = measureEls([...current, el])
               if (afterCarryH > maxH + 0.5) {
@@ -456,6 +522,34 @@ export function autoPaginateResumeInnerHtml(
         if (normalizedPages[pi].length === 1 && measureEls(normalizedPages[pi]) > maxH + 0.5) {
           hadOverflow = true
         }
+      }
+
+      // Absorb a short trailing page (e.g. Sprachen alone) into the previous
+      // page when the combined measurement fits — including a small near-miss
+      // slack so tiny final sections do not force an extra sheet.
+      // Never absorb across a manual `---PAGE BREAK---`.
+      const ABSORB_SLACK_PX = 10
+      let absorbGuard = 0
+      while (normalizedPages.length >= 2 && absorbGuard < 20) {
+        absorbGuard += 1
+        const lastIdx = normalizedPages.length - 1
+        const prevIdx = lastIdx - 1
+        if (manualBreakAfterPage.has(prevIdx)) break
+        const lastH = measureEls(normalizedPages[lastIdx])
+        if (lastH > maxH * 0.22) break
+        const combined = measureEls([
+          ...normalizedPages[prevIdx],
+          ...normalizedPages[lastIdx],
+        ])
+        if (combined <= maxH + ABSORB_SLACK_PX) {
+          normalizedPages[prevIdx] = [
+            ...normalizedPages[prevIdx],
+            ...normalizedPages[lastIdx],
+          ]
+          normalizedPages.pop()
+          continue
+        }
+        break
       }
 
       // Remove pages emptied by rebalance; re-apply page-start continuation class.

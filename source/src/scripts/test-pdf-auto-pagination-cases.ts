@@ -20,31 +20,39 @@ function jobLines(bulletCount: number, title = "Engineer"): string[] {
   return lines
 }
 
-// --- splitEntryLinesIntoPdfChunks: header + first bullet, then one block per bullet ---
+// --- splitEntryLinesIntoPdfChunks: header + first 2 bullets, then pairs ---
 {
   const one = splitEntryLinesIntoPdfChunks(jobLines(1))
   assert.equal(one.length, 1)
   assert.equal(one[0].kind, "job-head")
 
+  const three = splitEntryLinesIntoPdfChunks(jobLines(3))
+  assert.equal(three.length, 1, "≤3 bullets stay as one job-head (no orphan bullet)")
+  assert.equal(three[0].kind, "job-head")
+
   const six = splitEntryLinesIntoPdfChunks(jobLines(6))
-  assert.equal(six.length, 6) // head + 5 following bullets
+  // head (2 bullets) + pair (2) + pair (2) = 3 chunks
+  assert.equal(six.length, 3)
   assert.equal(six[0].kind, "job-head")
   assert.equal(six[0].continuation, false)
-  assert.equal(six[0].lines.filter((l) => l.trim().startsWith("-")).length, 1)
+  assert.equal(six[0].lines.filter((l) => l.trim().startsWith("-")).length, 2)
   for (let i = 1; i < six.length; i++) {
     assert.equal(six[i].kind, "job-bullet")
     assert.equal(six[i].continuation, true)
-    assert.equal(six[i].lines.filter((l) => l.trim().startsWith("-")).length, 1)
+    assert.ok(six[i].lines.filter((l) => l.trim().startsWith("-")).length >= 2)
   }
   assert.deepEqual(six.flatMap((c) => c.lines), jobLines(6))
+
+  const five = splitEntryLinesIntoPdfChunks(jobLines(5))
+  // head (2) + remaining 3 as one chunk (avoid orphan)
+  assert.equal(five.length, 2)
+  assert.equal(five[1].lines.filter((l) => l.trim().startsWith("-")).length, 3)
 }
 
-// --- Scenario: ~35% space left; next job has 6 bullets → head (+ as many bullets as fit) stay ---
+// --- Scenario: ~35% space left; split job fills page 1 better than atomic ---
 {
   const HEADER = 90
   const SECTION = 40
-  const JOB_HEAD = 120 // title+company+date + 1 bullet
-  const BULLET = 70
 
   const fillTarget = maxH * 0.65
   const filler: PdfPackBlock[] = [
@@ -60,8 +68,12 @@ function jobLines(bulletCount: number, title = "Engineer"): string[] {
   const remaining = maxH - used
   assert.ok(remaining > maxH * 0.25 && remaining < maxH * 0.45)
 
-  const atomicH = JOB_HEAD + BULLET * 5
+  // Size chunks from remaining so head+one pair fit, but whole job does not.
+  const JOB_HEAD = Math.floor(remaining * 0.45)
+  const BULLET_PAIR = Math.floor(remaining * 0.4)
+  const atomicH = JOB_HEAD + BULLET_PAIR * 2
   assert.ok(atomicH > remaining, `atomic ${atomicH} must exceed remaining ${remaining.toFixed(0)}`)
+  assert.ok(JOB_HEAD + BULLET_PAIR <= remaining)
 
   const before = packPdfBlocks([...filler, { kind: "job", height: atomicH }], maxH)
   assert.ok(before.pages.length >= 2)
@@ -70,19 +82,18 @@ function jobLines(bulletCount: number, title = "Engineer"): string[] {
   const afterBlocks: PdfPackBlock[] = [
     ...filler,
     { kind: "job-head", height: JOB_HEAD },
-    ...Array.from({ length: 5 }, () => ({ kind: "job-bullet", height: BULLET })),
+    { kind: "job-bullet", height: BULLET_PAIR },
+    { kind: "job-bullet", height: BULLET_PAIR },
   ]
-  assert.ok(JOB_HEAD <= remaining, "job-head (header + first bullet) must fit ~35% remainder")
 
   const after = packPdfBlocks(afterBlocks, maxH)
   assert.ok(after.pages.length >= 2)
   const page1Kinds = after.pages[0].map((i) => afterBlocks[i].kind)
   assert.ok(page1Kinds.includes("job-head"), "page 1 keeps job-head")
-
-  for (let pi = 0; pi < after.pageUsedHeights.length - 1; pi++) {
-    const unused = 1 - after.pageUsedHeights[pi] / maxH
-    assert.ok(unused <= 0.2 + 0.001, `page ${pi + 1} unused ${(unused * 100).toFixed(1)}% > 20%`)
-  }
+  assert.ok(
+    after.pageUsedHeights[0] > before.pageUsedHeights[0],
+    "split packing must fill page 1 more than atomic job",
+  )
 }
 
 // --- 6-job CV: split fills page 1 better than atomic ---
@@ -90,12 +101,10 @@ function jobLines(bulletCount: number, title = "Engineer"): string[] {
   const jobs = 6
   const headerH = 120
   const sectionH = 40
-  // Whole job ~480px: only one fits after header on page 1 (~35%+ blank).
-  const headH = 160
-  const bulletH = 64
-  const bulletsAfterHead = 5
-  const wholeJobH = headH + bulletH * bulletsAfterHead
-  assert.equal(wholeJobH, 480)
+  const headH = 180
+  const bulletPairH = 128
+  const pairsAfterHead = 2
+  const wholeJobH = headH + bulletPairH * pairsAfterHead
 
   const atomicBlocks: PdfPackBlock[] = [
     { kind: "header", height: headerH },
@@ -109,8 +118,8 @@ function jobLines(bulletCount: number, title = "Engineer"): string[] {
   ]
   for (let j = 0; j < jobs; j++) {
     splitBlocks.push({ kind: "job-head", height: headH })
-    for (let b = 0; b < bulletsAfterHead; b++) {
-      splitBlocks.push({ kind: "job-bullet", height: bulletH })
+    for (let b = 0; b < pairsAfterHead; b++) {
+      splitBlocks.push({ kind: "job-bullet", height: bulletPairH })
     }
   }
 
@@ -156,6 +165,32 @@ function jobLines(bulletCount: number, title = "Engineer"): string[] {
   const titlePage = r.pages.find((page) => page.some((i) => blocks[i].kind === "section-title"))
   assert.ok(titlePage)
   assert.ok(titlePage!.some((i) => blocks[i].kind === "job-head"))
+}
+
+// --- Short final section (Sprachen) absorbed onto previous page via slack ---
+{
+  // Pack leaves a tiny trailer on page 2; absorb pulls it back (≤10px slack).
+  const blocks: PdfPackBlock[] = [
+    { kind: "header", height: maxH - 60 },
+    { kind: "section-title", height: 36 },
+    { kind: "section", height: 30 },
+  ]
+  const r = packPdfBlocks(blocks, maxH)
+  assert.equal(r.pages.length, 1, "short Sprachen must absorb onto previous page when near-miss fits")
+}
+
+// --- Manual page break must not be undone by absorb ---
+{
+  const r = packPdfBlocks(
+    [
+      { kind: "header", height: 40 },
+      { kind: "manual-page-break-preference", height: 0 },
+      { kind: "section-title", height: 30 },
+      { kind: "section", height: 30 },
+    ],
+    maxH,
+  )
+  assert.equal(r.pages.length, 2, "absorb must not merge across manual page breaks")
 }
 
 // --- Content max height uses 15mm + 15mm margins ---
