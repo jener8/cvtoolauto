@@ -14,6 +14,7 @@ import {
   IconUserSearch,
 } from "@tabler/icons-react"
 import { isJobAgentEnabledClient } from "@/lib/agents/feature-flag"
+import { isWorkspaceNavIdEnabled } from "@/lib/workspace-nav-flags"
 
 /** Primary workspace navigation — EquitAI shell. */
 export type WorkspaceNavId =
@@ -139,11 +140,13 @@ export const WORKSPACE_NAV_ITEMS: WorkspaceNavItem[] = [
   },
 ]
 
-/** Nav items visible for the current client flags. */
+/** Nav items visible for the current client flags (repositioning + agents). */
 export function getVisibleWorkspaceNavItems(): WorkspaceNavItem[] {
-  return WORKSPACE_NAV_ITEMS.filter(
-    (item) => item.id !== "agents" || isJobAgentEnabledClient(),
-  )
+  return WORKSPACE_NAV_ITEMS.filter((item) => {
+    if (!isWorkspaceNavIdEnabled(item.id)) return false
+    if (item.id === "agents" && !isJobAgentEnabledClient()) return false
+    return true
+  })
 }
 
 export type AppSectionView =
@@ -238,11 +241,11 @@ export function viewFromWorkspaceNav(id: WorkspaceNavId): AppSectionView {
       return "aiCoach"
     case "agents":
       // Handled as a route push in the sidebar; keep a safe fallback.
-      return "careerHome"
+      return "dashboard"
     case "settings":
       return "settings"
     default:
-      return "careerHome"
+      return "dashboard"
   }
 }
 

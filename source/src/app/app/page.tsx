@@ -65,6 +65,11 @@ import {
   readAppWorkspaceUrlFromWindow,
   type AppWorkspaceSort,
 } from "@/lib/app-workspace-url"
+import {
+  DEFAULT_WORKSPACE_LANDING_VIEW,
+  coerceWorkspaceLandingView,
+  isRetiredSidebarView,
+} from "@/lib/workspace-nav-flags"
 import type { JobApplicationDateSort } from "@/lib/job-application-display"
 import { FormatterOverviewBack } from "@/components/formatter-overview-back"
 import { GettingStartedGuide } from "@/components/getting-started-guide"
@@ -2512,8 +2517,11 @@ export default function Home() {
       setJobApplications([])
       setCoverLetters([])
     }
-    const nextView =
-      (nav.view as AppView | "documents") === "documents" ? "careerHome" : nav.view
+    const nextView = coerceWorkspaceLandingView(
+      (nav.view as AppView | "documents") === "documents"
+        ? DEFAULT_WORKSPACE_LANDING_VIEW
+        : nav.view,
+    )
     setView(nextView)
     if (nav.applicationId !== undefined) {
       setSelectedJobId(nav.applicationId)
@@ -2716,13 +2724,15 @@ export default function Home() {
       const restoredView = state?.view ?? (isRestorableAppView(fromUrl.view) ? fromUrl.view : null)
       if (!restoredView) return
 
+      const landingView = coerceWorkspaceLandingView(restoredView)
+
       const target: PendingNavigation = {
-        view: restoredView,
+        view: landingView,
         folderId: state?.folderId ?? fromUrl.folderId ?? currentFolderId,
         applicationId: state?.applicationId ?? fromUrl.applicationId,
         resumeId: state?.resumeId ?? fromUrl.resumeId,
         sort: state?.sort ?? fromUrl.sort,
-        clearWorkspace: restoredView === "folders" && !(state?.folderId ?? fromUrl.folderId),
+        clearWorkspace: landingView === "folders" && !(state?.folderId ?? fromUrl.folderId),
       }
 
       if (view === "resume" && resumeHasPendingLeaveChanges()) {
@@ -2745,6 +2755,19 @@ export default function Home() {
 
       skipNextHistoryPushRef.current = true
       applyNavigation(target)
+      // Retired sidebar bookmarks must not leave a dead `view=` in the URL.
+      if (landingView !== restoredView || isRetiredSidebarView(fromUrl.view)) {
+        writeAppHistoryState(
+          {
+            view: landingView,
+            folderId: target.folderId ?? null,
+            applicationId: target.applicationId ?? null,
+            resumeId: target.resumeId ?? null,
+            sort: target.sort ?? null,
+          },
+          "replace",
+        )
+      }
       if (target.view === "resume" && target.resumeId) {
         pendingUrlRestoreRef.current = {
           view: "resume",
@@ -3098,9 +3121,33 @@ export default function Home() {
       }
     }
     if (isRestorableAppView(fromUrl.view)) {
-      setView(fromUrl.view)
+      const landing = coerceWorkspaceLandingView(fromUrl.view)
+      setView(landing)
+      if (landing !== fromUrl.view && typeof window !== "undefined") {
+        const href = buildAppWorkspaceHref({
+          view: landing,
+          folderId: fromUrl.folderId,
+          applicationId: fromUrl.applicationId,
+          resumeId: fromUrl.resumeId,
+          sort: fromUrl.sort,
+          pathname: window.location.pathname.startsWith("/app")
+            ? window.location.pathname
+            : "/app",
+        })
+        window.history.replaceState(
+          {
+            view: landing,
+            folderId: fromUrl.folderId,
+            applicationId: fromUrl.applicationId,
+            resumeId: fromUrl.resumeId,
+            sort: fromUrl.sort,
+          },
+          "",
+          href,
+        )
+      }
     } else {
-      setView("careerHome")
+      setView(DEFAULT_WORKSPACE_LANDING_VIEW)
     }
   }
 
@@ -3533,11 +3580,19 @@ export default function Home() {
   }
 
   const handleBackToCareerHome = () => {
-    requestNavigation({ view: "careerHome", folderId: currentFolderId })
+    // Retired Home hub — land on My applications.
+    requestNavigation({
+      view: DEFAULT_WORKSPACE_LANDING_VIEW,
+      folderId: currentFolderId,
+    })
   }
 
   const handleOpenStatistics = () => {
-    requestNavigation({ view: "statistics", folderId: currentFolderId })
+    // Progress sidebar retired — keep callers safe by landing on applications.
+    requestNavigation({
+      view: DEFAULT_WORKSPACE_LANDING_VIEW,
+      folderId: currentFolderId,
+    })
   }
 
   const handleWorkspaceNavigate = useCallback(
