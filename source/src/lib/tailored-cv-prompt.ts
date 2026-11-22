@@ -17,6 +17,12 @@ import {
   cvResumeWizardWorkflowPromptBlock,
   cvResumeWizardWorkflowQualityCheckBlock,
 } from "@/lib/cv-resume-wizard-workflow"
+import { formatApprovedEvidenceForCvPrompt } from "@/lib/evidence-assessment/prompt"
+import type {
+  EvidenceAssessmentRow,
+  EvidenceTableLayout,
+} from "@/lib/evidence-assessment/types"
+import { buildEvidenceTableMarkdown } from "@/lib/evidence-assessment/table"
 import { formatStrategicProfilePromptBlock } from "@/lib/strategic-profile-prompt"
 import type { StrategicProfile } from "@/lib/strategic-profile"
 
@@ -76,13 +82,47 @@ ZERTIFIKATE
 SPRACHEN
 - Sprache (Niveau)`
 
+export type TailoredCvPromptOptions = {
+  strategicProfile?: StrategicProfile | null
+  /** User-approved evidence rows — guides Selected Evidence table. */
+  approvedEvidence?: EvidenceAssessmentRow[] | null
+  evidenceTableLayout?: EvidenceTableLayout
+}
+
 /** Prompt used for tailored CV generation (shared by wizard + server action). */
 export const COMBINED_PROMPT = (
   jobDescription: string,
   cvContent: string,
   outputLanguage: "en" | "de",
-  strategicProfile?: StrategicProfile | null,
-) => `You are an AI career and CV optimisation assistant — an advisor and editor that returns a tailored resume.
+  strategicProfileOrOptions?: StrategicProfile | null | TailoredCvPromptOptions,
+) => {
+  const isOptionsBag =
+    !!strategicProfileOrOptions &&
+    typeof strategicProfileOrOptions === "object" &&
+    ("approvedEvidence" in strategicProfileOrOptions ||
+      "evidenceTableLayout" in strategicProfileOrOptions ||
+      "strategicProfile" in strategicProfileOrOptions)
+  const options: TailoredCvPromptOptions = isOptionsBag
+    ? (strategicProfileOrOptions as TailoredCvPromptOptions)
+    : { strategicProfile: (strategicProfileOrOptions as StrategicProfile | null | undefined) ?? null }
+
+  const strategicProfile = options.strategicProfile
+  const layout = options.evidenceTableLayout ?? "two_column"
+  const approved = (options.approvedEvidence ?? []).filter((r) => r.approved === true)
+  const tableMarkdown =
+    approved.length > 0
+      ? buildEvidenceTableMarkdown(approved, { layout, outputLanguage })
+      : ""
+  const evidenceBlock =
+    approved.length > 0 && tableMarkdown
+      ? formatApprovedEvidenceForCvPrompt(approved, {
+          outputLanguage,
+          tableMarkdown,
+          layout,
+        })
+      : ""
+
+  return `You are an AI career and CV optimisation assistant — an advisor and editor that returns a tailored resume.
 
 Return ONLY the tailored CV in the custom resume-builder syntax below.
 Do NOT return explanations, analysis, chat responses, JSON, or commentary before or after the CV.
@@ -142,6 +182,7 @@ ${cvResumeFormattingPromptBlock(outputLanguage)}
 
 ${outputLanguage === "de" ? COMBINED_PROMPT_STRUCTURE_DE : COMBINED_PROMPT_STRUCTURE_EN}
 ${formatStrategicProfilePromptBlock(strategicProfile, outputLanguage)}
+${evidenceBlock}
 
 ---
 
@@ -150,3 +191,4 @@ ${jobDescription.trim() || "[PASTE JOB DESCRIPTION HERE]"}
 
 MY CURRENT CV (factual source of truth — all roles, employers, dates, and achievements must come from here):
 ${cvContent.trim() || "[PASTE YOUR CV CONTENT HERE]"}`
+}

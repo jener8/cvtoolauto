@@ -4166,6 +4166,61 @@
   min-height: 0;
 }
 
+/* Markdown pipe tables (Selected Evidence, etc.) — preview + PDF */
+.cv-md-table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: 0;
+  color: #000000;
+  border: none;
+}
+.cv-md-table th,
+.cv-md-table td {
+  vertical-align: top;
+  text-align: left;
+  padding: 0.55em 0.7em;
+  border-top: none;
+  border-bottom: 1px solid #d4cec4;
+  border-left: none;
+  border-right: 1px solid #e4dfd7;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.45;
+}
+.cv-md-table th:last-child,
+.cv-md-table td:last-child {
+  border-right: none;
+}
+.cv-md-table thead th {
+  font-weight: 700;
+}
+.cv-md-table td.cv-md-cell--criterion {
+  font-weight: 600;
+}
+.cv-md-table td.cv-md-cell--evidence {
+  font-weight: 400;
+}
+.cv-md-table td strong,
+.cv-md-table th strong {
+  font-weight: 700;
+}
+.cv-md-table--cols-2 col.cv-md-col--0 { width: 30%; }
+.cv-md-table--cols-2 col.cv-md-col--1 { width: 70%; }
+.cv-md-table--cols-3 col.cv-md-col--0 { width: 28%; }
+.cv-md-table--cols-3 col.cv-md-col--1 { width: 52%; }
+.cv-md-table--cols-3 col.cv-md-col--2 { width: 20%; }
+.cv-md-table--continuation thead {
+  display: none !important;
+}
+.pdf-job-continuation--page-start .cv-md-table--continuation {
+  margin-top: 0.25em;
+}
+.pdf-job-continuation--page-start .cv-md-table--continuation thead {
+  display: table-header-group !important;
+}
+
 /* ============================================================
    PAGE BREAK MARKERS
 ============================================================ */

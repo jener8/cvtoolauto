@@ -19,23 +19,31 @@ Distinguish: explicit requirements vs desirable vs inferred from responsibilitie
 Do not treat inferred requirements as explicit requirements.
 
 STEP 2 — ANALYSE CANDIDATE EVIDENCE (silently)
-For each important requirement, classify evidence as:
-- STRONG MATCH — directly demonstrated
-- TRANSFERABLE MATCH — relevant experience in another context
-- PARTIAL MATCH — some evidence exists
-- GAP — insufficient evidence
-Never convert a PARTIAL MATCH or GAP into a STRONG MATCH by rewriting it more confidently.
+For each important requirement, classify evidence fit (qualitative — never invent percentages such as 95% or 80%):
+- Direct — substantially the same capability or responsibility demonstrated
+- Transferable — relevant capability demonstrated in another context
+- Partial — available evidence supports only part of the requirement
+- Not evidenced — no reliable supporting evidence identified
+Never convert Partial or Not evidenced into Direct by rewriting more confidently.
+Separately classify evidence maturity (do not confuse with fit):
+- Delivered — completed work with identifiable outputs or results
+- In progress — currently being developed or implemented
+- Proposed — concept, recommendation, or planned activity not yet implemented
+Preserve distinctions: proposed a pilot ≠ developed a prototype ≠ implemented a solution ≠ measured an outcome.
+Do not invent outcomes or inflate achievements.
 
 STEP 3 — STRONGEST POSITIONING (silently)
-Determine the 3–5 capabilities that create the strongest match. Prioritise these throughout the CV.
+Determine the 3–5 capabilities with the strongest Direct or Transferable evidence. Prioritise these throughout the CV.
 Do not simply repeat job-description keywords.
 Translate the candidate's real experience into terminology meaningful for the employer.
+If an approved evidence table is provided in the prompt, use those rows as the Selected Evidence section (do not invent extra rows or match scores).
 
 STEP 4 — REWRITE
 Improve: professional profile; experience bullets; skills; relevant project descriptions.
 Each bullet should ideally communicate: Action → context/problem → contribution → outcome/evidence.
 Prioritise demonstrated impact over generic responsibility statements.
 Use concrete evidence and metrics only when they already exist in the candidate data. Never invent metrics.
+When including a Selected Evidence / Role Requirements table: default to two columns (Role criterion | Strongest evidence). Only add Outcome / Status as a third column when instructed — and only with short verifiable labels (never AI match percentages).
 
 ACCURACY RULES (mandatory)
 You MUST NOT:
@@ -85,23 +93,31 @@ Unterscheide: explizite Anforderungen vs. wünschenswerte vs. aus Aufgaben abgel
 Abgeleitete Anforderungen nicht als explizite behandeln.
 
 SCHRITT 2 — KANDIDATENBELEGE ANALYSIEREN (still)
-Für jede wichtige Anforderung klassifizieren:
-- STARKER MATCH — direkt nachgewiesen
-- TRANSFERIERBARER MATCH — relevante Erfahrung in anderem Kontext
-- TEILMATCH — teilweise Belege
-- LÜCKE — unzureichende Belege
-Niemals einen TEILMATCH oder eine LÜCKE durch selbstbewusstere Formulierung zu einem STARKEN MATCH machen.
+Für jede wichtige Anforderung Evidenz-Passung klassifizieren (qualitativ — niemals Prozentwerte wie 95 % oder 80 % erfinden):
+- Direkt — deutlich dieselbe Fähigkeit/Verantwortung nachgewiesen
+- Übertragbar — relevante Fähigkeit in anderem Kontext
+- Teilweise — Belege decken nur einen Teil ab
+- Nicht belegt — kein zuverlässiger Beleg
+Niemals „Teilweise“ oder „Nicht belegt“ durch selbstbewusstere Formulierung zu „Direkt“ machen.
+Separat Reife/Status klassifizieren (nicht mit Passung verwechseln):
+- Umgesetzt — abgeschlossene Arbeit mit erkennbaren Ergebnissen
+- In Arbeit — aktuell in Entwicklung/Umsetzung
+- Vorgeschlagen — Konzept, Empfehlung oder geplante Aktivität noch nicht umgesetzt.
+Unterschiede wahren: Pilot vorgeschlagen ≠ Prototyp entwickelt ≠ Lösung implementiert ≠ Ergebnis gemessen.
+Keine erfundenen Outcomes oder aufgeblähten Erfolge.
 
 SCHRITT 3 — STÄRKSTE POSITIONIERUNG (still)
-Bestimme die 3–5 Fähigkeiten mit der stärksten Passung und priorisiere sie im Lebenslauf.
+Bestimme die 3–5 Fähigkeiten mit der stärksten direkten oder übertragbaren Evidenz und priorisiere sie im Lebenslauf.
 Keywords der Stellenbeschreibung nicht bloß wiederholen.
 Echte Erfahrung in arbeitgeberverständliche Sprache übersetzen.
+Wenn eine genehmigte Evidenztabelle im Prompt steht: diese Zeilen für Ausgewählte Belege verwenden (keine Extra-Zeilen oder Match-Scores erfinden).
 
 SCHRITT 4 — UMFORMULIEREN
 Verbessere: Profil; Erfahrungsstichpunkte; Fähigkeiten; relevante Projekte.
 Jeder Stichpunkt idealerweise: Handlung → Kontext/Problem → Beitrag → Ergebnis/Beleg.
 Nachgewiesene Wirkung vor generischen Aufgabenbeschreibungen.
 Kennzahlen nur verwenden, wenn sie bereits in den Kandidatendaten existieren. Niemals Kennzahlen erfinden.
+Bei Evidenztabelle: Standard zwei Spalten (Rollenkriterium | Stärkster Beleg). Dritte Spalte Ergebnis/Status nur auf Anweisung — kurze verifizierbare Labels, nie KI-Match-Prozente.
 
 FAKTENREGELN (verbindlich)
 VERBOTEN:
@@ -137,19 +153,23 @@ Keine Abschnitte zu Job-Match, Lücken, Positionierung, Änderungen oder Verifik
 
 const CAREER_OPTIMISATION_QUALITY_EN = `CAREER OPTIMISATION QUALITY CHECK (before final output):
 1. Did you treat inferred JD requirements as optional — never as proven candidate facts?
-2. Are PARTIAL MATCH / GAP items omitted or honestly soft — never inflated to STRONG MATCH?
-3. Are the 3–5 strongest real capabilities prioritised in Profile and early bullets?
-4. Does every bullet follow Action → context → contribution → outcome where evidence allows?
-5. Are seniority verbs and ownership claims limited to documented responsibility?
-6. Would a recruiter hear the candidate's voice — not a paraphrase of the job advert?`
+2. Are Partial / Not evidenced items omitted or honestly soft — never inflated to Direct?
+3. Is maturity correct (Proposed ≠ Delivered) and outcomes verifiable — never invented percentages?
+4. Are the 3–5 strongest real capabilities prioritised in Profile and early bullets?
+5. Does every bullet follow Action → context → contribution → outcome where evidence allows?
+6. Are seniority verbs and ownership claims limited to documented responsibility?
+7. Would a recruiter hear the candidate's voice — not a paraphrase of the job advert?
+8. If a Selected Evidence table is included: exact JD phrases, verified evidence, no fit labels or match scores on the CV?`
 
 const CAREER_OPTIMISATION_QUALITY_DE = `KARRIERE-OPTIMIERUNG QUALITÄTSPRÜFUNG (vor finaler Ausgabe):
 1. Abgeleitete JD-Anforderungen nur optional — nie als Kandidatenfakten?
-2. TEILMATCH / LÜCKE weggelassen oder ehrlich weich — nie zu STARKEM MATCH aufgeblasen?
-3. Die 3–5 stärksten echten Fähigkeiten in Profil und frühen Stichpunkten priorisiert?
-4. Jeder Stichpunkt Handlung → Kontext → Beitrag → Ergebnis, soweit Belege da sind?
-5. Senioritätsverben und Ownership nur bei dokumentierter Verantwortung?
-6. Klingt der Text nach der Kandidatin — nicht nach umgeschriebener Stellenanzeige?`
+2. Teilweise / Nicht belegt ehrlich — nie zu Direkt aufgeblasen?
+3. Reife korrekt (Vorgeschlagen ≠ Umgesetzt) und Outcomes verifizierbar — keine erfundenen Prozente?
+4. Die 3–5 stärksten echten Fähigkeiten in Profil und frühen Stichpunkten priorisiert?
+5. Jeder Stichpunkt Handlung → Kontext → Beitrag → Ergebnis, soweit Belege da sind?
+6. Senioritätsverben und Ownership nur bei dokumentierter Verantwortung?
+7. Klingt der Text nach der Kandidatin — nicht nach umgeschriebener Stellenanzeige?
+8. Bei Evidenztabelle: exakte JD-Phrasen, verifizierte Belege, keine Fit-Labels oder Match-Scores im CV?`
 
 export function cvCareerOptimisationPromptBlock(outputLanguage: "en" | "de"): string {
   return outputLanguage === "de" ? CAREER_OPTIMISATION_DE : CAREER_OPTIMISATION_EN

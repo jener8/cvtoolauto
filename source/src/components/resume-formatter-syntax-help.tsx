@@ -21,6 +21,11 @@ export function ResumeFormattingSyntaxHelp({ language }: { language: "en" | "de"
       title: "Two-column list section",
       desc: "Add [columns=2] or [columns=3] after a section heading (e.g. FÄHIGKEITEN, SKILLS).",
     },
+    {
+      code: "| Criterion | Evidence |\n| --- | --- |\n| … | … |",
+      title: "Markdown table",
+      desc: "Pipe tables render as real tables in preview and PDF (two columns ≈ 30% / 70%). Good for Selected Evidence. Use **bold** for a lead phrase in evidence. Keep each cell to one clear point (~40 words) for easier scanning.",
+    },
   ]
 
   return (

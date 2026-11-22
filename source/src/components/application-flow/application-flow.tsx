@@ -1,12 +1,19 @@
 "use client"
 
 import { Component, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { assessEvidenceForRole } from "@/app/actions/assess-evidence"
 import { generateTailoredCv, getTailoredCvAiStatus } from "@/app/actions/generate-tailored-cv"
 import { recoverCvFromAiResponse } from "@/lib/ai-cv-response"
 import type { CvParseDiagnostics } from "@/lib/ai-cv-response"
+import { EvidenceReviewPanel } from "@/components/application-flow/evidence-review-panel"
 import { GenerationErrorPanel } from "@/components/application-flow/generation-error-panel"
 import { GenerationLoading } from "@/components/application-flow/generation-loading"
 import { AiWizardProgress } from "@/components/ai-wizard-progress"
+import type {
+  EvidenceAssessmentPlan,
+  EvidenceAssessmentRow,
+  EvidenceTableLayout,
+} from "@/lib/evidence-assessment"
 import type { AiErrorCode } from "@/lib/ai/errors"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -57,7 +64,15 @@ export type ApplicationFlowState = ApplicationFlowDraft & {
   activeStep?: number
 }
 
-type GenerationState = "idle" | "generating" | "success" | "error" | "section-warning" | "saving"
+type GenerationState =
+  | "idle"
+  | "assessing"
+  | "evidence-review"
+  | "generating"
+  | "success"
+  | "error"
+  | "section-warning"
+  | "saving"
 
 interface ApplicationFlowProps {
   onComplete: (payload: ApplicationFlowCompletePayload) => boolean | void | Promise<boolean | void>
@@ -233,6 +248,7 @@ function resetGenerationUiState(): {
   copiedPrompt: boolean
   pendingResumeContent: string | null
   sectionValidation: CvSectionValidation | null
+  evidencePlan: EvidenceAssessmentPlan | null
   activeStep: number | undefined
 } {
   return {
@@ -247,6 +263,7 @@ function resetGenerationUiState(): {
     copiedPrompt: false,
     pendingResumeContent: null,
     sectionValidation: null,
+    evidencePlan: null,
     activeStep: undefined,
   }
 }
@@ -276,11 +293,15 @@ function ApplicationFlowInner({
   const [aiConfigured, setAiConfigured] = useState<boolean | null>(null)
   const [pendingResumeContent, setPendingResumeContent] = useState<string | null>(null)
   const [sectionValidation, setSectionValidation] = useState<CvSectionValidation | null>(null)
+  const [evidencePlan, setEvidencePlan] = useState<EvidenceAssessmentPlan | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const completingRef = useRef(false)
 
   const isProcessing =
-    generationState === "generating" || generationState === "saving" || completingRef.current
+    generationState === "assessing" ||
+    generationState === "generating" ||
+    generationState === "saving" ||
+    completingRef.current
 
   useEffect(() => {
     const initial = createInitialApplicationFlowDraft(restoreDraft, flowSessionKey)
@@ -298,6 +319,7 @@ function ApplicationFlowInner({
     setCopiedPrompt(reset.copiedPrompt)
     setPendingResumeContent(reset.pendingResumeContent)
     setSectionValidation(reset.sectionValidation)
+    setEvidencePlan(reset.evidencePlan)
   }, [flowSessionKey, restoreDraft])
 
   const completedSteps = useMemo(() => completedStepsFromDraft(draft), [draft])
@@ -404,6 +426,120 @@ function ApplicationFlowInner({
     }
   }
 
+  const runTailoredCvGeneration = async (options?: {
+    approvedEvidence?: EvidenceAssessmentRow[]
+    evidenceTableLayout?: EvidenceTableLayout
+  }) => {
+    setGenerationState("generating")
+    setFallbackPrompt(null)
+    setManualCvFallback("")
+    setRawAiResponse(undefined)
+    setParseDiagnostics(undefined)
+    setLastErrorCode(undefined)
+    setLastErrorMessage(undefined)
+
+    let strategicProfile = null
+
+    try {
+      const cvContent = draft.generalCv.trim()
+      if (!cvContent) {
+        throw new Error(PROFILE_LOAD_ERROR)
+      }
+
+      try {
+        strategicProfile = typeof window !== "undefined" ? loadStrategicProfile() : null
+      } catch (profileError) {
+        console.error("[application-flow] Strategic profile load failed:", profileError)
+        throw new Error(PROFILE_LOAD_ERROR)
+      }
+
+      const result = await generateTailoredCv({
+        jobDescription: draft.jobDescription,
+        cvContent,
+        outputLanguage: draft.outputLanguage,
+        strategicProfile,
+        approvedEvidence: options?.approvedEvidence,
+        evidenceTableLayout: options?.evidenceTableLayout,
+      })
+
+      if (result.success && result.cvText) {
+        const finalized = finalizeTailoredCv({
+          sourceCv: cvContent,
+          generatedCv: result.cvText,
+        })
+
+        console.log("Generated Resume:", {
+          resumeText: finalized.resumeText,
+          validation: finalized.validation,
+          restoredSections: finalized.restoredSections,
+          experienceBullets: finalized.validation.generated.experienceBullets,
+          educationBullets: finalized.validation.generated.educationBullets,
+        })
+
+        if (finalized.validation.missingExperience || finalized.validation.missingEducation) {
+          setPendingResumeContent(finalized.resumeText)
+          setSectionValidation(finalized.validation)
+          setGenerationState("section-warning")
+          return
+        }
+
+        setGenerationState("success")
+        setFailureCount(0)
+        setEvidencePlan(null)
+        patchDraft({ focusedCv: finalized.resumeText })
+        toast({
+          title: "Your tailored CV is ready",
+          description:
+            finalized.restoredSections.length > 0
+              ? `Restored ${finalized.restoredSections.join(" and ")} from your source CV.`
+              : "Opening the resume editor for review…",
+        })
+        await finishWithContent(finalized.resumeText)
+        return
+      }
+
+      setFailureCount((c) => c + 1)
+      setGenerationState("error")
+      setLastErrorCode(result.errorCode)
+      setLastErrorMessage(result.error)
+      setRawAiResponse(result.rawAiResponse)
+      setParseDiagnostics(result.parseDiagnostics)
+      const recovered =
+        result.extractedText?.trim() ||
+        (result.rawAiResponse ? recoverCvFromAiResponse(result.rawAiResponse).text : "")
+      if (recovered) setManualCvFallback(recovered)
+      setFallbackPrompt(
+        result.prompt ??
+          COMBINED_PROMPT(draft.jobDescription, cvContent, draft.outputLanguage, {
+            strategicProfile,
+            approvedEvidence: options?.approvedEvidence,
+            evidenceTableLayout: options?.evidenceTableLayout,
+          }),
+      )
+      toast({
+        title: "Automatic generation failed",
+        description:
+          result.errorCode === "missing_api_key" || result.errorCode === "invalid_api_key"
+            ? "Configure OPENAI_API_KEY in .env.local, then try again."
+            : (result.error ?? "Tap Try again to regenerate."),
+        variant: "destructive",
+      })
+    } catch (error) {
+      console.error("[application-flow] Generation failed:", error)
+      setGenerationState("error")
+      setLastErrorCode(undefined)
+      setLastErrorMessage(
+        error instanceof Error && error.message ? error.message : PROFILE_LOAD_ERROR,
+      )
+      toast({
+        title: "Could not create tailored CV",
+        description:
+          error instanceof Error && error.message ? error.message : PROFILE_LOAD_ERROR,
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleCreateApplication = async () => {
     if (!readyToCreate || isProcessing) return
 
@@ -446,15 +582,14 @@ function ApplicationFlowInner({
       return
     }
 
-    setGenerationState("generating")
+    setGenerationState("assessing")
     setFallbackPrompt(null)
     setManualCvFallback("")
     setRawAiResponse(undefined)
     setParseDiagnostics(undefined)
     setLastErrorCode(undefined)
     setLastErrorMessage(undefined)
-
-    let strategicProfile = null
+    setEvidencePlan(null)
 
     try {
       const cvContent = draft.generalCv.trim()
@@ -462,6 +597,7 @@ function ApplicationFlowInner({
         throw new Error(PROFILE_LOAD_ERROR)
       }
 
+      let strategicProfile = null
       try {
         strategicProfile = typeof window !== "undefined" ? loadStrategicProfile() : null
       } catch (profileError) {
@@ -469,89 +605,44 @@ function ApplicationFlowInner({
         throw new Error(PROFILE_LOAD_ERROR)
       }
 
-      const result = await generateTailoredCv({
+      const assessment = await assessEvidenceForRole({
         jobDescription: draft.jobDescription,
         cvContent,
         outputLanguage: draft.outputLanguage,
         strategicProfile,
       })
 
-      if (result.success && result.cvText) {
-        const finalized = finalizeTailoredCv({
-          sourceCv: cvContent,
-          generatedCv: result.cvText,
-        })
-
-        console.log("Generated Resume:", {
-          resumeText: finalized.resumeText,
-          validation: finalized.validation,
-          restoredSections: finalized.restoredSections,
-          experienceBullets: finalized.validation.generated.experienceBullets,
-          educationBullets: finalized.validation.generated.educationBullets,
-        })
-
-        if (finalized.validation.missingExperience || finalized.validation.missingEducation) {
-          setPendingResumeContent(finalized.resumeText)
-          setSectionValidation(finalized.validation)
-          setGenerationState("section-warning")
-          return
-        }
-
-        setGenerationState("success")
-        setFailureCount(0)
-        patchDraft({ focusedCv: finalized.resumeText })
-        toast({
-          title: "Your tailored CV is ready",
-          description:
-            finalized.restoredSections.length > 0
-              ? `Restored ${finalized.restoredSections.join(" and ")} from your source CV.`
-              : "Opening the resume editor for review…",
-        })
-        await finishWithContent(finalized.resumeText)
+      if (assessment.success && assessment.plan) {
+        setEvidencePlan(assessment.plan)
+        setGenerationState("evidence-review")
         return
       }
 
-      setFailureCount((c) => c + 1)
-      setGenerationState("error")
-      setLastErrorCode(result.errorCode)
-      setLastErrorMessage(result.error)
-      setRawAiResponse(result.rawAiResponse)
-      setParseDiagnostics(result.parseDiagnostics)
-      const recovered =
-        result.extractedText?.trim() ||
-        (result.rawAiResponse ? recoverCvFromAiResponse(result.rawAiResponse).text : "")
-      if (recovered) setManualCvFallback(recovered)
-      setFallbackPrompt(
-        result.prompt ??
-          COMBINED_PROMPT(
-            draft.jobDescription,
-            cvContent,
-            draft.outputLanguage,
-            strategicProfile,
-          ),
-      )
+      // Assessment optional — fall through to CV generation if it fails
+      console.warn("[application-flow] Evidence assessment skipped:", assessment.error)
       toast({
-        title: "Automatic generation failed",
-        description:
-          result.errorCode === "missing_api_key" || result.errorCode === "invalid_api_key"
-            ? "Configure OPENAI_API_KEY in .env.local, then try again."
-            : (result.error ?? "Tap Try again to regenerate."),
-        variant: "destructive",
+        title: "Evidence review unavailable",
+        description: "Generating your tailored CV without the review step.",
       })
+      await runTailoredCvGeneration()
     } catch (error) {
-      console.error("[application-flow] Generation failed:", error)
-      setGenerationState("error")
-      setLastErrorCode(undefined)
-      setLastErrorMessage(
-        error instanceof Error && error.message ? error.message : PROFILE_LOAD_ERROR,
-      )
+      console.error("[application-flow] Assessment failed:", error)
       toast({
-        title: "Could not create tailored CV",
-        description:
-          error instanceof Error && error.message ? error.message : PROFILE_LOAD_ERROR,
-        variant: "destructive",
+        title: "Evidence review unavailable",
+        description: "Generating your tailored CV without the review step.",
       })
+      await runTailoredCvGeneration()
     }
+  }
+
+  const handleEvidenceConfirm = async (payload: {
+    rows: EvidenceAssessmentRow[]
+    layout: EvidenceTableLayout
+  }) => {
+    await runTailoredCvGeneration({
+      approvedEvidence: payload.rows,
+      evidenceTableLayout: payload.layout,
+    })
   }
 
   const handleCopyFallbackPrompt = async () => {
@@ -585,7 +676,12 @@ function ApplicationFlowInner({
   }
 
   const activeMeta = STEPS.find((s) => s.id === activeStep)
-  const isAiWorking = generationState === "generating" || generationState === "saving"
+  const isAiWorking =
+    generationState === "assessing" ||
+    generationState === "generating" ||
+    generationState === "saving"
+  const showWizardSteps =
+    !isAiWorking && generationState !== "evidence-review" && generationState !== "section-warning"
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain bg-background">
@@ -593,24 +689,43 @@ function ApplicationFlowInner({
         {isAiWorking ? (
           <AiWizardProgress
             variant="banner"
-            phases={[
-              {
-                title: "Reading your source CV and job description",
-                detail: "Preparing a role-specific draft.",
-              },
-              {
-                title: "Tailoring experience and skills",
-                detail: "Aligning evidence with employer needs.",
-              },
-              {
-                title: "Formatting for the resume builder",
-                detail: "Almost ready for your review.",
-              },
-            ]}
+            phases={
+              generationState === "assessing"
+                ? [
+                    {
+                      title: "Reading the job description",
+                      detail: "Finding the most important criteria.",
+                    },
+                    {
+                      title: "Matching your verified evidence",
+                      detail: "Assessing fit and maturity — not a match percentage.",
+                    },
+                    {
+                      title: "Preparing your review",
+                      detail: "You can correct or approve each row next.",
+                    },
+                  ]
+                : [
+                    {
+                      title: "Reading your source CV and job description",
+                      detail: "Preparing a role-specific draft.",
+                    },
+                    {
+                      title: "Tailoring experience and skills",
+                      detail: "Aligning evidence with employer needs.",
+                    },
+                    {
+                      title: "Formatting for the resume builder",
+                      detail: "Almost ready for your review.",
+                    },
+                  ]
+            }
             headline={
               generationState === "saving"
                 ? "Saving your application…"
-                : "AI is tailoring your CV…"
+                : generationState === "assessing"
+                  ? "AI is assessing your evidence…"
+                  : "AI is tailoring your CV…"
             }
             footnote="Please keep this tab open while the wizard works."
           />
@@ -631,7 +746,7 @@ function ApplicationFlowInner({
       </div>
 
       <div className="container mx-auto max-w-5xl flex-1 px-4 py-10 sm:py-14">
-        {!isAiWorking ? (
+        {showWizardSteps ? (
         <div className="mx-auto max-w-md space-y-2 sm:max-w-none">
           <Label htmlFor="applicationName" className="text-xs text-muted-foreground uppercase tracking-wide">
             Application name
@@ -656,15 +771,32 @@ function ApplicationFlowInner({
           </p>
         )}
 
-        {(generationState === "generating" || generationState === "saving") && (
+        {(generationState === "assessing" ||
+          generationState === "generating" ||
+          generationState === "saving") && (
           <GenerationLoading
             headline={
               generationState === "saving"
                 ? "Saving your application…"
-                : "AI is tailoring your CV…"
+                : generationState === "assessing"
+                  ? "AI is assessing your evidence…"
+                  : "AI is tailoring your CV…"
             }
           />
         )}
+
+        {generationState === "evidence-review" && evidencePlan ? (
+          <EvidenceReviewPanel
+            plan={evidencePlan}
+            outputLanguage={draft.outputLanguage}
+            confirming={false}
+            onBack={() => {
+              setEvidencePlan(null)
+              setGenerationState("idle")
+            }}
+            onConfirm={handleEvidenceConfirm}
+          />
+        ) : null}
 
         {generationState === "section-warning" && sectionValidation && pendingResumeContent && (
           <div className="mx-auto mt-8 max-w-xl rounded-lg border border-amber-400/40 bg-amber-50/60 dark:bg-amber-950/20 px-5 py-4 space-y-4">
@@ -720,10 +852,8 @@ function ApplicationFlowInner({
           />
         )}
 
-        {generationState !== "generating" &&
-          generationState !== "saving" &&
-          generationState !== "error" &&
-          generationState !== "section-warning" && (
+        {showWizardSteps &&
+          generationState !== "error" && (
           <>
             <div className="mt-12 sm:mt-16">
               <div className="grid gap-6 md:grid-cols-2 md:gap-8 max-w-3xl mx-auto">
@@ -748,7 +878,7 @@ function ApplicationFlowInner({
                   onClick={() => void handleCreateApplication()}
                 >
                   <Sparkles className="h-4 w-4" />
-                  {generationState === "saving" ? "Saving application…" : "Create application"}
+                  Create application
                 </Button>
                 {!readyToCreate && (
                   <p className="text-center text-xs text-muted-foreground">

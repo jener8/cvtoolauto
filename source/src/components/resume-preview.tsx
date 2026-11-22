@@ -65,6 +65,15 @@ import {
   splitSectionIntoEntryBlocks,
   type ColumnListBulletStyle,
 } from "@/lib/cv-two-column-section"
+import {
+  buildMarkdownTablePdfChunks,
+  CV_MARKDOWN_TABLE_CSS,
+  renderHtmlWithMarkdownTables,
+  renderMarkdownTableHtml,
+  renderMarkdownTableHtmlFull,
+  splitLinesByMarkdownTables,
+  type ParsedMarkdownTable,
+} from "@/lib/resume-markdown-table"
 import type { ParsedResumeSection } from "@/lib/parse-resume-text"
 import {
   isManualPageBreakLine,
@@ -1075,6 +1084,7 @@ export function ResumePreview({
             .pdf-job-continuation--page-start { padding-top: 0.35em; }
 
             ${CV_TWO_COLUMN_LIST_CSS}
+            ${CV_MARKDOWN_TABLE_CSS}
 
             /* Legacy marker: the on-screen dashed separator is no longer
                needed because each page is its own .pdf-page wrapper. */
@@ -1536,15 +1546,34 @@ export function ResumePreview({
     return html
   }
 
+  const markdownTableRenderOptions = () => {
+    const style = formatStyles[humanFormatStyle]
+    return {
+      fontSize: style.baseFontSize || 14,
+      lineHeight: style.lineHeight || 1.45,
+      linkColor: hexAccentColor,
+      accentColor: hexAccentColor,
+    }
+  }
+
+  /** Inline / non-split render: one complete table with a single header row. */
+  const renderMarkdownTable = (table: ParsedMarkdownTable): string =>
+    renderMarkdownTableHtmlFull(table, markdownTableRenderOptions())
+
   const renderUniversalMarkdown = (lines: string[]): string =>
-    renderHtmlWithColumnBlocks(
+    renderHtmlWithMarkdownTables(
       lines,
-      renderUniversalMarkdownLines,
-      (columnLines, columns) =>
-        renderCVColumnBlocksHtml(
-          columnLines.map((column) => renderUniversalMarkdownLines(column)),
-          columns,
+      (chunk) =>
+        renderHtmlWithColumnBlocks(
+          chunk,
+          renderUniversalMarkdownLines,
+          (columnLines, columns) =>
+            renderCVColumnBlocksHtml(
+              columnLines.map((column) => renderUniversalMarkdownLines(column)),
+              columns,
+            ),
         ),
+      renderMarkdownTable,
     )
 
   const renderDefaultHTML = (lines: string[]): string => {
@@ -1627,12 +1656,26 @@ export function ResumePreview({
     "job-head",
     "skill-item",
     "education-entry",
+    "table-head",
+    "table-row",
   ])
 
   const wrapPdfBlock = (kind: string, html: string, continuation = false) => {
     const keepClass = PDF_KEEP_TOGETHER_BLOCKS.has(kind) ? " pdf-block-keep-together" : ""
     const contClass = continuation ? " pdf-job-continuation" : ""
     return `<div data-pdf-block="${kind}" class="pdf-resume-block${keepClass}${contClass}">${html}</div>`
+  }
+
+  const pushMarkdownTablePdfChunks = (
+    parts: string[],
+    table: ParsedMarkdownTable,
+    wrapBody: (body: string) => string,
+  ) => {
+    for (const chunk of buildMarkdownTablePdfChunks(table, markdownTableRenderOptions())) {
+      const body = wrapBody(chunk.html)
+      if (!body.trim()) continue
+      parts.push(wrapPdfBlock(chunk.kind, body, chunk.continuation))
+    }
   }
 
   const pushEntryPdfChunks = (
@@ -1688,6 +1731,13 @@ export function ResumePreview({
     const parts: string[] = []
     let sectionTitlePlaced = false
 
+    const ensureTitle = () => {
+      if (!sectionTitlePlaced && sectionTitleHTML) {
+        parts.push(wrapPdfBlock("section-title", sectionTitleHTML))
+        sectionTitlePlaced = true
+      }
+    }
+
     for (const seg of segments) {
       if (seg.type === "manual-page-break") {
         parts.push(
@@ -1695,19 +1745,28 @@ export function ResumePreview({
         )
         continue
       }
-      const jobs = splitExperienceLinesIntoJobs(seg.lines)
-      for (const jobLines of jobs) {
-        // Keep section title as its own block (orphan-title rule). Job bodies
-        // split into job-head (header + first 2 bullets) + bullet pairs so
-        // Berufserfahrung can start filling leftover space under PROFILE.
-        const staging: string[] = []
-        const count = pushEntryPdfChunks(staging, jobLines, renderJob, wrapBody)
-        if (count === 0) continue
-        if (!sectionTitlePlaced && sectionTitleHTML) {
-          parts.push(wrapPdfBlock("section-title", sectionTitleHTML))
-          sectionTitlePlaced = true
+
+      for (const piece of splitLinesByMarkdownTables(seg.lines)) {
+        if (piece.type === "table") {
+          const staging: string[] = []
+          pushMarkdownTablePdfChunks(staging, piece.table, wrapBody)
+          if (staging.length === 0) continue
+          ensureTitle()
+          parts.push(...staging)
+          continue
         }
-        parts.push(...staging)
+
+        const jobs = splitExperienceLinesIntoJobs(piece.lines)
+        for (const jobLines of jobs) {
+          // Keep section title as its own block (orphan-title rule). Job bodies
+          // split into job-head (header + first 2 bullets) + bullet pairs so
+          // Berufserfahrung can start filling leftover space under PROFILE.
+          const staging: string[] = []
+          const count = pushEntryPdfChunks(staging, jobLines, renderJob, wrapBody)
+          if (count === 0) continue
+          ensureTitle()
+          parts.push(...staging)
+        }
       }
     }
 
@@ -1732,6 +1791,13 @@ export function ResumePreview({
     const parts: string[] = []
     let sectionTitlePlaced = false
 
+    const ensureTitle = () => {
+      if (!sectionTitlePlaced && sectionTitleHTML) {
+        parts.push(wrapPdfBlock("section-title", sectionTitleHTML))
+        sectionTitlePlaced = true
+      }
+    }
+
     for (const seg of segments) {
       if (seg.type === "manual-page-break") {
         parts.push(
@@ -1740,40 +1806,45 @@ export function ResumePreview({
         continue
       }
 
-      const useSplit =
-        allowBulletSplit &&
-        (sectionHasStructuredEntries(seg.lines) ||
-          seg.lines.filter(isPdfBulletLine).length > 4)
-
-      if (useSplit) {
-        const entries = sectionHasStructuredEntries(seg.lines)
-          ? splitSectionIntoEntryBlocks(seg.lines)
-          : [seg.lines]
-        const asEducation = sectionHasStructuredEntries(seg.lines)
-        for (const entryLines of entries) {
+      for (const piece of splitLinesByMarkdownTables(seg.lines)) {
+        if (piece.type === "table") {
           const staging: string[] = []
-          const count = pushEntryPdfChunks(staging, entryLines, renderLines, wrap, {
-            entryKind: asEducation ? "education-entry" : "job-head",
-          })
-          if (count === 0) continue
-          if (!sectionTitlePlaced && sectionTitleHTML) {
-            parts.push(wrapPdfBlock("section-title", sectionTitleHTML))
-            sectionTitlePlaced = true
-          }
+          pushMarkdownTablePdfChunks(staging, piece.table, wrap)
+          if (staging.length === 0) continue
+          ensureTitle()
           parts.push(...staging)
+          continue
         }
-        continue
-      }
 
-      // Flat short lists: still split title from body so headings are not glued
-      // to an unsplittable slab that leaves blank space on the previous page.
-      if (!sectionTitlePlaced && sectionTitleHTML) {
-        parts.push(wrapPdfBlock("section-title", sectionTitleHTML))
-        sectionTitlePlaced = true
+        const useSplit =
+          allowBulletSplit &&
+          (sectionHasStructuredEntries(piece.lines) ||
+            piece.lines.filter(isPdfBulletLine).length > 4)
+
+        if (useSplit) {
+          const entries = sectionHasStructuredEntries(piece.lines)
+            ? splitSectionIntoEntryBlocks(piece.lines)
+            : [piece.lines]
+          const asEducation = sectionHasStructuredEntries(piece.lines)
+          for (const entryLines of entries) {
+            const staging: string[] = []
+            const count = pushEntryPdfChunks(staging, entryLines, renderLines, wrap, {
+              entryKind: asEducation ? "education-entry" : "job-head",
+            })
+            if (count === 0) continue
+            ensureTitle()
+            parts.push(...staging)
+          }
+          continue
+        }
+
+        // Flat short lists: still split title from body so headings are not glued
+        // to an unsplittable slab that leaves blank space on the previous page.
+        ensureTitle()
+        const body = wrap(renderLines(piece.lines))
+        if (!body.trim()) continue
+        parts.push(wrapPdfBlock("section", body))
       }
-      const body = wrap(renderLines(seg.lines))
-      if (!body.trim()) continue
-      parts.push(wrapPdfBlock("section", body))
     }
 
     if (parts.length === 0 && sectionTitleHTML) {
@@ -2263,14 +2334,24 @@ export function ResumePreview({
     }
 
     const renderATSMarkdown = (lines: string[]): string =>
-      renderHtmlWithColumnBlocks(
+      renderHtmlWithMarkdownTables(
         lines,
-        renderATSMarkdownLines,
-        (columnLines, columns) =>
-          renderCVColumnBlocksHtml(
-            columnLines.map((column) => renderATSMarkdownLines(column)),
-            columns,
+        (chunk) =>
+          renderHtmlWithColumnBlocks(
+            chunk,
+            renderATSMarkdownLines,
+            (columnLines, columns) =>
+              renderCVColumnBlocksHtml(
+                columnLines.map((column) => renderATSMarkdownLines(column)),
+                columns,
+              ),
           ),
+        (table) =>
+          renderMarkdownTableHtml(table, {
+            fontSize: 13,
+            lineHeight: 1.45,
+            linkColor: hexAccentColor,
+          }),
       )
 
     const columnStyle =
@@ -2367,14 +2448,28 @@ export function ResumePreview({
     }
 
     const renderPlainText = (lines: string[]): string =>
-      renderHtmlWithColumnBlocks(
+      renderHtmlWithMarkdownTables(
         lines,
-        renderPlainTextLines,
-        (columnLines, columns) =>
-          renderCVColumnBlocksHtml(
-            columnLines.map((column) => renderPlainTextLines(column)),
-            columns,
+        (chunk) =>
+          renderHtmlWithColumnBlocks(
+            chunk,
+            renderPlainTextLines,
+            (columnLines, columns) =>
+              renderCVColumnBlocksHtml(
+                columnLines.map((column) => renderPlainTextLines(column)),
+                columns,
+              ),
           ),
+        (table) => {
+          const header = table.headers.join(" | ")
+          const rows = table.rows.map((row) => row.join(" | "))
+          return [header, ...rows]
+            .map(
+              (line) =>
+                `<p style="font-size: 12px; margin: 3px 0; line-height: 1.4; color: #000000;">${escapeHtmlText(line)}</p>`,
+            )
+            .join("")
+        },
       )
 
     const columnStyle =
@@ -2440,7 +2535,9 @@ export function ResumePreview({
     return `<section class="pdf-page pdf-page--auto">${label}<div style="${p.columnStyle};width:100%;margin:0;padding:0;box-sizing:border-box;">${p.markedInner}</div></section>`
   }
 
-  const displayPdfHtml = pdfSurfaceHtml ?? buildFallbackSurfaceHtml()
+  const displayPdfHtml = `<style id="cv-md-table-css">${CV_MARKDOWN_TABLE_CSS}</style>${
+    pdfSurfaceHtml ?? buildFallbackSurfaceHtml()
+  }`
 
   const activeIncludeTransparencyPage =
     variant === "export" ? exportIncludeTransparencyPage : includeTransparencyPage

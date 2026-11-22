@@ -227,13 +227,16 @@ export function packPdfBlocks(
     used += blocks[index].height
   }
 
+  const isOrphanCarryKind = (kind: string) =>
+    kind === "section-title" || kind === "table-head"
+
   const flushPage = (keepTrailingSectionTitle: boolean) => {
     if (current.length === 0) return
 
     let carry: number | null = null
     if (
       keepTrailingSectionTitle &&
-      currentKinds[currentKinds.length - 1] === "section-title" &&
+      isOrphanCarryKind(currentKinds[currentKinds.length - 1] ?? "") &&
       current.length > 1
     ) {
       const idx = current.pop()!
@@ -243,7 +246,7 @@ export function packPdfBlocks(
       carry = idx
     }
 
-    if (current.length === 1 && currentKinds[0] === "section-title") {
+    if (current.length === 1 && isOrphanCarryKind(currentKinds[0] ?? "")) {
       if (carry !== null) pushBlock(carry)
       return
     }
@@ -274,7 +277,23 @@ export function packPdfBlocks(
     }
 
     if (current.length > 0 && used + h > maxH + 0.5) {
-      if (current.length === 1 && currentKinds[0] === "section-title") {
+      if (current.length === 1 && isOrphanCarryKind(currentKinds[0] ?? "")) {
+        pushBlock(i)
+        continue
+      }
+      // Keep table header with the first body row when the row would otherwise
+      // start the next page alone (mirrors section-title orphan handling).
+      if (
+        kind === "table-row" &&
+        currentKinds[currentKinds.length - 1] === "table-head" &&
+        current.length > 1
+      ) {
+        const peelIdx = current.pop()!
+        currentKinds.pop()
+        const peelH = currentHeights.pop()!
+        used -= peelH
+        flushPage(true)
+        pushBlock(peelIdx)
         pushBlock(i)
         continue
       }
@@ -416,6 +435,9 @@ export function autoPaginateResumeInnerHtml(
         currentKinds.push(kind)
       }
 
+      const isOrphanCarryKind = (kind: string) =>
+        kind === "section-title" || kind === "table-head"
+
       const flushPage = (keepTrailingSectionTitle: boolean) => {
         if (current.length === 0) return
 
@@ -423,14 +445,14 @@ export function autoPaginateResumeInnerHtml(
         let carryKind: string | null = null
         if (
           keepTrailingSectionTitle &&
-          currentKinds[currentKinds.length - 1] === "section-title" &&
+          isOrphanCarryKind(currentKinds[currentKinds.length - 1] ?? "") &&
           current.length > 1
         ) {
           carryEl = current.pop()!
           carryKind = currentKinds.pop()!
         }
 
-        if (current.length === 1 && currentKinds[0] === "section-title") {
+        if (current.length === 1 && isOrphanCarryKind(currentKinds[0] ?? "")) {
           if (carryEl && carryKind) pushBlock(carryEl, carryKind)
           return
         }
@@ -461,7 +483,20 @@ export function autoPaginateResumeInnerHtml(
         if (current.length > 0) {
           const trialH = measureEls([...current, el])
           if (trialH > maxH + 0.5) {
-            if (current.length === 1 && currentKinds[0] === "section-title") {
+            if (current.length === 1 && isOrphanCarryKind(currentKinds[0] ?? "")) {
+              pushBlock(el, kind)
+              continue
+            }
+            // Keep table header with the first body row across the page break.
+            if (
+              kind === "table-row" &&
+              currentKinds[currentKinds.length - 1] === "table-head" &&
+              current.length > 1
+            ) {
+              const peelEl = current.pop()!
+              const peelKind = currentKinds.pop()!
+              flushPage(true)
+              pushBlock(peelEl, peelKind)
               pushBlock(el, kind)
               continue
             }

@@ -27,7 +27,8 @@ RULES:
 - Keep ALL experience and education entries from the source CV — reword bullets for relevance but never delete entire roles, degrees, employers, institutions, or date lines.
 - If the source CV uses plain text instead of # / ## markers, preserve every role and education entry using proper resume-builder syntax.
 - When compressing or merging multiple roles into one entry: use one # title, ## combined employers, ### spanning dates, then 2–4 bullets synthesizing facts from all merged roles.
-- No bold markdown or other markdown. Use only #, ##, ###, -, ---PAGE BREAK---, and inline links [Label](url).
+- Prefer #, ##, ###, -, ---PAGE BREAK---, inline links [Label](url), optional [columns=2] on section headings, and optional Markdown pipe tables for evidence matrices. Default evidence table: two columns (| Role criterion | Strongest evidence |). Optional third column (| Outcome / Status |) only when instructed — short verifiable labels (e.g. BITV certified, Prototype developed, Pilot proposed), never match percentages. Inside cells, optional **bold** may emphasise a lead phrase. Prefer one criterion and one concise evidence point per row (~40 words).
+- Do not use bold (**), italics (*), or other Markdown outside those supported constructs.
 - Output the entire CV in a single markdown code block (triple backticks) with resume-builder syntax only — no intro text, analysis, or JSON outside the block.`
 
 const RESUME_FORMATTING_RULES_DE = `LEBENLAUF-FORMATIERUNGSREGELN
@@ -49,7 +50,8 @@ REGELN:
 - Jede Berufserfahrung mindestens 2 Stichpunkte (- Zeilen).
 - Alle Rollen und Ausbildungen aus dem Quell-Lebenslauf behalten — Stichpunkte umformulieren, aber keine Einträge löschen.
 - Bei Zusammenführung mehrerer Rollen: ein # Titel, ## kombinierte Arbeitgeber, ### Datumsbereich, 2–4 Stichpunkte.
-- Kein Fettdruck oder anderes Markdown. Nur #, ##, ###, -, ---PAGE BREAK--- und [Label](url).
+- Bevorzugt #, ##, ###, -, ---PAGE BREAK---, [Label](url), optional [columns=2] und optionale Markdown-Tabellen. Standard Evidenztabelle: zwei Spalten (| Rollenkriterium | Stärkster Beleg |). Optionale dritte Spalte (| Ergebnis / Status |) nur auf Anweisung — kurze verifizierbare Labels, keine Match-Prozente. In Zellen optional **fett** für eine Leitphrase. Pro Zeile ein Kriterium und ein knapper Beleg (~40 Wörter).
+- Kein Fettdruck (**) oder sonstiges Markdown außerhalb dieser Konstrukte.
 - Gesamten Lebenslauf in einem Markdown-Codeblock (drei Backticks) ausgeben — nur Resume-Builder-Syntax, kein Begleittext.`
 
 /** Resume-builder syntax and output formatting rules for CV generation. */

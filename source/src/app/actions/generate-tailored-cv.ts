@@ -12,6 +12,13 @@ import { parseError, runTextGenerationWithRetry } from "@/lib/ai/run-text-genera
 import type { StrategicProfile } from "@/lib/strategic-profile"
 import { validateAndSanitizeTailoredCv } from "@/lib/cv-factual-validation"
 import { finalizeTailoredCv, type CvSectionValidation } from "@/lib/cv-tailor-sections"
+import {
+  approvedEvidenceRows,
+  buildEvidenceTableMarkdown,
+  ensureEvidenceTableInCv,
+  type EvidenceAssessmentRow,
+  type EvidenceTableLayout,
+} from "@/lib/evidence-assessment"
 import { COMBINED_PROMPT } from "@/lib/tailored-cv-prompt"
 
 function applyFactualValidation(
@@ -31,6 +38,11 @@ function applyFactualValidation(
     })
   }
   return result.sanitizedCv
+}
+
+function applyEvidenceTable(cvText: string, tableMarkdown: string): string {
+  if (!tableMarkdown.trim()) return cvText
+  return ensureEvidenceTableInCv(cvText, tableMarkdown)
 }
 
 function tryParseCv(
@@ -59,6 +71,9 @@ export type GenerateTailoredCvInput = {
   cvContent: string
   outputLanguage: "en" | "de"
   strategicProfile?: StrategicProfile | null
+  /** User-reviewed evidence rows for Selected Evidence table. */
+  approvedEvidence?: EvidenceAssessmentRow[] | null
+  evidenceTableLayout?: EvidenceTableLayout
 }
 
 export type GenerateTailoredCvResult = {
@@ -98,12 +113,21 @@ export async function generateTailoredCv(
   const cvContent = input.cvContent?.trim() ?? ""
   const outputLanguage = input.outputLanguage === "de" ? "de" : "en"
 
-  const prompt = COMBINED_PROMPT(
-    jobDescription,
-    cvContent,
-    outputLanguage,
-    input.strategicProfile,
-  )
+  const approvedEvidence = approvedEvidenceRows(input.approvedEvidence ?? [])
+  const evidenceTableLayout = input.evidenceTableLayout ?? "two_column"
+  const evidenceTableMarkdown =
+    approvedEvidence.length > 0
+      ? buildEvidenceTableMarkdown(approvedEvidence, {
+          layout: evidenceTableLayout,
+          outputLanguage,
+        })
+      : ""
+
+  const prompt = COMBINED_PROMPT(jobDescription, cvContent, outputLanguage, {
+    strategicProfile: input.strategicProfile,
+    approvedEvidence,
+    evidenceTableLayout,
+  })
 
   if (!jobDescription || !cvContent) {
     return {
@@ -174,7 +198,10 @@ export async function generateTailoredCv(
         console.info(`[${LOG_TAG}] Format retry succeeded`)
         cvText = retryResult.text
         diagnostics = retryResult.diagnostics
-        const sanitized = applyFactualValidation(cvContent, jobDescription, cvText)
+        const sanitized = applyEvidenceTable(
+          applyFactualValidation(cvContent, jobDescription, cvText),
+          evidenceTableMarkdown,
+        )
         const finalized = finalizeTailoredCv({ sourceCv: cvContent, generatedCv: sanitized })
         return {
           success: true,
@@ -207,12 +234,18 @@ export async function generateTailoredCv(
     }
   }
 
-  const sanitizedCv = applyFactualValidation(cvContent, jobDescription, cvText)
+  const sanitizedCv = applyEvidenceTable(
+    applyFactualValidation(cvContent, jobDescription, cvText),
+    evidenceTableMarkdown,
+  )
   let finalized = finalizeTailoredCv({ sourceCv: cvContent, generatedCv: sanitizedCv })
 
   if (!finalized.resumeText.trim() && cvText.trim()) {
     console.warn(`[${LOG_TAG}] Sanitized CV empty after finalize — falling back to parsed text`)
-    finalized = finalizeTailoredCv({ sourceCv: cvContent, generatedCv: cvText })
+    finalized = finalizeTailoredCv({
+      sourceCv: cvContent,
+      generatedCv: applyEvidenceTable(cvText, evidenceTableMarkdown),
+    })
   }
 
   if (finalized.restoredSections.length > 0) {
