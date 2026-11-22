@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { MobileApplicationsList } from "@/components/mobile/mobile-applications-list"
 import { MobileCoverLetters } from "@/components/mobile/mobile-cover-letters"
-import { MobileKeywords } from "@/components/mobile/mobile-keywords"
 import { MobileResumes } from "@/components/mobile/mobile-resumes"
 import { getCvUser, setCvUser, fetchCvUserFromSession } from "@/lib/cv-auth"
 import { normalizeJobApplication } from "@/lib/application-outcome"
@@ -15,10 +14,11 @@ import { ensureSupabaseAuthSession } from "@/lib/supabase/app-auth"
 import { isSupabaseAuthBlocked } from "@/lib/supabase/client-auth-cache"
 import type { JobApplication, ResumeVersion } from "@/lib/types"
 import { cn } from "@/lib/utils"
-import { Briefcase, FileText, KeyRound, Mail } from "lucide-react"
+import { Briefcase, FileText, Mail } from "lucide-react"
 
-type MobileTab = "applications" | "resume" | "coverLetter" | "keywords"
+type MobileTab = "applications" | "resume" | "coverLetter"
 
+/** Phone bottom tabs — Keywords retired with desktop keyword-matches nav cleanup. */
 const TABS: {
   id: MobileTab
   label: string
@@ -27,7 +27,6 @@ const TABS: {
   { id: "applications", label: "Apps", icon: Briefcase },
   { id: "resume", label: "Resume", icon: FileText },
   { id: "coverLetter", label: "Letter", icon: Mail },
-  { id: "keywords", label: "Keywords", icon: KeyRound },
 ]
 
 type MobileAppProps = {
@@ -196,14 +195,13 @@ export function MobileApp({
             onOpenResumeConsumed={() => setOpenLetterResumeId(null)}
           />
         ) : null}
-        {tab === "keywords" ? <MobileKeywords applications={applications} /> : null}
       </div>
 
       <nav
         className="shrink-0 border-t border-zinc-200 bg-white pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1"
         aria-label="Mobile navigation"
       >
-        <ul className="grid grid-cols-4">
+        <ul className="grid grid-cols-3">
           {TABS.map(({ id, label, icon: Icon }) => {
             const active = tab === id
             return (
