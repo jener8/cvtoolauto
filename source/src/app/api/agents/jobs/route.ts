@@ -28,6 +28,8 @@ export type AgentJobListItem = {
   gmailMessageId: string | null
   sendingStartedAt: string | null
   relevance: AgentRelevancePayload | Record<string, unknown>
+  /** Included when GET ?fields=description */
+  description?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -64,6 +66,7 @@ export async function GET(request: Request) {
   const { ctx } = gate
   const { searchParams } = new URL(request.url)
   const statusParam = searchParams.get("status")?.trim()
+  const includeDescription = searchParams.get("fields")?.includes("description") === true
   const statuses = statusParam
     ? statusParam
         .split(",")
@@ -74,11 +77,12 @@ export async function GET(request: Request) {
     : DEFAULT_STATUSES
 
   try {
+    const selectCols = includeDescription
+      ? "id, status, kind, apply_method, title, location, language, url, source, relevance, description, posted_at, email_to, reject_reason, gmail_message_id, sending_started_at, created_at, updated_at, company_id"
+      : "id, status, kind, apply_method, title, location, language, url, source, relevance, posted_at, email_to, reject_reason, gmail_message_id, sending_started_at, created_at, updated_at, company_id"
     const { data, error } = await ctx.supabase
       .from("agent_jobs")
-      .select(
-        "id, status, kind, apply_method, title, location, language, url, source, relevance, posted_at, email_to, reject_reason, gmail_message_id, sending_started_at, created_at, updated_at, company_id",
-      )
+      .select(selectCols)
       .eq("user_id", ctx.userId)
       .in("status", statuses)
       .order("updated_at", { ascending: false })
@@ -130,6 +134,9 @@ export async function GET(request: Request) {
         gmailMessageId: (row.gmail_message_id as string | null) ?? null,
         sendingStartedAt: (row.sending_started_at as string | null) ?? null,
         relevance: (row.relevance as AgentRelevancePayload | Record<string, unknown>) ?? {},
+        description: includeDescription
+          ? ((row.description as string | null) ?? null)
+          : undefined,
         createdAt: row.created_at as string,
         updatedAt: row.updated_at as string,
       }

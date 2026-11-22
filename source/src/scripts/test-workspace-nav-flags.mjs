@@ -40,6 +40,11 @@ assert.match(
   /"careerProfile"/,
   "careerProfile (Career Profile) must be enabled",
 )
+assert.match(
+  enabledActiveLines,
+  /"liveJobs"/,
+  "liveJobs (Discover Jobs) must be enabled",
+)
 
 for (const id of [
   "careerHome",

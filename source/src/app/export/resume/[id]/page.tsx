@@ -65,14 +65,10 @@ export default async function ExportResumePage({
     aiAssistanceEnabled: provenance.aiAssistanceEnabled,
   })
 
-  // The export route renders the SAME HTML that the on-screen preview
-  // renders — `<ResumePreview variant="export">` produces a stack of
-  // `<section class="pdf-page">` wrappers, each one a fixed 210mm × 297mm
-  // A4 page (rules live in app/globals.css). We deliberately do NOT
-  // re-wrap them here in a 210mm container, because each .pdf-page is
-  // already 210mm and we want one printed page per .pdf-page. The
-  // `@page` declaration is also in globals.css; Playwright is invoked
-  // with `preferCSSPageSize: true` so it honors it.
+  // Same HTML as the on-screen preview: a stack of `<section class="pdf-page">`
+  // sheets. Print margins come only from `@page { margin: 15mm }` in globals.css
+  // (Playwright: preferCSSPageSize + zero engine margins). Do not re-wrap or
+  // re-pad pages here — double insets / max-height caused Chrome/Safari mismatches.
   return (
     <>
       {exportIncludeMetadata ? <ExportPdfMetadata content={exportMeta.pdfMeta} /> : null}

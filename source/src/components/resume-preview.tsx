@@ -1001,8 +1001,9 @@ export function ResumePreview({
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
           <link href="${presetConfig.googleFontsHref}" rel="stylesheet" />
           <style>
+            /* Sole print margin source — match app/globals.css (do not also pad .pdf-page). */
             @page {
-              size: A4;
+              size: A4 portrait;
               margin: 15mm;
             }
 
@@ -1013,21 +1014,24 @@ export function ResumePreview({
             }
 
             html, body {
-              margin: 0;
-              padding: 0;
+              margin: 0 !important;
+              padding: 0 !important;
+              width: auto !important;
+              height: auto !important;
               background: #ffffff;
               color: #000000;
             }
 
-            /* Mirrors globals.css — @page margins provide safe area on every sheet. */
+            /* Mirrors globals.css — @page margins only; no max-height (Safari blank sheets). */
             .pdf-page {
               width: 100%;
               height: auto;
-              max-height: 267mm;
+              max-height: none;
+              min-height: 0;
               box-sizing: border-box;
-              padding: 0;
+              padding: 0 !important;
               margin: 0;
-              overflow: hidden;
+              overflow: visible;
               background: #ffffff;
               position: relative;
               page-break-after: always;
@@ -1036,7 +1040,9 @@ export function ResumePreview({
 
             @media print {
               .pdf-page {
-                overflow: hidden;
+                overflow: visible;
+                max-height: none;
+                padding: 0 !important;
                 break-after: page;
                 page-break-after: always;
               }
@@ -1044,6 +1050,10 @@ export function ResumePreview({
               .pdf-page .resume-section-block {
                 break-inside: auto;
                 page-break-inside: auto;
+              }
+
+              .export-transparency-appendix {
+                padding: 0 !important;
               }
             }
             .pdf-page:last-child {

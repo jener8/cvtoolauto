@@ -193,9 +193,9 @@ function jobLines(bulletCount: number, title = "Engineer"): string[] {
   assert.equal(r.pages.length, 2, "absorb must not merge across manual page breaks")
 }
 
-// --- Content max height uses 15mm + 15mm margins ---
+// --- Content max height uses 15mm + 15mm margins − 3mm pack safety ---
 {
-  const expected = ((297 - 15 - 15) * 96) / 25.4
+  const expected = ((297 - 15 - 15 - 3) * 96) / 25.4
   assert.ok(Math.abs(maxH - expected) < 0.5, `maxH ${maxH} vs expected ${expected}`)
 }
 

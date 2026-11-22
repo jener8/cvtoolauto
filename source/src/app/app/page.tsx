@@ -51,6 +51,10 @@ import { OpportunitiesSection } from "@/components/application-intelligence/oppo
 import { CareerBrainSection } from "@/components/application-intelligence/career-brain-section"
 import { RoleMatchesPage } from "@/components/application-intelligence/role-matches-page"
 import { CareerProfilePage } from "@/components/application-intelligence/career-profile-page"
+import {
+  DiscoverJobsPage,
+  type DiscoverJobsOpenPayload,
+} from "@/components/application-intelligence/discover-jobs-page"
 import { AiCoachPage } from "@/components/application-intelligence/ai-coach-page"
 import { ScenarioLabPage } from "@/components/scenario-lab/scenario-lab-page"
 import { SettingsHub } from "@/components/application-intelligence/settings-hub"
@@ -259,6 +263,7 @@ type AppView =
   | "careerBrain"
   | "careerProfile"
   | "roleMatches"
+  | "liveJobs"
   | "scenarioLab"
   | "aiCoach"
   | "settings"
@@ -5453,6 +5458,7 @@ export default function Home() {
       view === "careerBrain" ||
       view === "careerProfile" ||
       view === "roleMatches" ||
+      view === "liveJobs" ||
       view === "scenarioLab" ||
       view === "aiCoach" ||
       view === "settings" ||
@@ -5538,6 +5544,7 @@ export default function Home() {
             strategicProfile={strategicProfile}
             onNavigateCareerBrain={() => handleWorkspaceNavigate("careerBrain")}
             onNavigateRoleStrategy={() => handleWorkspaceNavigate("roleMatches")}
+            onNavigateDiscoverJobs={() => handleWorkspaceNavigate("liveJobs")}
           />
         ) : null}
         {view === "roleMatches" ? (
@@ -5549,6 +5556,28 @@ export default function Home() {
             qualificationProfile={qualificationProfile}
             onNavigateCareerBrain={() => handleWorkspaceNavigate("careerBrain")}
             onNavigateCareerProfile={() => handleWorkspaceNavigate("careerProfile")}
+          />
+        ) : null}
+        {view === "liveJobs" ? (
+          <DiscoverJobsPage
+            folderId={currentFolderId}
+            strategicProfile={strategicProfile}
+            onNavigateCareerProfile={() => handleWorkspaceNavigate("careerProfile")}
+            onNavigateRoleStrategy={() => handleWorkspaceNavigate("roleMatches")}
+            onOpenInApplications={async (payload: DiscoverJobsOpenPayload) => {
+              const fields = emptyJobApplicationFields({
+                jobTitle: payload.jobTitle,
+                company: payload.company,
+                location: payload.location,
+                jobDescription: payload.jobDescription,
+                jobDescriptionUrl: payload.jobDescriptionUrl || "",
+                resumeVersionId: "",
+                why: payload.agentJobId
+                  ? `Opened from Discover Jobs (agentJobId: ${payload.agentJobId})`
+                  : "Opened from Discover Jobs",
+              })
+              await handleOpenJobApplication(fields)
+            }}
           />
         ) : null}
         {view === "scenarioLab" ? (

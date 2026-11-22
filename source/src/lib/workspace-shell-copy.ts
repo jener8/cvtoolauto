@@ -106,6 +106,7 @@ export const SECTION_PAGE_H1: Record<string, string> = {
   aiCoach: "Ask your career coach",
   careerHome: "Home",
   roleMatches: "Role Strategy",
+  liveJobs: "Discover Jobs",
   scenarioLab: "Analyse laboratory",
 }
 

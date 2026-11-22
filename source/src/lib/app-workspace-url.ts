@@ -12,6 +12,7 @@ export const RESTORABLE_APP_VIEWS = [
   "careerBrain",
   "careerProfile",
   "roleMatches",
+  "liveJobs",
   "scenarioLab",
   "aiCoach",
   "settings",

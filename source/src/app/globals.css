@@ -3939,15 +3939,23 @@
    PDF + Resume Layout
 ============================================================ */
 
-/* Page margins apply on every printed sheet (including continuations). */
+/*
+  Authoritative print margins for CV A4 sheets.
+  Do not also pad `.pdf-page` in @media print — that double-applies insets
+  (Chrome) or fights max-height packing (Safari blank sheets).
+*/
 @page {
-  size: A4;
+  size: A4 portrait;
   margin: 15mm;
 }
 
 @media print {
+  html,
   body {
-    margin: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    height: auto !important;
     background: #ffffff;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
@@ -3973,8 +3981,9 @@
 ============================================================ */
 
 /*
-  Print: one JS-packed sheet fills the @page content box (no extra padding,
-  no fixed 297mm height — that combo caused Chromium blank pages on overflow).
+  Print: one JS-packed sheet per .pdf-page; @page supplies 15mm margins.
+  No fixed 297mm height, no print max-height, no print padding on this box —
+  those caused Chromium blank overflow pages and Safari empty middle sheets.
   Screen: full A4 card with 15mm padding to mirror @page margins.
 */
 .pdf-page {
@@ -3988,7 +3997,7 @@
   color: #000000;
 
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 
   break-after: page;
   page-break-after: always;
@@ -4055,12 +4064,14 @@
   .pdf-page {
     width: 100%;
     height: auto;
-    max-height: 267mm; /* 297mm − 15mm − 15mm @page margins */
-    padding: 0;
+    max-height: none;
+    min-height: 0;
+    padding: 0 !important;
     margin: 0;
     box-shadow: none;
     outline: none;
-    overflow: hidden;
+    /* visible: Safari must not invent an empty sheet from clipped overflow */
+    overflow: visible;
 
     break-after: page;
     page-break-after: always;
@@ -4071,10 +4082,34 @@
     overflow: visible;
   }
 
+  .pdf-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  /* Appendix pages that still carry screen padding must not double @page insets. */
+  .export-transparency-appendix {
+    padding: 0 !important;
+  }
+
   /* Pagination is pre-computed in JS — do not let print reflow large wrappers. */
   .pdf-page .resume-section-block {
     break-inside: auto;
     page-break-inside: auto;
+  }
+
+  /*
+    Keep small units together when they fit; if WebKit cannot, allow a split
+    rather than leaving a blank band before an experience entry.
+  */
+  .pdf-block-keep-together,
+  .pdf-resume-block[data-pdf-block="job-head"],
+  .pdf-resume-block[data-pdf-block="skill-item"],
+  .pdf-resume-block[data-pdf-block="education-entry"],
+  .pdf-resume-block[data-pdf-block="table-row"],
+  .pdf-resume-block[data-pdf-block="table-head"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
 

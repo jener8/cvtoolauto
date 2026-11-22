@@ -22,6 +22,7 @@ export const ENABLED_WORKSPACE_NAV_IDS: ReadonlySet<WorkspaceNavId> = new Set([
   "careerProfile", // Career Profile — prefs, direction, Automate settings
   "careerBrain", // My story — strategic-profile feeds CV / cover letter / app flow
   "roleMatches", // Role Strategy — career directions from story + CV
+  "liveJobs", // Discover Jobs — live vacancies → applications / CV
   // "careerHome",
   // "recognitionPathways",
   // "workplaceGerman",

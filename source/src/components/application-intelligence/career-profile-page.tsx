@@ -28,7 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Settings2, Sparkles } from "lucide-react"
+import { Search, Settings2, Sparkles } from "lucide-react"
 import "./career-profile-page.css"
 
 const EMPLOYMENT_OPTIONS: Array<{ id: EmploymentPreference; label: string }> = [
@@ -50,12 +50,14 @@ type CareerProfilePageProps = {
   strategicProfile: StrategicProfile | null
   onNavigateCareerBrain: () => void
   onNavigateRoleStrategy: () => void
+  onNavigateDiscoverJobs?: () => void
 }
 
 export function CareerProfilePage({
   strategicProfile,
   onNavigateCareerBrain,
   onNavigateRoleStrategy,
+  onNavigateDiscoverJobs,
 }: CareerProfilePageProps) {
   usePageTitle(pageTitleForSection("careerProfile"))
 
@@ -177,7 +179,17 @@ export function CareerProfilePage({
           </p>
         </div>
         <div className="career-profile-page__automate-actions">
-          <button type="button" className="career-profile-page__btn career-profile-page__btn--primary" onClick={openAutomate}>
+          {onNavigateDiscoverJobs ? (
+            <button
+              type="button"
+              className="career-profile-page__btn career-profile-page__btn--primary"
+              onClick={onNavigateDiscoverJobs}
+            >
+              <Search className="h-4 w-4" aria-hidden />
+              Discover Jobs
+            </button>
+          ) : null}
+          <button type="button" className="career-profile-page__btn" onClick={openAutomate}>
             <Settings2 className="h-4 w-4" aria-hidden />
             Automate
           </button>
@@ -465,8 +477,8 @@ export function CareerProfilePage({
           <DialogHeader>
             <DialogTitle>Automate opportunity discovery</DialogTitle>
             <DialogDescription>
-              Configure personalised discovery. Nothing runs in the background until you confirm
-              settings — and scheduled searches stay off until Job Discovery is ready.
+              Configure personalised discovery preferences. Use Discover Jobs for a manual search
+              now — scheduled background runs stay off until automation Phase 3 is complete.
             </DialogDescription>
           </DialogHeader>
 

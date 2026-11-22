@@ -35,6 +35,7 @@ assert(/splitEntryLinesIntoPdfChunks/.test(paginationSource), "missing splitEntr
 assert(/packPdfBlocks/.test(paginationSource), "missing packPdfBlocks")
 assert(/"job-head"/.test(paginationSource), "missing job-head kind")
 assert(/PDF_PAGE_MARGIN_TOP_MM = 15/.test(paginationSource), "page margins must be 15mm")
+assert(/PDF_PAGE_PACK_SAFETY_MM = 3/.test(paginationSource), "pack safety must be 3mm")
 assert(/pdf-job-continuation--page-start/.test(paginationSource), "page-start continuation class missing")
 
 assert(/PDF_KEEP_TOGETHER_BLOCKS = new Set\(\[[\s\S]*?"job-head"/.test(previewSource), "keep job-head")
@@ -48,6 +49,14 @@ assert(/PDF_KEEP_TOGETHER_BLOCKS = new Set\(\[[\s\S]*?"job-head"/.test(previewSo
 assert(/pdf-job-continuation/.test(previewSource), "resume-preview must emit pdf-job-continuation")
 assert(/pdf-job-continuation/.test(cssSource), "globals.css must style pdf-job-continuation")
 assert(/margin:\s*15mm/.test(cssSource), "@page margins must be 15mm")
+assert(
+  !/max-height:\s*267mm/.test(cssSource),
+  "print .pdf-page must not use max-height:267mm (Safari blank pages)",
+)
+assert(
+  !/max-height:\s*267mm/.test(previewSource),
+  "print popup must not use max-height:267mm",
+)
 assert(/resume-section-block\s*\{\s*break-inside:\s*auto/.test(cssSource), "sections must not keep-together")
 assert(/splitEntryLinesIntoPdfChunks/.test(previewSource), "resume-preview must use splitEntryLinesIntoPdfChunks")
 assert(/renderSkillItemsPdfBlocks/.test(previewSource), "skills must split into per-item PDF blocks")

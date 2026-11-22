@@ -9,6 +9,7 @@ import {
   IconListCheck,
   IconMap2,
   IconRobot,
+  IconSearch,
   IconTestPipe,
   IconTrendingUp,
   IconUserHeart,
@@ -23,6 +24,7 @@ export type WorkspaceNavId =
   | "careerProfile"
   | "careerBrain"
   | "roleMatches"
+  | "liveJobs"
   | "applications"
   | "recognitionPathways"
   | "workplaceGerman"
@@ -82,6 +84,13 @@ export const WORKSPACE_NAV_ITEMS: WorkspaceNavItem[] = [
     label: "Role Strategy",
     subtext: "Directions your experience opens",
     icon: IconCrosshair,
+    group: "whereIAmNow",
+  },
+  {
+    id: "liveJobs",
+    label: "Discover Jobs",
+    subtext: "Live vacancies for your profile",
+    icon: IconSearch,
     group: "whereIAmNow",
   },
   {
@@ -166,6 +175,7 @@ export type AppSectionView =
   | "careerProfile"
   | "careerBrain"
   | "roleMatches"
+  | "liveJobs"
   | "statistics"
   | "scenarioLab"
   | "aiCoach"
@@ -205,6 +215,8 @@ export function workspaceNavFromView(view: AppSectionView): WorkspaceNavId {
       return "careerBrain"
     case "roleMatches":
       return "roleMatches"
+    case "liveJobs":
+      return "liveJobs"
     case "statistics":
       return "progress"
     case "scenarioLab":
@@ -237,6 +249,8 @@ export function viewFromWorkspaceNav(id: WorkspaceNavId): AppSectionView {
       return "careerBrain"
     case "roleMatches":
       return "roleMatches"
+    case "liveJobs":
+      return "liveJobs"
     case "applications":
       return "dashboard"
     case "recognitionPathways":

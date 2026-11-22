@@ -1,0 +1,202 @@
+.discover-jobs-page {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.discover-jobs-page__header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.discover-jobs-page__header p {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: var(--muted-foreground);
+  line-height: 1.45;
+  max-width: 40rem;
+}
+
+.discover-jobs-page__panel {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--card);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.discover-jobs-page__meta {
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.discover-jobs-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.discover-jobs-page__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2.25rem;
+  padding: 0 0.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--background);
+  font-size: 0.875rem;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.discover-jobs-page__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.discover-jobs-page__btn--primary {
+  background: var(--foreground);
+  color: var(--background);
+  border-color: var(--foreground);
+}
+
+.discover-jobs-page__btn--ghost {
+  background: transparent;
+}
+
+.discover-jobs-page__alert {
+  border: 1px solid color-mix(in oklab, var(--border) 70%, #d97706);
+  background: color-mix(in oklab, #fef3c7 55%, var(--card));
+  color: var(--foreground);
+  border-radius: 0.75rem;
+  padding: 0.9rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.discover-jobs-page__alert code {
+  font-size: 0.8em;
+}
+
+.discover-jobs-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.discover-jobs-page__card {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--card);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.discover-jobs-page__card--dismissed {
+  opacity: 0.55;
+}
+
+.discover-jobs-page__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.discover-jobs-page__company {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.discover-jobs-page__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.discover-jobs-page__chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  padding: 0.15rem 0.45rem;
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+  background: var(--muted);
+}
+
+.discover-jobs-page__chip--fit {
+  border-color: color-mix(in oklab, #059669 40%, var(--border));
+  color: #047857;
+  background: color-mix(in oklab, #ecfdf5 70%, var(--card));
+}
+
+.discover-jobs-page__chip--gap {
+  border-color: color-mix(in oklab, #d97706 35%, var(--border));
+  color: #92400e;
+  background: color-mix(in oklab, #fffbeb 70%, var(--card));
+}
+
+.discover-jobs-page__why {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--foreground);
+}
+
+.discover-jobs-page__why-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+  margin-bottom: 0.2rem;
+}
+
+.discover-jobs-page__verified {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.discover-jobs-page__empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+}
+
+.discover-jobs-page__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.discover-jobs-page__filter {
+  border: 1px solid var(--border);
+  background: var(--background);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.discover-jobs-page__filter--active {
+  border-color: var(--foreground);
+  color: var(--foreground);
+  background: var(--muted);
+}

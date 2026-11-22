@@ -27,13 +27,20 @@ export interface AutoPaginateOptions {
 
 /**
  * Must match `@page` margins in `app/globals.css` (and screen `.pdf-page` padding).
- * Content area = A4 minus these margins — no extra padding on printed pages.
+ * Print margins come from `@page` only — never also pad `.pdf-page` in print.
+ * Content area = A4 minus these margins (minus pack safety).
  */
 export const PDF_PAGE_MARGIN_TOP_MM = 15
 export const PDF_PAGE_MARGIN_BOTTOM_MM = 15
 export const PDF_PAGE_MARGIN_X_MM = 15
 export const PDF_PAGE_HEIGHT_MM = 297
 export const PDF_PAGE_WIDTH_MM = 210
+/**
+ * Leave a small unused band inside the content box so WebKit/Chrome font metrics
+ * that run slightly taller than the measurer do not overflow a sheet (Safari
+ * blank middle pages often came from CSS max-height + overflow clipping).
+ */
+export const PDF_PAGE_PACK_SAFETY_MM = 3
 
 /** @deprecated Use PDF_PAGE_MARGIN_TOP_MM — kept for older imports. */
 export const PDF_PAGE_PADDING_TOP_MM = PDF_PAGE_MARGIN_TOP_MM
@@ -42,7 +49,13 @@ export const PDF_PAGE_PADDING_BOTTOM_MM = PDF_PAGE_MARGIN_BOTTOM_MM
 
 /** Vertical space inside one A4 page for flowing content. */
 export function pdfPageContentMaxHeightPx(): number {
-  return (PDF_PAGE_HEIGHT_MM - PDF_PAGE_MARGIN_TOP_MM - PDF_PAGE_MARGIN_BOTTOM_MM) * MM_TO_PX
+  return (
+    (PDF_PAGE_HEIGHT_MM -
+      PDF_PAGE_MARGIN_TOP_MM -
+      PDF_PAGE_MARGIN_BOTTOM_MM -
+      PDF_PAGE_PACK_SAFETY_MM) *
+    MM_TO_PX
+  )
 }
 
 /** Content column width inside one A4 page (between side margins). */
