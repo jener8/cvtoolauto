@@ -140,6 +140,7 @@ function minimalContact(contact: ResumeVersion["contactInfo"]): Record<string, u
   put("tc", c.targetCompany)
   put("tr", c.targetRole)
   put("ja", c.jobAdvertSource)
+  if (c.showEmploymentDuration === true) out.sed = true
   return out
 }
 
@@ -160,6 +161,7 @@ function expandContact(raw: Record<string, unknown> | undefined): ResumeVersion[
     targetRole: (raw.tr as string) ?? "",
     jobAdvertSource: (raw.ja as string) ?? "",
     portfolio: (raw.po as string) ?? "",
+    showEmploymentDuration: raw.sed === true,
   })
 }
 
@@ -291,7 +293,8 @@ function wireToCompact(raw: unknown): CompactResumeRecord | null {
       contactInfo: expandContact(w.c),
       accentColor: w.ac,
       accentColorHex: w.ah,
-      profilePhotoBorder: w.pb,
+      // Omit pb → default On (preserve existing CV appearance).
+      profilePhotoBorder: w.pb !== false,
       targetBoxBgColor: w.bg,
       targetBoxBorderColor: w.bc,
       jobDescription: w.j,
@@ -360,7 +363,7 @@ export function expandCompactResume(compact: CompactResumeRecord): ResumeVersion
     contactInfo: compact.contactInfo,
     accentColor: compact.accentColor,
     accentColorHex: compact.accentColorHex,
-    profilePhotoBorder: compact.profilePhotoBorder,
+    profilePhotoBorder: compact.profilePhotoBorder !== false,
     targetBoxBgColor: compact.targetBoxBgColor,
     targetBoxBorderColor: compact.targetBoxBorderColor,
     jobDescription: compact.jobDescription,

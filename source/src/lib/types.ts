@@ -257,6 +257,12 @@ export interface ResumeVersion {
     /** Up to 3 portfolio / website URLs shown on the resume */
     portfolios: string[]
     showPortfolio: boolean
+    /**
+     * When true, employment date lines show calculated duration
+     * (e.g. “January 2021 – February 2024 (3 years, 1 month)”).
+     * Default false — preserves existing CV appearance.
+     */
+    showEmploymentDuration?: boolean
     professionalTitle: string
     name: string // Adding name field to store user's name
     language: "en" | "de" // Adding language preference for contact info labels

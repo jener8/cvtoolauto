@@ -4,7 +4,7 @@ import type { CvReviewInsights } from "@/lib/cv-review-insights"
 import { cn } from "@/lib/utils"
 
 export function CvScorePopoverContent({ insights }: { insights: CvReviewInsights }) {
-  const { score, factors, suggestions } = insights
+  const { score, factors, suggestions, jobAlignment } = insights
 
   return (
     <div className="formatter-score-explainer">
@@ -15,8 +15,8 @@ export function CvScorePopoverContent({ insights }: { insights: CvReviewInsights
         <div>
           <p className="formatter-score-explainer__title">CV readiness score</p>
           <p className="formatter-score-explainer__subtitle">
-            Based on structure, content, and how well your resume is set up for applications.
-            Scores are capped at 96.
+            Structural completeness and evidence quality — not a prediction of interviews or ATS
+            pass rates. Scores are capped at 96.
           </p>
         </div>
       </div>
@@ -63,6 +63,20 @@ export function CvScorePopoverContent({ insights }: { insights: CvReviewInsights
               </li>
             ))}
           </ul>
+        </div>
+      ) : null}
+
+      {jobAlignment ? (
+        <div className="formatter-score-explainer__suggestions">
+          <p className="formatter-popover-eyebrow">Job alignment (separate)</p>
+          <p className="formatter-score-factor__detail">{jobAlignment.detail}</p>
+          {jobAlignment.suggestion ? (
+            <ul className="formatter-score-suggestion-list">
+              <li className="formatter-score-suggestion formatter-score-suggestion--warning">
+                {jobAlignment.suggestion}
+              </li>
+            </ul>
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -313,7 +313,7 @@ export function ResumeFormatterSidebar(props: ResumeFormatterSidebarProps) {
             <FormatterSidebarRow
               icon={UserCircle}
               title="Profile photo"
-              subtitle="Upload · outline toggle"
+              subtitle="Upload · avatar border"
               active={activePopover === "profile-photo"}
               onClick={() => openRow("profile-photo")}
             />
@@ -569,7 +569,8 @@ export function ResumeFormatterSidebar(props: ResumeFormatterSidebarProps) {
           ) : null}
         </div>
         <FormatterToggleRow
-          label="Show photo outline on resume"
+          label="Show avatar border"
+          description="Accent-coloured outline around the profile photo"
           checked={profilePhotoBorder}
           onChange={setProfilePhotoBorder}
         />

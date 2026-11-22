@@ -461,6 +461,13 @@ export default function ResumeInput({
   const [companyLogo, setCompanyLogo] = useState<string | null>(
     initialVersion?.companyLogo || null,
   );
+
+  // Keep dialog preview in sync with parent (load / remove / remote restore).
+  // Compare by value so a live `null` after Remove is not overwritten incorrectly.
+  useEffect(() => {
+    const next = initialVersion?.companyLogo ?? null;
+    setCompanyLogo((prev) => (prev === next ? prev : next));
+  }, [initialVersion?.companyLogo]);
   const [contactInfo, setContactInfo] = useState<ContactInfo>(() => {
     const base = normalizeContactInfo(initialVersion?.contactInfo);
     const bodyLanguage = detectResumeBodyLanguage(
@@ -911,9 +918,24 @@ export default function ResumeInput({
   const [targetBoxBorderColor, setTargetBoxBorderColor] = useState<string>(
     initialVersion?.targetBoxBorderColor || "",
   );
+
+  useEffect(() => {
+    const nextBg = initialVersion?.targetBoxBgColor || "#f8f9fa";
+    setTargetBoxBgColor((prev) => (prev === nextBg ? prev : nextBg));
+  }, [initialVersion?.targetBoxBgColor]);
+
+  useEffect(() => {
+    const nextBorder = initialVersion?.targetBoxBorderColor || "";
+    setTargetBoxBorderColor((prev) => (prev === nextBorder ? prev : nextBorder));
+  }, [initialVersion?.targetBoxBorderColor]);
   const [profilePhotoBorder, setProfilePhotoBorder] = useState<boolean>(
     initialVersion?.profilePhotoBorder !== false,
   );
+
+  useEffect(() => {
+    const next = initialVersion?.profilePhotoBorder !== false;
+    setProfilePhotoBorder((prev) => (prev === next ? prev : next));
+  }, [initialVersion?.profilePhotoBorder]);
 
   const cvReviewInsights = useMemo(
     () =>

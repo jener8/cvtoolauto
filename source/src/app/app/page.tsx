@@ -5886,7 +5886,9 @@ export default function Home() {
                       return {
                         resumeText: resumeText || currentVersion.resumeText,
                         profileImage: profileImage ?? currentVersion.profileImage,
-                        companyLogo: companyLogo ?? currentVersion.companyLogo,
+                        // Prefer live editor state so upload/remove update immediately
+                        // (null must not fall back to the saved logo).
+                        companyLogo,
                         accentColor: accentColor || currentVersion.accentColor,
                         accentColorHex: accentColorHex || currentVersion.accentColorHex,
                         targetBoxBgColor,
@@ -5899,7 +5901,7 @@ export default function Home() {
                     return {
                       resumeText: resumeText || "",
                       profileImage: folderProfileImage ?? profileImage,
-                      companyLogo: null,
+                      companyLogo,
                       accentColor: accentColor || "oklch(65% .15 85)",
                       accentColorHex: accentColorHex || "#b89968",
                       targetBoxBgColor,
@@ -5962,6 +5964,10 @@ export default function Home() {
                 versionHistory: currentVersion?.versionHistory,
                 aiAuditLog: currentVersion?.aiAuditLog,
                 aiProvenance: currentVersion?.aiProvenance,
+                onContactInfoChange: (info) => {
+                  setContactInfo(normalizeContactInfo(info, folderContactFallback))
+                  setHasUnsavedChanges(true)
+                },
               }}
               onOpenCoverLetter={handleOpenCoverLetterFromResume}
               hasSavedCoverLetter={hasResumeCoverLetterRecord(currentVersion?.coverLetter)}

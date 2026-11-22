@@ -175,6 +175,7 @@ export function defaultResumeContactInfo(
     address: "",
     citizenship: "",
     showPortfolio: false,
+    showEmploymentDuration: false,
     professionalTitle: "",
     language: "en" as const,
     targetCompany: "",
@@ -188,6 +189,7 @@ export function defaultResumeContactInfo(
     portfolios,
     portfolio: portfolios[0] ?? "",
     showPortfolio: resolveShowPortfolio(merged, portfolios),
+    showEmploymentDuration: merged.showEmploymentDuration === true,
   }
 }
 
@@ -233,6 +235,9 @@ export function normalizeContactInfo(
     portfolios,
     portfolio: portfolios[0] ?? "",
     showPortfolio: resolveShowPortfolio(source, portfolios),
+    showEmploymentDuration:
+      source.showEmploymentDuration === true ||
+      source.show_employment_duration === true,
     professionalTitle: pickString(
       source.professionalTitle,
       source.professional_title,

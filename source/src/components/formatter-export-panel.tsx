@@ -105,10 +105,14 @@ export function FormatterSettingsPanel({
   humanFormatStyle,
   onHumanFormatStyleChange,
   cvStyleOptions,
+  showEmploymentDuration = false,
+  onShowEmploymentDurationChange,
 }: {
   humanFormatStyle: string
   onHumanFormatStyleChange: (id: string) => void
   cvStyleOptions: { id: string; name: string; desc: string }[]
+  showEmploymentDuration?: boolean
+  onShowEmploymentDurationChange?: (checked: boolean) => void
 }) {
   return (
     <>
@@ -135,6 +139,17 @@ export function FormatterSettingsPanel({
           })}
         </div>
       </FormatterPopoverSection>
+
+      {onShowEmploymentDurationChange ? (
+        <FormatterPopoverSection label="Dates">
+          <FormatterToggleRow
+            label="Show employment duration"
+            description="Display years and months alongside employment dates to make career timelines easier to understand."
+            checked={showEmploymentDuration}
+            onChange={onShowEmploymentDurationChange}
+          />
+        </FormatterPopoverSection>
+      ) : null}
     </>
   )
 }
