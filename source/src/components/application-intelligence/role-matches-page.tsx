@@ -5,42 +5,24 @@ import { storySectionsCompleted } from "@/lib/career-story-sections"
 import type { StrategicProfile } from "@/lib/strategic-profile"
 import type { JobApplication, ResumeVersion } from "@/lib/types"
 import type { QualificationProfile } from "@/lib/qualification-profile/types"
-import { hasQualificationProfileContent } from "@/lib/qualification-profile/storage"
 import { pageTitleForSection } from "@/lib/workspace-shell-copy"
 import { usePageTitle } from "@/hooks/use-page-title"
+import { useHomeRoleMatch, type RoleMatchCardModel } from "@/hooks/use-home-role-match"
 import { cn } from "@/lib/utils"
 import {
   Bookmark,
   Briefcase,
-  Check,
   Compass,
-  Copy,
+  Loader2,
   Scale,
   Sparkles,
   Target,
-  X,
 } from "lucide-react"
 import { HomeRoleSearch } from "@/components/application-intelligence/home-role-search"
-import {
-  buildExploreKeywordCluster,
-  extractKeywordClusters,
-  toKeywordCardModels,
-} from "@/lib/search-keywords/extract"
-import type { KeywordCardModel, KeywordCluster } from "@/lib/search-keywords/types"
-import {
-  isKeywordSaved,
-  loadSavedKeywords,
-  saveSavedKeywords,
-  toggleSavedKeyword,
-} from "@/lib/search-keywords/saved-storage"
 import "./role-match-section.css"
 import "./role-matches-page.css"
 
 const CARD_ICONS = [Scale, Briefcase, Target, Compass, Sparkles] as const
-
-function exploreStorageKey(folderId: string): string {
-  return `keyword-explore:${folderId}`
-}
 
 type RoleMatchesPageProps = {
   folderId: string
@@ -49,6 +31,7 @@ type RoleMatchesPageProps = {
   strategicProfile: StrategicProfile | null
   qualificationProfile?: QualificationProfile | null
   onNavigateCareerBrain: () => void
+  onNavigateCareerProfile?: () => void
 }
 
 export function RoleMatchesPage({
@@ -56,115 +39,37 @@ export function RoleMatchesPage({
   jobApplications,
   versions,
   strategicProfile,
-  qualificationProfile,
   onNavigateCareerBrain,
+  onNavigateCareerProfile,
 }: RoleMatchesPageProps) {
   usePageTitle(pageTitleForSection("roleMatches"))
 
   const storySectionsFilled = strategicProfile ? storySectionsCompleted(strategicProfile) : 0
   const showConfidencePrompt = storySectionsFilled < 4
-  const hasKeywordSources =
-    storySectionsFilled > 0 ||
-    hasQualificationProfileContent(qualificationProfile) ||
-    jobApplications.length > 0
-  const isStoryEmpty = !hasKeywordSources
+  const hasStoryOrCv =
+    storySectionsFilled > 0 || versions.some((version) => Boolean(version.content?.trim()))
+  const isStoryEmpty = !hasStoryOrCv
 
-  const [exploreQuery, setExploreQuery] = useState("")
-  const [exploreCluster, setExploreCluster] = useState<KeywordCluster | null>(null)
-
-  const [saved, setSaved] = useState<import("@/lib/search-keywords/types").SavedKeywordCluster[]>(
-    [],
-  )
-
-  useEffect(() => {
-    setSaved(loadSavedKeywords(folderId))
-  }, [folderId])
-
-  const tipDismissKey = useMemo(() => `search-keywords-tip-dismissed:${folderId}`, [folderId])
-  const [tipDismissed, setTipDismissed] = useState(false)
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    try {
-      setTipDismissed(localStorage.getItem(tipDismissKey) === "1")
-    } catch {
-      setTipDismissed(false)
-    }
-  }, [tipDismissKey])
-
-  const dismissTip = useCallback(() => {
-    setTipDismissed(true)
-    try {
-      localStorage.setItem(tipDismissKey, "1")
-    } catch {
-      // ignore persistence failures
-    }
-  }, [tipDismissKey])
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    try {
-      const pending = sessionStorage.getItem(exploreStorageKey(folderId))
-      if (pending?.trim()) {
-        setExploreQuery(pending.trim())
-        const cluster = buildExploreKeywordCluster(pending.trim())
-        setExploreCluster(cluster)
-        sessionStorage.removeItem(exploreStorageKey(folderId))
-      }
-    } catch {
-      // ignore
-    }
-  }, [folderId])
-
-  const derivedCards = useMemo(() => {
-    if (!hasKeywordSources) return [] as KeywordCardModel[]
-    const clusters = extractKeywordClusters({
-      folderId,
-      strategicProfile,
-      jobApplications,
-      qualificationProfile,
-      maxCards: 10,
-    })
-    return toKeywordCardModels(clusters)
-  }, [folderId, strategicProfile, jobApplications, qualificationProfile, hasKeywordSources])
-
-  const exploreCard = useMemo(() => {
-    if (!exploreCluster) return null
-    return toKeywordCardModels([exploreCluster])[0] ?? null
-  }, [exploreCluster])
-
-  const currentCards = useMemo(() => {
-    const combined = exploreCard ? [exploreCard, ...derivedCards] : derivedCards
-    // keep at most 10 cards visible
-    return combined.slice(0, 10)
-  }, [derivedCards, exploreCard])
-
-  const savedOnlyCards = useMemo(() => {
-    if (saved.length === 0) return [] as KeywordCardModel[]
-    const currentIds = new Set(currentCards.map((c) => c.id))
-    const orphaned = saved.filter((k) => !currentIds.has(k.id))
-    return toKeywordCardModels(orphaned)
-  }, [saved, currentCards])
-
-  const hasCardSections = currentCards.length > 0 || savedOnlyCards.length > 0
-
-  const handleExplore = useCallback(async () => {
-    const cluster = buildExploreKeywordCluster(exploreQuery)
-    setExploreCluster(cluster)
-  }, [exploreQuery])
-
-  const toggleSaved = useCallback(
-    (keyword: KeywordCluster) => {
-      setSaved((prev) => {
-        const next = toggleSavedKeyword(prev, keyword)
-        saveSavedKeywords(folderId, next)
-        return next
-      })
-    },
-    [folderId],
-  )
-
-  const isSaved = useCallback((keywordId: string) => isKeywordSaved(saved, keywordId), [saved])
+  const {
+    exploreQuery,
+    setExploreQuery,
+    titlesLoading,
+    titlesSource,
+    searchError,
+    cards,
+    savedOnlyCards,
+    keywordChips,
+    handleFindMatches,
+    handleRefreshMatches,
+    hasMatches,
+    toggleSaved,
+    isSaved,
+  } = useHomeRoleMatch({
+    folderId,
+    jobApplications,
+    versions,
+    strategicProfile,
+  })
 
   const [toast, setToast] = useState<string | null>(null)
   const toastTimerRef = useRef<number | null>(null)
@@ -181,59 +86,69 @@ export function RoleMatchesPage({
     toastTimerRef.current = window.setTimeout(() => setToast(null), 2500)
   }, [])
 
+  const handleToggleSaved = useCallback(
+    (card: RoleMatchCardModel) => {
+      toggleSaved(card)
+      showToast(isSaved(card.id) ? "Removed from saved directions" : "Saved to your Role Strategy")
+    },
+    [isSaved, showToast, toggleSaved],
+  )
+
+  const subtitle = useMemo(() => {
+    if (titlesLoading) {
+      return "Looking at your story and CV for directions where your experience creates value…"
+    }
+    if (titlesSource === "ai" && hasMatches) {
+      return "Career directions grounded in your strengths — including adjacent and transition roles, not only titles you have already held."
+    }
+    if (titlesSource === "fallback" && hasMatches) {
+      return "Starter directions from your story and applications. Generate again after you add more detail for sharper suggestions."
+    }
+    return "Discover where your experience has value — transferable strengths, adjacent roles, and problems you are well placed to solve."
+  }, [hasMatches, titlesLoading, titlesSource])
+
   return (
     <div className="role-matches-page">
       <header className="role-matches-page__header">
-        <h1 className="role-matches-page__title">Keyword matches</h1>
-        <p className="role-matches-page__subtitle">
-          Find jobs that need your skills — not just a job title. Search with keywords like
-          {" "}
-          <em>workshop facilitation</em>
-          {" "}
-          or
-          {" "}
-          <em>Barrierefreiheit</em>
-          {" "}
-          on LinkedIn, Indeed, or StepStone to uncover roles title searches miss.
-        </p>
+        <h1 className="role-matches-page__title">Role Strategy</h1>
+        <p className="role-matches-page__subtitle">{subtitle}</p>
+        {onNavigateCareerProfile ? (
+          <p className="role-matches-page__instruction" style={{ marginTop: "0.65rem" }}>
+            Preferences and Automate live in your{" "}
+            <button
+              type="button"
+              className="role-matches-page__empty-cta"
+              style={{ display: "inline", padding: 0, minHeight: 0, border: "none", background: "none", color: "#0f7b6c", textDecoration: "underline", cursor: "pointer" }}
+              onClick={onNavigateCareerProfile}
+            >
+              Career Profile
+            </button>
+            .
+          </p>
+        ) : null}
       </header>
-
-      {!tipDismissed ? (
-        <div className="role-matches-page__tip" role="note" aria-label="Search tip">
-          <div className="role-matches-page__tip-body">
-            <strong>Tip: search by skill, not title.</strong> The same work can be called
-            {" "}
-            <span className="role-matches-page__tip-example">
-              &quot;Workshop Facilitator&quot;, &quot;Agile Coach&quot; or &quot;Change Manager&quot;
-            </span>
-            {" "}
-            — but they all need workshop facilitation. Keywords find them all.
-          </div>
-          <button
-            type="button"
-            className="role-matches-page__tip-dismiss"
-            onClick={dismissTip}
-            aria-label="Dismiss tip"
-          >
-            <X className="h-4 w-4" aria-hidden />
-          </button>
-        </div>
-      ) : null}
 
       <div className="role-matches-page__toolbar">
         <HomeRoleSearch
           value={exploreQuery}
           onChange={setExploreQuery}
-          onSubmit={handleExplore}
-          placeholder="Try a skill — e.g. workshop facilitation, Figma, Barrierefreiheit"
-          ariaLabel="Try a skill keyword"
-          buttonLabel="Search keyword"
+          onSubmit={() => void handleFindMatches()}
+          placeholder="What direction are you exploring? e.g. product ops, accessibility, facilitation"
+          ariaLabel="Explore a career direction"
+          buttonLabel={hasMatches ? "Refresh strategy" : "Build strategy"}
         />
       </div>
 
-      {hasCardSections ? (
+      {searchError ? (
+        <p className="role-matches-page__instruction" role="alert">
+          {searchError}
+        </p>
+      ) : null}
+
+      {hasMatches ? (
         <p className="role-matches-page__instruction">
-          Copy a keyword or open a job board — search in German and English to see more roles.
+          Save directions that resonate. Matching skills show why each path may fit — use them to
+          explore jobs, companies, and conversations later.
         </p>
       ) : null}
 
@@ -241,54 +156,83 @@ export function RoleMatchesPage({
         {toast ?? ""}
       </div>
 
-      {!isStoryEmpty && savedOnlyCards.length > 0 ? (
+      {titlesLoading ? (
+        <div className="home-role-match__loading" role="status" aria-live="polite">
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+          Building your Role Strategy…
+        </div>
+      ) : null}
+
+      {!titlesLoading && !isStoryEmpty && savedOnlyCards.length > 0 ? (
         <section className="role-matches-page__section" aria-labelledby="saved-matches-heading">
           <h2 id="saved-matches-heading" className="role-matches-page__section-title">
-            Saved keywords
+            Saved directions
           </h2>
           <div className="home-role-match__grid role-matches-page__grid">
             {savedOnlyCards.map((card, index) => (
-              <KeywordCard
+              <RoleStrategyCard
                 key={card.id}
                 card={card}
                 index={index}
                 saved
-                onToggleSaved={() => toggleSaved(card)}
-                onToast={showToast}
+                onToggleSaved={() => handleToggleSaved(card)}
               />
             ))}
           </div>
         </section>
       ) : null}
 
-      {!isStoryEmpty && currentCards.length > 0 ? (
+      {!titlesLoading && !isStoryEmpty && cards.length > 0 ? (
         <section className="role-matches-page__section" aria-labelledby="current-matches-heading">
           {savedOnlyCards.length > 0 ? (
             <h2 id="current-matches-heading" className="role-matches-page__section-title">
-              Your keywords
+              Suggested directions
             </h2>
           ) : null}
           <div className="home-role-match__grid role-matches-page__grid">
-            {currentCards.map((card, index) => (
-              <KeywordCard
+            {cards.map((card, index) => (
+              <RoleStrategyCard
                 key={card.id}
                 card={card}
                 index={index}
                 saved={isSaved(card.id)}
-                onToggleSaved={() => toggleSaved(card)}
-                onToast={showToast}
+                onToggleSaved={() => handleToggleSaved(card)}
               />
             ))}
           </div>
         </section>
       ) : null}
 
-      {isStoryEmpty ? (
+      {!titlesLoading && !isStoryEmpty && keywordChips.length > 0 ? (
+        <section className="role-matches-page__section" aria-labelledby="strategy-keywords-heading">
+          <h2 id="strategy-keywords-heading" className="role-matches-page__section-title">
+            Capabilities worth emphasising
+          </h2>
+          <div className="home-role-match__chips" role="list">
+            {keywordChips.map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                role="listitem"
+                className="home-role-match__chip"
+                onClick={() => {
+                  setExploreQuery(chip)
+                  void handleFindMatches(chip)
+                }}
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {isStoryEmpty && !titlesLoading ? (
         <div className="role-matches-page__empty">
-          <h2 className="role-matches-page__empty-title">Your keywords come from your story</h2>
+          <h2 className="role-matches-page__empty-title">Your Role Strategy starts with your story</h2>
           <p className="role-matches-page__empty-body">
-            Tell us what you can do — we&apos;ll turn it into search keywords (German and English)
-            so you can find jobs that need your skills, not just a specific title.
+            Add your CV or career story — we&apos;ll surface directions where your experience creates
+            value, including adjacent roles and transition opportunities.
           </p>
           <button
             type="button"
@@ -300,11 +244,28 @@ export function RoleMatchesPage({
         </div>
       ) : null}
 
-      {showConfidencePrompt ? (
+      {!isStoryEmpty && !titlesLoading && !hasMatches ? (
+        <div className="role-matches-page__empty">
+          <h2 className="role-matches-page__empty-title">Ready when you are</h2>
+          <p className="role-matches-page__empty-body">
+            Build a Role Strategy from your story and CV, or refine with a direction you want to
+            explore.
+          </p>
+          <button
+            type="button"
+            className="role-matches-page__empty-cta"
+            onClick={() => void handleRefreshMatches()}
+          >
+            Build strategy
+          </button>
+        </div>
+      ) : null}
+
+      {showConfidencePrompt && !isStoryEmpty ? (
         <div className="home-confidence-card role-matches-page__confidence">
-          <p className="home-confidence-card__title">Build your confidence</p>
+          <p className="home-confidence-card__title">Sharpen your strategy</p>
           <p className="home-confidence-card__body">
-            {`${storySectionsFilled} of 4 sections filled — add more to your career story for sharper keyword matches.`}
+            {`${storySectionsFilled} of 4 story sections filled — add more detail for clearer directions and stronger evidence.`}
           </p>
           <button
             type="button"
@@ -319,48 +280,23 @@ export function RoleMatchesPage({
   )
 }
 
-function KeywordCard({
+function RoleStrategyCard({
   card,
   index,
   saved,
   onToggleSaved,
-  onToast,
 }: {
-  card: KeywordCardModel
+  card: RoleMatchCardModel
   index: number
   saved?: boolean
   onToggleSaved?: () => void
-  onToast: (message: string) => void
 }) {
   const Icon = CARD_ICONS[index % CARD_ICONS.length]!
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(card.searchString)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
-      onToast("Copied — paste this into LinkedIn, Indeed or StepStone.")
-    } catch {
-      // Clipboard unavailable — no-op
-    }
-  }, [card.searchString, onToast])
-
-  const openSearch = useCallback((site: "linkedin" | "indeed" | "stepstone") => {
-    const q = encodeURIComponent(card.searchString)
-    const url =
-      site === "linkedin"
-        ? `https://www.linkedin.com/jobs/search/?keywords=${q}`
-        : site === "indeed"
-          ? `https://de.indeed.com/jobs?q=${q}`
-          : `https://www.stepstone.de/jobs?keywords=${q}`
-    window.open(url, "_blank", "noopener,noreferrer")
-  }, [card.searchString])
 
   return (
     <article
       className={cn("home-role-card", `home-role-card--${card.accent}`)}
-      aria-label={`${card.displayTitle}, ${card.fitLabel}`}
+      aria-label={`${card.title}, ${card.fitLabel}`}
     >
       <div className="home-role-card__header">
         <Icon className="home-role-card__header-icon" aria-hidden />
@@ -376,63 +312,31 @@ function KeywordCard({
         </span>
       </div>
       <div className="home-role-card__body">
-        <p className="home-role-card__title keyword-card__title">{card.displayTitle}</p>
-
-        <div className="keyword-card__actions">
-          <div className="keyword-card__actions-icons">
+        <p className="home-role-card__title">{card.title}</p>
+        {card.matchingSkills.length > 0 ? (
+          <ul className="home-role-card__skills">
+            {card.matchingSkills.map((skill) => (
+              <li key={skill}>{skill}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="home-role-card__instruction">
+            Open this direction to explore where your experience creates value.
+          </p>
+        )}
+        <div className="home-role-card__actions">
+          {onToggleSaved ? (
             <button
               type="button"
-              className={cn("home-role-card__icon-btn", copied && "home-role-card__icon-btn--copied")}
-              onClick={() => void handleCopy()}
-              aria-label={copied ? `Copied search string for ${card.displayTitle}` : `Copy search string for ${card.displayTitle}`}
+              className={cn("home-role-card__save", saved && "home-role-card__save--active")}
+              onClick={onToggleSaved}
+              aria-label={saved ? `Unsave ${card.title}` : `Save ${card.title}`}
+              aria-pressed={saved}
             >
-              {copied ? (
-                <Check className="h-4 w-4" aria-hidden />
-              ) : (
-                <Copy className="h-4 w-4" aria-hidden />
-              )}
+              <Bookmark className="h-4 w-4" aria-hidden />
+              {saved ? "Saved" : "Save"}
             </button>
-            {onToggleSaved ? (
-              <button
-                type="button"
-                className={cn(
-                  "home-role-card__icon-btn",
-                  saved && "home-role-card__icon-btn--saved",
-                )}
-                onClick={onToggleSaved}
-                aria-label={saved ? `Unsave ${card.displayTitle}` : `Save ${card.displayTitle}`}
-                aria-pressed={saved}
-              >
-                <Bookmark className="h-4 w-4" aria-hidden />
-              </button>
-            ) : null}
-          </div>
-          <div className="keyword-card__sites">
-            <button
-              type="button"
-              className="keyword-card__site-btn"
-              onClick={() => openSearch("linkedin")}
-              aria-label={`Search ${card.displayTitle} on LinkedIn`}
-            >
-              LinkedIn
-            </button>
-            <button
-              type="button"
-              className="keyword-card__site-btn"
-              onClick={() => openSearch("indeed")}
-              aria-label={`Search ${card.displayTitle} on Indeed`}
-            >
-              Indeed
-            </button>
-            <button
-              type="button"
-              className="keyword-card__site-btn"
-              onClick={() => openSearch("stepstone")}
-              aria-label={`Search ${card.displayTitle} on StepStone`}
-            >
-              StepStone
-            </button>
-          </div>
+          ) : null}
         </div>
       </div>
     </article>

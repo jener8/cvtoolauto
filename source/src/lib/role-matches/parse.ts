@@ -1,4 +1,5 @@
 import { sanitizeMatchingSkills } from "@/lib/role-matches/present"
+import type { RoleFitLevel, RoleMatchResult } from "@/lib/role-matches/types"
 
 function slugId(title: string, index: number): string {
   return `match-${title

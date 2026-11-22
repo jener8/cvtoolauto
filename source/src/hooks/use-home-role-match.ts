@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { generateRoleMatches } from "@/app/actions/generate-role-matches"
+import { loadCareerProfilePrefs } from "@/lib/career-profile/storage"
 import { buildFallbackJobTitles, primaryResumeText } from "@/lib/job-search-focus"
 import {
   buildKeywordChipsFromMatches,
@@ -86,6 +87,7 @@ export function useHomeRoleMatch({
 
       const result = await generateRoleMatches({
         strategicProfile,
+        careerProfilePrefs: loadCareerProfilePrefs(),
         resumeText: primaryResumeText(versions),
         jobs: jobApplications,
         searchQuery: searchQuery.trim() || undefined,

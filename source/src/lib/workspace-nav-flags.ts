@@ -19,9 +19,10 @@ export const DEFAULT_WORKSPACE_LANDING_VIEW: AppSectionView = "dashboard"
  */
 export const ENABLED_WORKSPACE_NAV_IDS: ReadonlySet<WorkspaceNavId> = new Set([
   "applications",
+  "careerProfile", // Career Profile — prefs, direction, Automate settings
   "careerBrain", // My story — strategic-profile feeds CV / cover letter / app flow
+  "roleMatches", // Role Strategy — career directions from story + CV
   // "careerHome",
-  // "roleMatches",
   // "recognitionPathways",
   // "workplaceGerman",
   // "bureaucracyNavigator",
@@ -35,7 +36,6 @@ export const ENABLED_WORKSPACE_NAV_IDS: ReadonlySet<WorkspaceNavId> = new Set([
 /** `?view=` values that belong to retired sidebar sections (redirect to landing). */
 const RETIRED_SIDEBAR_VIEWS: ReadonlySet<string> = new Set([
   "careerHome",
-  "roleMatches",
   "recognitionPathways",
   "workplaceGerman",
   "bureaucracyNavigator",

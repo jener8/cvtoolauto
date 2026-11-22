@@ -1,0 +1,335 @@
+.career-profile-page {
+  min-height: 100%;
+  background: #f5f0eb;
+  padding: 1.25rem 1.25rem 2.5rem;
+}
+
+@media (min-width: 1024px) {
+  .career-profile-page {
+    padding: 1.5rem 2rem 3rem;
+  }
+}
+
+.career-profile-page__header {
+  max-width: 48rem;
+  margin-bottom: 1.25rem;
+}
+
+.career-profile-page__title {
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.5rem, 2vw, 1.85rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: #2a2438;
+}
+
+.career-profile-page__subtitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #6b6578;
+}
+
+.career-profile-page__automate-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  max-width: 48rem;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #e7dfd7;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.career-profile-page__automate-meta {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.career-profile-page__automate-status {
+  margin: 0 0 0.2rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2a2438;
+}
+
+.career-profile-page__automate-status[data-status="active"] {
+  color: #0f7b6c;
+}
+
+.career-profile-page__automate-status[data-status="paused"] {
+  color: #9a6b2f;
+}
+
+.career-profile-page__automate-detail {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #6b6578;
+}
+
+.career-profile-page__automate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.career-profile-page__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border-radius: 999px;
+  border: 1px solid #d9d0c6;
+  background: #fff;
+  font-size: 0.875rem;
+  font-weight: 560;
+  color: #2a2438;
+  cursor: pointer;
+}
+
+.career-profile-page__btn:hover {
+  background: #f8f4ef;
+}
+
+.career-profile-page__btn:focus-visible {
+  outline: 2px solid #0f7b6c;
+  outline-offset: 2px;
+}
+
+.career-profile-page__btn--primary {
+  border-color: #0f7b6c;
+  background: #0f7b6c;
+  color: #fff;
+}
+
+.career-profile-page__btn--primary:hover {
+  background: #0c6559;
+}
+
+.career-profile-page__btn--primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.career-profile-page__grid {
+  display: grid;
+  gap: 1rem;
+  max-width: 48rem;
+}
+
+.career-profile-page__card {
+  padding: 1rem 1.1rem 1.15rem;
+  border: 1px solid #e7dfd7;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.career-profile-page__card-title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 650;
+  color: #2a2438;
+}
+
+.career-profile-page__card-copy {
+  margin: 0 0 0.85rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #6b6578;
+}
+
+.career-profile-page__story-list {
+  margin: 0 0 0.85rem;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.career-profile-page__story-list li {
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.75rem;
+  background: #f8f4ef;
+}
+
+.career-profile-page__story-label {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #6b6578;
+}
+
+.career-profile-page__story-value {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #2a2438;
+  white-space: pre-wrap;
+}
+
+.career-profile-page__story-value--empty {
+  color: #9a94a3;
+  font-style: italic;
+}
+
+.career-profile-page__fields {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.career-profile-page__field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.career-profile-page__field-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #3b3553;
+}
+
+.career-profile-page__field-hint {
+  font-size: 0.75rem;
+  color: #8a8496;
+}
+
+.career-profile-page__row {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .career-profile-page__row--2 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .career-profile-page__row--3 {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+.career-profile-page__input,
+.career-profile-page__textarea,
+.career-profile-page__select {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d9d0c6;
+  border-radius: 0.75rem;
+  background: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  color: #2a2438;
+}
+
+.career-profile-page__textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+.career-profile-page__input:focus-visible,
+.career-profile-page__textarea:focus-visible,
+.career-profile-page__select:focus-visible {
+  outline: 2px solid #0f7b6c;
+  outline-offset: 1px;
+}
+
+.career-profile-page__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.career-profile-page__chip {
+  min-height: 2.25rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid #d9d0c6;
+  background: #fff;
+  font-size: 0.8125rem;
+  color: #3b3553;
+  cursor: pointer;
+}
+
+.career-profile-page__chip[aria-pressed="true"] {
+  border-color: #0f7b6c;
+  background: color-mix(in srgb, #0f7b6c 12%, #fff);
+  color: #0c6559;
+  font-weight: 600;
+}
+
+.career-profile-page__chip:focus-visible {
+  outline: 2px solid #0f7b6c;
+  outline-offset: 2px;
+}
+
+.career-profile-page__toggles {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.career-profile-page__toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.75rem;
+  background: #f8f4ef;
+}
+
+.career-profile-page__toggle-label {
+  font-size: 0.875rem;
+  color: #2a2438;
+}
+
+.career-profile-page__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.35rem;
+}
+
+.career-profile-page__toast {
+  min-height: 1.25rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: #0f7b6c;
+}
+
+.career-profile-page__dialog-body {
+  display: grid;
+  gap: 0.9rem;
+  padding-top: 0.25rem;
+}
+
+.career-profile-page__dialog-note {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #6b6578;
+}
+
+.career-profile-page__consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.75rem;
+  background: #f8f4ef;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #3b3553;
+}
+
+.career-profile-page__consent input {
+  margin-top: 0.15rem;
+}

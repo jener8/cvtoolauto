@@ -5,6 +5,7 @@ import { getMissingAiKeyError, runTextGenerationWithRetry } from "@/lib/ai/run-t
 import { buildRoleMatchesPrompt } from "@/lib/role-matches/prompt"
 import { parseRoleMatchesResponse } from "@/lib/role-matches/parse"
 import type { RoleMatchResult } from "@/lib/role-matches/types"
+import type { CareerProfilePrefs } from "@/lib/career-profile/types"
 import type { StrategicProfile } from "@/lib/strategic-profile"
 import type { JobApplication } from "@/lib/types"
 
@@ -13,6 +14,7 @@ const CV_EXCERPT_MAX = 6000
 
 export type GenerateRoleMatchesInput = {
   strategicProfile: StrategicProfile | null
+  careerProfilePrefs?: CareerProfilePrefs | null
   resumeText: string
   jobs: JobApplication[]
   searchQuery?: string
@@ -38,13 +40,14 @@ export async function generateRoleMatches(
   if (!resumeExcerpt && !input.strategicProfile?.careerDirection?.trim()) {
     return {
       success: false,
-      error: "Add your CV or career story before we can suggest role matches.",
+      error: "Add your CV or career story before we can build your Role Strategy.",
       errorCode: "validation_error",
     }
   }
 
   const prompt = buildRoleMatchesPrompt({
     strategicProfile: input.strategicProfile,
+    careerProfilePrefs: input.careerProfilePrefs,
     resumeExcerpt,
     jobs: input.jobs,
     searchQuery: input.searchQuery,
@@ -72,7 +75,7 @@ export async function generateRoleMatches(
   if (!matches) {
     return {
       success: false,
-      error: "Could not read role match suggestions. Try again.",
+      error: "Could not read Role Strategy suggestions. Try again.",
       errorCode: "empty_response",
     }
   }

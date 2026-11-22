@@ -10,6 +10,7 @@ export const RESTORABLE_APP_VIEWS = [
   "careerHome",
   "opportunities",
   "careerBrain",
+  "careerProfile",
   "roleMatches",
   "scenarioLab",
   "aiCoach",

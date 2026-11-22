@@ -50,6 +50,7 @@ import {
 import { OpportunitiesSection } from "@/components/application-intelligence/opportunities-section"
 import { CareerBrainSection } from "@/components/application-intelligence/career-brain-section"
 import { RoleMatchesPage } from "@/components/application-intelligence/role-matches-page"
+import { CareerProfilePage } from "@/components/application-intelligence/career-profile-page"
 import { AiCoachPage } from "@/components/application-intelligence/ai-coach-page"
 import { ScenarioLabPage } from "@/components/scenario-lab/scenario-lab-page"
 import { SettingsHub } from "@/components/application-intelligence/settings-hub"
@@ -256,6 +257,7 @@ type AppView =
   | "careerHome"
   | "opportunities"
   | "careerBrain"
+  | "careerProfile"
   | "roleMatches"
   | "scenarioLab"
   | "aiCoach"
@@ -5449,6 +5451,7 @@ export default function Home() {
     (view === "careerHome" ||
       view === "opportunities" ||
       view === "careerBrain" ||
+      view === "careerProfile" ||
       view === "roleMatches" ||
       view === "scenarioLab" ||
       view === "aiCoach" ||
@@ -5530,6 +5533,13 @@ export default function Home() {
             userEmail={userEmail}
           />
         ) : null}
+        {view === "careerProfile" ? (
+          <CareerProfilePage
+            strategicProfile={strategicProfile}
+            onNavigateCareerBrain={() => handleWorkspaceNavigate("careerBrain")}
+            onNavigateRoleStrategy={() => handleWorkspaceNavigate("roleMatches")}
+          />
+        ) : null}
         {view === "roleMatches" ? (
           <RoleMatchesPage
             folderId={currentFolderId}
@@ -5538,6 +5548,7 @@ export default function Home() {
             strategicProfile={strategicProfile}
             qualificationProfile={qualificationProfile}
             onNavigateCareerBrain={() => handleWorkspaceNavigate("careerBrain")}
+            onNavigateCareerProfile={() => handleWorkspaceNavigate("careerProfile")}
           />
         ) : null}
         {view === "scenarioLab" ? (

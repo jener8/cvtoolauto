@@ -143,19 +143,19 @@ export function CareerDashboard({
           />
           <div className="home-card__body">
             <h2 id="role-matches-heading" className="home-card__title">
-              Keyword matches
+              Role Strategy
             </h2>
             <HomeRoleSearch
               value={exploreQuery}
               onChange={setExploreQuery}
               onSubmit={handleFindKeywordsFromHome}
-              placeholder="Try a skill — e.g. workshop facilitation"
-              ariaLabel="Try a skill keyword"
-              buttonLabel="Search keyword"
+              placeholder="What direction are you exploring?"
+              ariaLabel="Explore a career direction"
+              buttonLabel="Explore"
             />
 
             {keywordTeasers.length > 0 ? (
-              <ul className="home-role-rows home-role-rows--in-card" aria-label="Top keyword matches">
+              <ul className="home-role-rows home-role-rows--in-card" aria-label="Top Role Strategy directions">
                 {keywordTeasers.map((card) => (
                   <li key={card.id} className="home-role-row">
                     <span className="home-role-row__title">{card.displayTitle}</span>
@@ -174,7 +174,7 @@ export function CareerDashboard({
               </ul>
             ) : (
               <p className="home-card__copy home-card__copy--muted home-card__copy--after-search">
-                Tell your story — we&apos;ll suggest keywords to search for jobs that need your skills.
+                Tell your story — we&apos;ll suggest career directions where your experience creates value.
               </p>
             )}
 
@@ -184,7 +184,7 @@ export function CareerDashboard({
                 className="home-card__see-all home-card__see-all--cta"
                 onClick={() => onJourneyNavigate!("roleMatches")}
               >
-                See all keywords
+                Open Role Strategy
               </button>
             ) : null}
           </div>

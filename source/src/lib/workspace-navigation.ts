@@ -4,6 +4,7 @@ import {
   IconCrosshair,
   IconHeart,
   IconHome,
+  IconIdBadge2,
   IconLanguage,
   IconListCheck,
   IconMap2,
@@ -19,6 +20,7 @@ import { isWorkspaceNavIdEnabled } from "@/lib/workspace-nav-flags"
 /** Primary workspace navigation — EquitAI shell. */
 export type WorkspaceNavId =
   | "careerHome"
+  | "careerProfile"
   | "careerBrain"
   | "roleMatches"
   | "applications"
@@ -62,6 +64,13 @@ export const WORKSPACE_NAV_ITEMS: WorkspaceNavItem[] = [
     group: "whereIAmNow",
   },
   {
+    id: "careerProfile",
+    label: "Career Profile",
+    subtext: "Prefs, direction, Automate",
+    icon: IconIdBadge2,
+    group: "whereIAmNow",
+  },
+  {
     id: "careerBrain",
     label: "My story",
     subtext: "Experience, skills, journey",
@@ -70,8 +79,8 @@ export const WORKSPACE_NAV_ITEMS: WorkspaceNavItem[] = [
   },
   {
     id: "roleMatches",
-    label: "Keyword matches",
-    subtext: "Find jobs by skill",
+    label: "Role Strategy",
+    subtext: "Directions your experience opens",
     icon: IconCrosshair,
     group: "whereIAmNow",
   },
@@ -154,6 +163,7 @@ export type AppSectionView =
   | "careerHome"
   | "opportunities"
   | "dashboard"
+  | "careerProfile"
   | "careerBrain"
   | "roleMatches"
   | "statistics"
@@ -189,6 +199,8 @@ export function workspaceNavFromView(view: AppSectionView): WorkspaceNavId {
       return "applications"
     case "dashboard":
       return "applications"
+    case "careerProfile":
+      return "careerProfile"
     case "careerBrain":
       return "careerBrain"
     case "roleMatches":
@@ -219,6 +231,8 @@ export function viewFromWorkspaceNav(id: WorkspaceNavId): AppSectionView {
   switch (id) {
     case "careerHome":
       return "careerHome"
+    case "careerProfile":
+      return "careerProfile"
     case "careerBrain":
       return "careerBrain"
     case "roleMatches":

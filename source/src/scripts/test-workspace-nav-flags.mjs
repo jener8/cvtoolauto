@@ -30,9 +30,19 @@ const enabledActiveLines = enabledBlock
   .split("\n")
   .filter((line) => !line.trim().startsWith("//"))
   .join("\n")
+assert.match(
+  enabledActiveLines,
+  /"roleMatches"/,
+  "roleMatches (Role Strategy) must be enabled",
+)
+assert.match(
+  enabledActiveLines,
+  /"careerProfile"/,
+  "careerProfile (Career Profile) must be enabled",
+)
+
 for (const id of [
   "careerHome",
-  "roleMatches",
   "recognitionPathways",
   "workplaceGerman",
   "bureaucracyNavigator",
@@ -48,6 +58,12 @@ for (const id of [
     `${id} must not be in ENABLED_WORKSPACE_NAV_IDS`,
   )
 }
+
+assert.doesNotMatch(
+  flagsSrc.match(/RETIRED_SIDEBAR_VIEWS[\s\S]*?\]\)/)?.[0] ?? "",
+  /"roleMatches"/,
+  "roleMatches must not be in RETIRED_SIDEBAR_VIEWS",
+)
 
 console.log("test-workspace-nav-flags: ok")
 void createRequire

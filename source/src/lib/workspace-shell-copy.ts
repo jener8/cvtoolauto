@@ -94,6 +94,7 @@ export const SECTION_EMPTY_STATES: Record<SectionEmptyStateId, SectionEmptyState
 
 export const SECTION_PAGE_H1: Record<string, string> = {
   careerBrain: "Your story",
+  careerProfile: "Career Profile",
   documents: "Documents",
   coverLetters: "Your cover letters",
   applications: "Your job search",
@@ -104,7 +105,7 @@ export const SECTION_PAGE_H1: Record<string, string> = {
   mentoringSupport: "You don't have to figure this out alone",
   aiCoach: "Ask your career coach",
   careerHome: "Home",
-  roleMatches: "Keyword matches",
+  roleMatches: "Role Strategy",
   scenarioLab: "Analyse laboratory",
 }
 
