@@ -29,6 +29,7 @@ export function createEmptyResumeCoverLetter(resumeName: string): ResumeEmbedded
     recipientCompany: "",
     profileImage: null,
     companyLogo: null,
+    omitCompanyLogo: undefined,
     applicantName: "",
     applicantAddress: "",
     applicantEmail: "",
@@ -41,14 +42,40 @@ export function createEmptyResumeCoverLetter(resumeName: string): ResumeEmbedded
 
 export function coverLetterLayoutFields(
   letter: Partial<
-    Pick<ResumeEmbeddedCoverLetter, "recipientCompany" | "profileImage" | "companyLogo">
+    Pick<
+      ResumeEmbeddedCoverLetter,
+      "recipientCompany" | "profileImage" | "companyLogo" | "omitCompanyLogo"
+    >
   >,
-): Pick<ResumeEmbeddedCoverLetter, "recipientCompany" | "profileImage" | "companyLogo"> {
+): Pick<
+  ResumeEmbeddedCoverLetter,
+  "recipientCompany" | "profileImage" | "companyLogo" | "omitCompanyLogo"
+> {
   return {
     recipientCompany: (letter.recipientCompany ?? "").trim(),
     profileImage: letter.profileImage ?? null,
-    companyLogo: letter.companyLogo ?? null,
+    companyLogo: letter.omitCompanyLogo === true ? null : letter.companyLogo ?? null,
+    omitCompanyLogo: letter.omitCompanyLogo === true ? true : undefined,
   }
+}
+
+/**
+ * Company logo for cover-letter preview/PDF.
+ * Respects an explicit letter-only removal; otherwise prefers the letter logo,
+ * then falls back to the linked resume logo.
+ */
+export function resolveCoverLetterCompanyLogo(
+  letter:
+    | Partial<Pick<ResumeEmbeddedCoverLetter, "companyLogo" | "omitCompanyLogo">>
+    | null
+    | undefined,
+  resumeLogo?: string | null,
+): string | null {
+  if (letter?.omitCompanyLogo === true) return null
+  const own = typeof letter?.companyLogo === "string" ? letter.companyLogo.trim() : ""
+  if (own) return own
+  const fromResume = typeof resumeLogo === "string" ? resumeLogo.trim() : ""
+  return fromResume || null
 }
 
 /** Sender + recipient layout stored on the cover letter record. */
@@ -59,6 +86,7 @@ export function coverLetterHeaderFields(
       | "recipientCompany"
       | "profileImage"
       | "companyLogo"
+      | "omitCompanyLogo"
       | "applicantName"
       | "applicantAddress"
       | "applicantEmail"
@@ -88,7 +116,8 @@ export function coverLetterFromStandalone(letter: CoverLetter): ResumeEmbeddedCo
     hiringManager: manager,
     recipientCompany: letter.recipientCompany ?? "",
     profileImage: letter.profileImage ?? null,
-    companyLogo: letter.companyLogo ?? null,
+    companyLogo: letter.omitCompanyLogo === true ? null : letter.companyLogo ?? null,
+    omitCompanyLogo: letter.omitCompanyLogo === true ? true : undefined,
     applicantName: letter.applicantName ?? "",
     applicantAddress: letter.applicantAddress ?? "",
     applicantEmail: letter.applicantEmail ?? "",

@@ -242,6 +242,12 @@ import {
   emptyJobApplicationFields,
   type ApplicationFlowCompletePayload,
 } from "@/lib/application-flow-complete"
+import {
+  buildCareerEvolutionSuggestion,
+  mergeCareerEvolutionOnRegenerate,
+  normalizeCareerEvolutionConfig,
+} from "@/lib/career-evolution"
+import { loadCareerProfilePrefs } from "@/lib/career-profile/storage"
 import { tombstoneApplicationDeletion, getDeletedApplicationIdsForFolder } from "@/lib/application-delete-tombstones"
 import { prepareJobApplicationsForWorkspace } from "@/lib/job-applications-normalize"
 import {
@@ -1230,8 +1236,21 @@ export default function Home() {
     const fromStorage = normalizeContactInfo(version.contactInfo, folderContactFallback)
     setContactInfo((prev) => {
       const prevNorm = normalizeContactInfo(prev, folderContactFallback)
+      // Never drop a chosen CV style when a stale snapshot still has the default.
+      const withPreservedStyle = (
+        next: typeof fromStorage,
+      ): typeof fromStorage => {
+        if (
+          prevNorm.formatStyle &&
+          prevNorm.formatStyle !== "executive-compact" &&
+          (!next.formatStyle || next.formatStyle === "executive-compact")
+        ) {
+          return { ...next, formatStyle: prevNorm.formatStyle }
+        }
+        return next
+      }
       if (!hasResumeContactContent(prevNorm) && hasResumeContactContent(fromStorage)) {
-        return fromStorage
+        return withPreservedStyle(fromStorage)
       }
       const prevPortfolios = normalizePortfolioUrls(
         prevNorm.portfolios,
@@ -1246,14 +1265,22 @@ export default function Home() {
         (storedPortfolios.length > prevPortfolios.length ||
           JSON.stringify(prevPortfolios) !== JSON.stringify(storedPortfolios))
       ) {
-        return fromStorage
+        return withPreservedStyle(fromStorage)
       }
       if (
         !prevNorm.name.trim() &&
         fromStorage.name.trim() &&
         JSON.stringify(prevNorm) !== JSON.stringify(fromStorage)
       ) {
-        return fromStorage
+        return withPreservedStyle(fromStorage)
+      }
+      // Prefer a newer persisted non-default style from storage over an older default.
+      if (
+        fromStorage.formatStyle &&
+        fromStorage.formatStyle !== prevNorm.formatStyle &&
+        fromStorage.formatStyle !== "executive-compact"
+      ) {
+        return { ...prevNorm, formatStyle: fromStorage.formatStyle }
       }
       return prevNorm
     })
@@ -4552,6 +4579,35 @@ export default function Home() {
 
     const resumeName = nextApplicationResumeName(applicationTitle, versions)
 
+    const existingResume =
+      versions.find((v) => v.id === resumeId) ??
+      versions.find((v) => v.applicationId === applicationId)
+
+    let careerEvolution = existingResume?.contactInfo?.careerEvolution
+    if (payload.resumeContent.trim()) {
+      try {
+        const prefs = loadCareerProfilePrefs()
+        const suggestion = buildCareerEvolutionSuggestion({
+          resumeText: payload.resumeContent,
+          targetRole: jobTitle,
+          targetCompany: company,
+          jobDescription: payload.jobDescription,
+          careerPositioning: prefs.currentPositioning,
+          language: payload.outputLanguage,
+          approvedEvidence: payload.approvedEvidence,
+          employerProblemSummary: payload.employerProblemSummary,
+        })
+        careerEvolution = mergeCareerEvolutionOnRegenerate(
+          existingResume?.contactInfo?.careerEvolution
+            ? normalizeCareerEvolutionConfig(existingResume.contactInfo.careerEvolution)
+            : null,
+          suggestion.config,
+        )
+      } catch (err) {
+        console.warn("[application-flow] Career Evolution suggestion skipped", err)
+      }
+    }
+
     const snapshot = normalizeResumeVersion({
       id: resumeId,
       name: resumeName,
@@ -4565,6 +4621,7 @@ export default function Home() {
         targetRole: jobTitle,
         jobAdvertSource:
           payload.jobDescriptionUrl.trim() || workspaceContact.jobAdvertSource || "",
+        careerEvolution,
       },
       isReusableTemplate: false,
       profileImage: currentFolder?.profileImage ?? profileImage,
@@ -4794,6 +4851,8 @@ export default function Home() {
     }) => {
       const nextContact = normalizeContactInfo(data.contactInfo, folderContactFallback)
       const s = resumePersistRef.current
+      const contactUnchanged =
+        JSON.stringify(s.contactInfo) === JSON.stringify(nextContact)
       const unchanged =
         s.resumeText === data.resumeContent &&
         s.accentColor === data.accentColor &&
@@ -4803,17 +4862,29 @@ export default function Home() {
         s.profilePhotoBorder === data.profilePhotoBorder &&
         s.profileImage === (data.profilePhoto ?? s.profileImage) &&
         s.companyLogo === (data.companyLogo ?? null) &&
-        JSON.stringify(s.contactInfo) === JSON.stringify(nextContact)
+        contactUnchanged
 
-      setContactInfo(nextContact)
-      setResumeText(data.resumeContent)
-      if (data.profilePhoto !== undefined) setProfileImage(data.profilePhoto ?? null)
-      setCompanyLogo(data.companyLogo ?? null)
-      setAccentColor(data.accentColor)
-      setAccentColorHex(data.accentColorHex)
-      setTargetBoxBgColor(data.targetBoxBgColor)
-      setTargetBoxBorderColor(data.targetBoxBorderColor)
-      setProfilePhotoBorder(data.profilePhotoBorder)
+      // Bail out of setState when equal — otherwise CE short-label edits +
+      // parent↔child contactInfo sync hit React error #185 (max update depth).
+      if (!contactUnchanged) setContactInfo(nextContact)
+      if (s.resumeText !== data.resumeContent) setResumeText(data.resumeContent)
+      if (data.profilePhoto !== undefined && s.profileImage !== (data.profilePhoto ?? null)) {
+        setProfileImage(data.profilePhoto ?? null)
+      }
+      if (s.companyLogo !== (data.companyLogo ?? null)) {
+        setCompanyLogo(data.companyLogo ?? null)
+      }
+      if (s.accentColor !== data.accentColor) setAccentColor(data.accentColor)
+      if (s.accentColorHex !== data.accentColorHex) setAccentColorHex(data.accentColorHex)
+      if (s.targetBoxBgColor !== data.targetBoxBgColor) {
+        setTargetBoxBgColor(data.targetBoxBgColor)
+      }
+      if (s.targetBoxBorderColor !== data.targetBoxBorderColor) {
+        setTargetBoxBorderColor(data.targetBoxBorderColor)
+      }
+      if (s.profilePhotoBorder !== data.profilePhotoBorder) {
+        setProfilePhotoBorder(data.profilePhotoBorder)
+      }
       if (!unchanged) setHasUnsavedChanges(true)
     },
     [folderContactFallback],

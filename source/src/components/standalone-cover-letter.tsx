@@ -51,6 +51,7 @@ import {
   coverLetterLayoutFields,
   getHiringManagerName,
   hiringManagerFields,
+  resolveCoverLetterCompanyLogo,
 } from "@/lib/resume-cover-letter"
 import { autosaveStatusLabel, useDebouncedAutosave } from "@/lib/use-debounced-autosave"
 import {
@@ -59,6 +60,9 @@ import {
 } from "@/lib/compress-image"
 import {
   buildCoverLetterExportElement,
+  COVER_LETTER_LOGO_MAX_H,
+  COVER_LETTER_LOGO_MAX_W,
+  COVER_LETTER_LOGO_PAD_PX,
   type CoverLetterExportData,
 } from "@/lib/cover-letter-export-html"
 import { PdfExportControls } from "@/components/pdf-export-controls"
@@ -147,7 +151,8 @@ function applicantFieldsFromSource(
     recipientCompany:
       header.recipientCompany || linked?.contactInfo?.targetCompany?.trim() || "",
     profileImage: header.profileImage ?? linked?.profileImage ?? null,
-    companyLogo: header.companyLogo ?? linked?.companyLogo ?? null,
+    companyLogo: resolveCoverLetterCompanyLogo(header, linked?.companyLogo),
+    omitCompanyLogo: header.omitCompanyLogo === true,
   }
 }
 
@@ -160,6 +165,7 @@ function coverLetterFormSignature(source: CoverLetterStored): string {
     de: bodies.de,
     hiringManager: getHiringManagerName(source),
     ...coverLetterHeaderFields(source),
+    omitCompanyLogo: source.omitCompanyLogo === true,
     letterDate: source.letterDate ?? "",
   })
 }
@@ -218,6 +224,20 @@ export function StandaloneCoverLetter({
   const [recipientCompany, setRecipientCompany] = useState(initialApplicant.recipientCompany)
   const [profileImage, setProfileImage] = useState<string | null>(initialApplicant.profileImage)
   const [companyLogo, setCompanyLogo] = useState<string | null>(initialApplicant.companyLogo)
+  const [omitCompanyLogo, setOmitCompanyLogo] = useState(
+    () => initialApplicant.omitCompanyLogo === true,
+  )
+
+  const setCoverLetterCompanyLogo = useCallback((next: string | null) => {
+    if (next?.trim()) {
+      setOmitCompanyLogo(false)
+      setCompanyLogo(next)
+      return
+    }
+    // Explicit remove: hide on the letter only — resume logo stays intact.
+    setOmitCompanyLogo(true)
+    setCompanyLogo(null)
+  }, [])
   const [isSaving, setIsSaving] = useState(false)
   const [isExportingPdf, setIsExportingPdf] = useState(false)
   const [pdfExportPreset, setPdfExportPreset] = useState<PdfExportPreset>(DEFAULT_PDF_EXPORT_PRESET)
@@ -348,6 +368,7 @@ export function StandaloneCoverLetter({
     recipientCompany !== storedApplicant.recipientCompany ||
     profileImage !== storedApplicant.profileImage ||
     companyLogo !== storedApplicant.companyLogo ||
+    omitCompanyLogo !== (storedApplicant.omitCompanyLogo === true) ||
     applicantName !== storedApplicant.applicantName ||
     applicantAddress !== storedApplicant.applicantAddress ||
     applicantEmail !== storedApplicant.applicantEmail ||
@@ -362,6 +383,7 @@ export function StandaloneCoverLetter({
     recipientCompany,
     profileImage,
     companyLogo,
+    omitCompanyLogo,
     applicantName,
     applicantAddress,
     applicantEmail,
@@ -376,6 +398,7 @@ export function StandaloneCoverLetter({
     recipientCompany,
     profileImage,
     companyLogo,
+    omitCompanyLogo,
     applicantName,
     applicantAddress,
     applicantEmail,
@@ -395,6 +418,7 @@ export function StandaloneCoverLetter({
         recipientCompany,
         profileImage,
         companyLogo,
+        omitCompanyLogo,
         applicantName,
         applicantAddress,
         applicantEmail,
@@ -409,6 +433,7 @@ export function StandaloneCoverLetter({
       recipientCompany,
       profileImage,
       companyLogo,
+      omitCompanyLogo,
       applicantName,
       applicantAddress,
       applicantEmail,
@@ -435,6 +460,7 @@ export function StandaloneCoverLetter({
             recipientCompany: s.recipientCompany,
             profileImage: s.profileImage,
             companyLogo: s.companyLogo,
+            omitCompanyLogo: s.omitCompanyLogo,
             applicantName: s.applicantName,
             applicantAddress: s.applicantAddress,
             applicantEmail: s.applicantEmail,
@@ -479,7 +505,19 @@ export function StandaloneCoverLetter({
         setLetterDate(fields.letterDate)
         setRecipientCompany(fields.recipientCompany)
         setProfileImage(fields.profileImage)
-        setCompanyLogo(fields.companyLogo)
+        // Keep an in-progress upload/remove — prop hydrate can race ahead of autosave
+        // or reload a truncated local snapshot and would otherwise wipe the logo.
+        const pending = standalonePersistRef.current
+        const logoDirty =
+          pending.omitCompanyLogo !== (fields.omitCompanyLogo === true) ||
+          (pending.companyLogo ?? null) !== (fields.companyLogo ?? null)
+        if (logoDirty) {
+          setCompanyLogo(pending.companyLogo)
+          setOmitCompanyLogo(pending.omitCompanyLogo === true)
+        } else {
+          setCompanyLogo(fields.companyLogo)
+          setOmitCompanyLogo(fields.omitCompanyLogo === true)
+        }
       }
 
       if (options?.resetMode) {
@@ -512,6 +550,7 @@ export function StandaloneCoverLetter({
           setRecipientCompany(fields.recipientCompany)
           setProfileImage(fields.profileImage)
           setCompanyLogo(fields.companyLogo)
+          setOmitCompanyLogo(fields.omitCompanyLogo === true)
         } else {
           const defaults = applicantFieldsFromSource(
             {} as CoverLetterStored,
@@ -527,6 +566,7 @@ export function StandaloneCoverLetter({
           setRecipientCompany("")
           setProfileImage(null)
           setCompanyLogo(null)
+          setOmitCompanyLogo(false)
         }
       }
     },
@@ -677,6 +717,7 @@ export function StandaloneCoverLetter({
       recipientCompany,
       profileImage,
       companyLogo,
+      omitCompanyLogo,
       applicantName,
       applicantAddress,
       applicantEmail,
@@ -855,6 +896,11 @@ export function StandaloneCoverLetter({
     .split("\n")
     .map((line) => sanitizeCoverLetterField(line))
     .filter(Boolean)
+  const linkedForPreview = resumeVersions.find((v) => v.id === resumeId)
+  const displayCompanyLogo = resolveCoverLetterCompanyLogo(
+    { companyLogo, omitCompanyLogo },
+    linkedForPreview?.companyLogo,
+  )
 
   const handleCopyToClipboard = async () => {
     const formattedText = document.getElementById("cover-letter-preview")?.innerText
@@ -868,11 +914,10 @@ export function StandaloneCoverLetter({
     setIsExportingPdf(true)
     try {
       const linked = resumeVersions.find((v) => v.id === resumeId)
-      const logoForExport =
-        companyLogo?.trim() ||
-        linked?.coverLetter?.companyLogo?.trim() ||
-        linked?.companyLogo?.trim() ||
-        null
+      const logoForExport = resolveCoverLetterCompanyLogo(
+        { companyLogo, omitCompanyLogo },
+        linked?.companyLogo,
+      )
       const photoForExport =
         profileImage?.trim() ||
         linked?.coverLetter?.profileImage?.trim() ||
@@ -1325,8 +1370,8 @@ export function StandaloneCoverLetter({
                   <CoverLetterImageField
                     id="wizard-company-logo"
                     label="Company logo (optional)"
-                    value={companyLogo}
-                    onChange={setCompanyLogo}
+                    value={displayCompanyLogo}
+                    onChange={setCoverLetterCompanyLogo}
                     maxWidth={320}
                     previewShape="rectangle"
                   />
@@ -1548,12 +1593,12 @@ export function StandaloneCoverLetter({
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="recipient" className="border rounded-lg">
+                <AccordionItem value="recipient" className="min-w-0 border rounded-lg">
                   <AccordionTrigger className="px-4 hover:no-underline">
                     <span className="font-semibold text-sm">Recipient</span>
                   </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4 space-y-4">
-                    <div>
+                  <AccordionContent className="min-w-0 space-y-4 overflow-visible px-4 pb-4">
+                    <div className="min-w-0">
                       <Label htmlFor="recipient-company" className="text-xs">Company Name</Label>
                       <Input
                         id="recipient-company"
@@ -1566,20 +1611,20 @@ export function StandaloneCoverLetter({
                     <CoverLetterImageField
                       id="recipient-company-logo"
                       label="Company logo (optional)"
-                      hint="Shown above the recipient name in the letter."
-                      value={companyLogo}
-                      onChange={setCompanyLogo}
+                      hint="Shown above the recipient name in the letter. Removing it here keeps the logo on your resume."
+                      value={displayCompanyLogo}
+                      onChange={setCoverLetterCompanyLogo}
                       maxWidth={320}
                       previewShape="rectangle"
                     />
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="profile-photo" className="border rounded-lg">
+                <AccordionItem value="profile-photo" className="min-w-0 border rounded-lg">
                   <AccordionTrigger className="px-4 hover:no-underline">
                     <span className="font-semibold text-sm">Profile photo</span>
                   </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
+                  <AccordionContent className="min-w-0 overflow-visible px-4 pb-4">
                     <CoverLetterImageField
                       id="cover-letter-profile-photo"
                       label="Your photo (optional)"
@@ -1697,14 +1742,39 @@ export function StandaloneCoverLetter({
                     ) : null}
 
                     {/* Recipient */}
-                    {(recipientCompany.trim() || hiringManager.trim() || companyLogo) ? (
+                    {(recipientCompany.trim() || hiringManager.trim() || displayCompanyLogo) ? (
                       <div className="space-y-1 text-sm leading-snug">
-                        {companyLogo ? (
-                          <div className="cover-letter-logo-frame inline-block rounded-md border border-neutral-200/80 bg-white p-2">
+                        {displayCompanyLogo ? (
+                          <div
+                            className="cover-letter-logo-frame"
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              maxWidth: COVER_LETTER_LOGO_MAX_W,
+                              maxHeight: COVER_LETTER_LOGO_MAX_H,
+                              padding: COVER_LETTER_LOGO_PAD_PX,
+                              marginBottom: 6,
+                              background: "#ffffff",
+                              overflow: "visible",
+                              lineHeight: 0,
+                              boxSizing: "border-box",
+                            }}
+                          >
                             <img
-                              src={companyLogo}
+                              src={displayCompanyLogo}
                               alt=""
-                              className="max-h-14 max-w-[200px] object-contain"
+                              className="cover-letter-company-logo"
+                              style={{
+                                display: "block",
+                                width: "auto",
+                                height: "auto",
+                                maxWidth: COVER_LETTER_LOGO_MAX_W - COVER_LETTER_LOGO_PAD_PX * 2,
+                                maxHeight: COVER_LETTER_LOGO_MAX_H - COVER_LETTER_LOGO_PAD_PX * 2,
+                                objectFit: "contain",
+                                objectPosition: "center",
+                                background: "#ffffff",
+                              }}
                             />
                           </div>
                         ) : null}

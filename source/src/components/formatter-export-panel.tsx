@@ -6,12 +6,16 @@ import {
   FormatterPopoverSection,
   FormatterToggleRow,
 } from "@/components/formatter-popover-shell"
+import { PdfExportControls } from "@/components/pdf-export-controls"
+import type { PdfExportPreset } from "@/lib/pdf-export-presets"
 
 type FormatterExportPanelProps = {
   onDownloadPdf: () => void
   onDownloadWord: () => void
   isDownloadingPdf: boolean
   estimatedPdfBytes: number | null
+  pdfExportPreset: PdfExportPreset
+  onPdfExportPresetChange: (preset: PdfExportPreset) => void
   includeExportMetadata: boolean
   onIncludeExportMetadataChange: (v: boolean) => void
   includeTransparencyPage: boolean
@@ -30,6 +34,8 @@ export function FormatterExportPanel({
   onDownloadWord,
   isDownloadingPdf,
   estimatedPdfBytes,
+  pdfExportPreset,
+  onPdfExportPresetChange,
   includeExportMetadata,
   onIncludeExportMetadataChange,
   includeTransparencyPage,
@@ -39,6 +45,15 @@ export function FormatterExportPanel({
 
   return (
     <>
+      <FormatterPopoverSection label="PDF quality">
+        <PdfExportControls
+          variant="settings"
+          preset={pdfExportPreset}
+          onPresetChange={onPdfExportPresetChange}
+          estimatedBytes={estimatedPdfBytes}
+        />
+      </FormatterPopoverSection>
+
       <FormatterPopoverSection label="Download">
         <button
           type="button"

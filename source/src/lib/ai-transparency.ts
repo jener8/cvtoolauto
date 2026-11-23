@@ -45,6 +45,19 @@ export const TRANSPARENCY_STATEMENT_PRODUCT_URL = `${SITE_ORIGIN}/`
 
 export type CvFormatStyle = "executive-compact" | "current" | "modern-spacious"
 
+export const DEFAULT_CV_FORMAT_STYLE: CvFormatStyle = "executive-compact"
+
+export function normalizeCvFormatStyle(value: unknown): CvFormatStyle {
+  if (value === "executive-compact" || value === "current" || value === "modern-spacious") {
+    return value
+  }
+  // Legacy / alias keys from older drafts
+  if (value === "profile-enhanced" || value === "profileEnhanced") return "current"
+  if (value === "executive" || value === "compact") return "executive-compact"
+  if (value === "modern" || value === "spacious") return "modern-spacious"
+  return DEFAULT_CV_FORMAT_STYLE
+}
+
 export type TransparencyStatementOptions = {
   accentColorHex?: string
   formatStyle?: CvFormatStyle

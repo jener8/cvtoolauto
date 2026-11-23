@@ -28,6 +28,7 @@ RULES:
 - If the source CV uses plain text instead of # / ## markers, preserve every role and education entry using proper resume-builder syntax.
 - When compressing or merging multiple roles into one entry: use one # title, ## combined employers, ### spanning dates, then 2–4 bullets synthesizing facts from all merged roles.
 - Prefer #, ##, ###, -, ---PAGE BREAK---, inline links [Label](url), optional [columns=2] on section headings, and optional Markdown pipe tables for evidence matrices. Default evidence table: two columns (| Role criterion | Strongest evidence |). Optional third column (| Outcome / Status |) only when instructed — short verifiable labels (e.g. BITV certified, Prototype developed, Pilot proposed), never match percentages. Inside cells, optional **bold** may emphasise a lead phrase. Prefer one criterion and one concise evidence point per row (~40 words).
+- Parallel / independent work: classify with a single optional marker on the # title — [work=parallel-independent] or [work=parallel-consulting]. Keep the role under EXPERIENCE unless the source already uses a PARALLEL INDEPENDENT WORK section (presentation only — never duplicate the same role in both places). Do not invent a second classification system.
 - Do not use bold (**), italics (*), or other Markdown outside those supported constructs.
 - Output the entire CV in a single markdown code block (triple backticks) with resume-builder syntax only — no intro text, analysis, or JSON outside the block.`
 
@@ -51,6 +52,7 @@ REGELN:
 - Alle Rollen und Ausbildungen aus dem Quell-Lebenslauf behalten — Stichpunkte umformulieren, aber keine Einträge löschen.
 - Bei Zusammenführung mehrerer Rollen: ein # Titel, ## kombinierte Arbeitgeber, ### Datumsbereich, 2–4 Stichpunkte.
 - Bevorzugt #, ##, ###, -, ---PAGE BREAK---, [Label](url), optional [columns=2] und optionale Markdown-Tabellen. Standard Evidenztabelle: zwei Spalten (| Rollenkriterium | Stärkster Beleg |). Optionale dritte Spalte (| Ergebnis / Status |) nur auf Anweisung — kurze verifizierbare Labels, keine Match-Prozente. In Zellen optional **fett** für eine Leitphrase. Pro Zeile ein Kriterium und ein knapper Beleg (~40 Wörter).
+- Parallele / unabhängige Arbeit: nur optional [work=parallel-independent] oder [work=parallel-consulting] am # Titel. Rolle unter BERUFSERFAHRUNG/EXPERIENCE belassen, außer die Quelle nutzt bereits PARALLEL INDEPENDENT WORK (nur Darstellung — dieselbe Rolle nie doppelt). Kein zweites Klassifikationssystem erfinden.
 - Kein Fettdruck (**) oder sonstiges Markdown außerhalb dieser Konstrukte.
 - Gesamten Lebenslauf in einem Markdown-Codeblock (drei Backticks) ausgeben — nur Resume-Builder-Syntax, kein Begleittext.`
 

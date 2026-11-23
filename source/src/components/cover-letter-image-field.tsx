@@ -65,20 +65,48 @@ export function CoverLetterImageField({
     e.target.value = ""
   }
 
-  const previewClass =
-    previewShape === "circle"
-      ? "h-20 w-20 rounded-full object-cover border-2 border-border"
-      : "max-h-16 max-w-[200px] object-contain border border-border rounded-md bg-white p-1.5"
+  const isLogo = previewShape === "rectangle"
 
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2 overflow-hidden">
       <Label htmlFor={id} className="text-xs">
         {label}
       </Label>
-      <div className="flex items-start gap-3">
+      {/* Wrap when the editor column is narrow so the button is never clipped. */}
+      <div className="flex min-w-0 flex-wrap items-start gap-3">
         {value ? (
           <div className="relative shrink-0">
-            <img src={value} alt="" className={previewClass} />
+            {isLogo ? (
+              <div
+                className="flex items-center justify-center overflow-visible bg-white"
+                style={{
+                  maxWidth: 96,
+                  maxHeight: 52,
+                  padding: 4,
+                  boxSizing: "border-box",
+                }}
+              >
+                <img
+                  src={value}
+                  alt=""
+                  className="block bg-white"
+                  style={{
+                    width: "auto",
+                    height: "auto",
+                    maxWidth: 88,
+                    maxHeight: 44,
+                    objectFit: "contain",
+                    objectPosition: "center",
+                  }}
+                />
+              </div>
+            ) : (
+              <img
+                src={value}
+                alt=""
+                className="h-16 w-16 rounded-full border-2 border-border object-cover"
+              />
+            )}
             <Button
               type="button"
               size="icon"
@@ -94,14 +122,14 @@ export function CoverLetterImageField({
           <div
             className={
               previewShape === "circle"
-                ? "flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-border bg-muted/40"
-                : "flex h-16 w-[120px] shrink-0 items-center justify-center rounded-md border-2 border-dashed border-border bg-white"
+                ? "flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-border bg-muted/40"
+                : "flex h-[52px] w-[96px] shrink-0 items-center justify-center border border-dashed border-border bg-white"
             }
           >
             <Upload className="h-5 w-5 text-muted-foreground" />
           </div>
         )}
-        <div className="min-w-0 flex-1 space-y-1">
+        <div className="min-w-0 flex-1 basis-[9.5rem] space-y-1">
           <input
             ref={inputRef}
             id={id}
@@ -110,16 +138,28 @@ export function CoverLetterImageField({
             className="hidden"
             onChange={(e) => void handleUpload(e)}
           />
-          <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
-            <Upload className="mr-2 h-3.5 w-3.5" />
-            {value ? "Replace image" : "Upload image"}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 w-full max-w-full justify-center"
+            onClick={() => inputRef.current?.click()}
+          >
+            <Upload className="mr-2 h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{value ? "Replace image" : "Upload image"}</span>
           </Button>
           {value ? (
-            <Button type="button" variant="ghost" size="sm" className="h-8 text-xs" onClick={() => onChange(null)}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-full max-w-full text-xs"
+              onClick={() => onChange(null)}
+            >
               Remove
             </Button>
           ) : null}
-          {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+          {hint ? <p className="text-xs text-muted-foreground break-words">{hint}</p> : null}
         </div>
       </div>
     </div>

@@ -218,6 +218,11 @@ export interface ResumeEmbeddedCoverLetter {
   profileImage?: string | null
   /** Optional company logo (JPEG data URL) in the recipient block. */
   companyLogo?: string | null
+  /**
+   * When true, the letter must not show a company logo — even if the linked
+   * resume still has one. Lets users hide the logo on the letter only.
+   */
+  omitCompanyLogo?: boolean
   /** Sender block on the letter (overrides resume contact when set). */
   applicantName?: string
   applicantAddress?: string
@@ -263,6 +268,22 @@ export interface ResumeVersion {
      * Default false — preserves existing CV appearance.
      */
     showEmploymentDuration?: boolean
+    /**
+     * Optional Career Evolution graph for this CV only.
+     * Default absent/Off — existing CVs unchanged. Hidden state keeps content.
+     */
+    careerEvolution?: import("@/lib/career-evolution/types").CareerEvolutionConfig
+    /**
+     * Markdown table body accent (Selected Evidence, etc.).
+     * off | subtle (default) | strong — see Appearance → Table accent styling.
+     */
+    tableAccentStyle?: import("@/lib/accessible-accent-text").TableAccentStyle
+    /**
+     * CV visual template (Appearance → CV style).
+     * executive-compact | current (Profile-enhanced) | modern-spacious.
+     * Shared by editor preview and PDF export — single source of truth.
+     */
+    formatStyle?: import("@/lib/ai-transparency").CvFormatStyle
     professionalTitle: string
     name: string // Adding name field to store user's name
     language: "en" | "de" // Adding language preference for contact info labels
@@ -376,6 +397,8 @@ export interface CoverLetter {
   recipientCompany?: string
   profileImage?: string | null
   companyLogo?: string | null
+  /** Hide company logo on this letter without removing it from the resume. */
+  omitCompanyLogo?: boolean
   applicantName?: string
   applicantAddress?: string
   applicantEmail?: string

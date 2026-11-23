@@ -24,6 +24,7 @@ import {
   createEmptyResumeCoverLetter,
   hasResumeCoverLetterContent,
   hiringManagerFields,
+  resolveCoverLetterCompanyLogo,
 } from "@/lib/resume-cover-letter"
 import {
   createNewResumeId,
@@ -194,8 +195,10 @@ function CoverLetterEditor({
 
   const profileImage =
     draftLetter.profileImage?.trim() || resume.profileImage?.trim() || null
-  const companyLogo =
-    draftLetter.companyLogo?.trim() || resume.companyLogo?.trim() || null
+  const companyLogo = resolveCoverLetterCompanyLogo(
+    draftLetter,
+    resume.companyLogo,
+  )
   const dateLabel =
     draftLetter.letterDate?.trim() || formatCoverLetterDate(lang)
   const addressLines = applicantAddress
@@ -486,11 +489,24 @@ function CoverLetterEditor({
 
               <div className="mb-2.5 space-y-1 text-sm text-neutral-800">
                 {companyLogo ? (
-                  <img
-                    src={companyLogo}
-                    alt=""
-                    className="mb-2 max-h-12 max-w-[160px] object-contain"
-                  />
+                  <div
+                    className="cover-letter-logo-frame mb-2 inline-flex items-center justify-center overflow-visible bg-white"
+                    style={{ maxWidth: 120, maxHeight: 60, padding: 4 }}
+                  >
+                    <img
+                      src={companyLogo}
+                      alt=""
+                      className="cover-letter-company-logo block bg-white"
+                      style={{
+                        width: "auto",
+                        height: "auto",
+                        maxWidth: 112,
+                        maxHeight: 52,
+                        objectFit: "contain",
+                        objectPosition: "center",
+                      }}
+                    />
+                  </div>
                 ) : null}
                 <p className="font-semibold text-[15px] text-neutral-900">
                   {company.trim() || "Company name"}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { MobileAiCoach } from "@/components/mobile/mobile-ai-coach"
+import { MobileCvSettings } from "@/components/mobile/mobile-cv-settings"
 import { ExportMetadataPreviewPanel } from "@/components/export-metadata-preview-panel"
 import { ResumePreview } from "@/components/resume-preview"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -42,9 +43,11 @@ type MobileResumesProps = {
   onResumesChange: (resumes: ResumeVersion[]) => void
   openResumeId?: string | null
   onOpenResumeConsumed?: () => void
+  /** True while a resume editor is open (hides the phone bottom nav). */
+  onEditingChange?: (editing: boolean) => void
 }
 
-type EditorTab = "preview" | "content" | "details"
+type EditorTab = "preview" | "content" | "details" | "settings"
 
 function formatUpdated(timestamp: number | undefined): string | null {
   if (!timestamp || timestamp <= 0) return null
@@ -133,8 +136,21 @@ function ResumeEditor({
     normalizeContactInfo(resume.contactInfo ?? defaultResumeContactInfo()),
   )
   const [profileImage, setProfileImage] = useState<string | null>(resume.profileImage ?? null)
+  const [companyLogo, setCompanyLogo] = useState<string | null>(resume.companyLogo ?? null)
   const [profilePhotoBorder, setProfilePhotoBorder] = useState(
     resume.profilePhotoBorder !== false,
+  )
+  const [accentColor, setAccentColor] = useState(
+    resume.accentColor || "oklch(74% 0.10 81)",
+  )
+  const [accentColorHex, setAccentColorHex] = useState(
+    resume.accentColorHex || "#C9975B",
+  )
+  const [targetBoxBgColor, setTargetBoxBgColor] = useState(
+    resume.targetBoxBgColor || "#f8f9fa",
+  )
+  const [targetBoxBorderColor, setTargetBoxBorderColor] = useState(
+    resume.targetBoxBorderColor || "",
   )
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -149,11 +165,28 @@ function ResumeEditor({
         resumeText: text,
         contactInfo: normalizeContactInfo(contact),
         profileImage,
+        companyLogo,
         profilePhotoBorder,
+        accentColor,
+        accentColorHex,
+        targetBoxBgColor,
+        targetBoxBorderColor,
         updatedAt: resume.updatedAt ?? resume.timestamp ?? Date.now(),
         timestamp: resume.timestamp || Date.now(),
       }),
-    [resume, name, text, contact, profileImage, profilePhotoBorder],
+    [
+      resume,
+      name,
+      text,
+      contact,
+      profileImage,
+      companyLogo,
+      profilePhotoBorder,
+      accentColor,
+      accentColorHex,
+      targetBoxBgColor,
+      targetBoxBorderColor,
+    ],
   )
 
   const dirty =
@@ -161,7 +194,12 @@ function ResumeEditor({
     draft.resumeText !== (resume.resumeText ?? "") ||
     JSON.stringify(draft.contactInfo) !== JSON.stringify(normalizeContactInfo(resume.contactInfo)) ||
     (draft.profileImage ?? null) !== (resume.profileImage ?? null) ||
-    Boolean(draft.profilePhotoBorder) !== (resume.profilePhotoBorder !== false)
+    (draft.companyLogo ?? null) !== (resume.companyLogo ?? null) ||
+    Boolean(draft.profilePhotoBorder) !== (resume.profilePhotoBorder !== false) ||
+    (draft.accentColor || "") !== (resume.accentColor || "") ||
+    (draft.accentColorHex || "") !== (resume.accentColorHex || "") ||
+    (draft.targetBoxBgColor || "#f8f9fa") !== (resume.targetBoxBgColor || "#f8f9fa") ||
+    (draft.targetBoxBorderColor || "") !== (resume.targetBoxBorderColor || "")
 
   const portfolioSlots = portfolioInputSlots(contact.portfolios, contact.portfolio)
 
@@ -248,7 +286,12 @@ function ResumeEditor({
           resumeText: nextText,
           contactInfo: normalizeContactInfo(contact),
           profileImage,
+          companyLogo,
           profilePhotoBorder,
+          accentColor,
+          accentColorHex,
+          targetBoxBgColor,
+          targetBoxBorderColor,
           updatedAt: Date.now(),
           timestamp: resume.timestamp || Date.now(),
         })
@@ -265,7 +308,19 @@ function ResumeEditor({
         }
       }
     },
-    [resume, name, contact, profileImage, profilePhotoBorder, onSaved],
+    [
+      resume,
+      name,
+      contact,
+      profileImage,
+      companyLogo,
+      profilePhotoBorder,
+      accentColor,
+      accentColorHex,
+      targetBoxBgColor,
+      targetBoxBorderColor,
+      onSaved,
+    ],
   )
 
   return (
@@ -309,15 +364,17 @@ function ResumeEditor({
         </div>
 
         <div
-          className="mx-3 mb-2 grid grid-cols-3 gap-1 rounded-xl border border-zinc-200 bg-zinc-50 p-1"
+          className="mx-2 mb-2 grid w-[calc(100%-1rem)] grid-cols-4 gap-0.5 rounded-xl border border-zinc-200 bg-zinc-50 p-1"
           role="tablist"
           aria-label="Resume editor sections"
+          data-mobile-editor-tabs="preview-content-details-settings"
         >
           {(
             [
               ["preview", "Preview"],
               ["content", "Content"],
               ["details", "Details"],
+              ["settings", "Settings"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -325,13 +382,14 @@ function ResumeEditor({
               type="button"
               role="tab"
               aria-selected={tab === id}
+              aria-label={label}
               onClick={() => setTab(id)}
               className={cn(
-                "min-h-10 rounded-lg text-sm font-medium",
+                "min-h-10 min-w-0 rounded-lg px-0.5 text-center text-[11px] font-medium leading-tight tracking-tight",
                 tab === id ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500",
               )}
             >
-              {label}
+              <span className="block truncate">{label}</span>
             </button>
           ))}
         </div>
@@ -608,6 +666,29 @@ function ResumeEditor({
             </button>
           </div>
         ) : null}
+
+        {tab === "settings" ? (
+          <MobileCvSettings
+            accentColor={accentColor}
+            accentColorHex={accentColorHex}
+            onAccentChange={(oklch, hex) => {
+              setAccentColor(oklch)
+              setAccentColorHex(hex)
+            }}
+            targetBoxBgColor={targetBoxBgColor}
+            onTargetBoxBgColorChange={setTargetBoxBgColor}
+            targetBoxBorderColor={targetBoxBorderColor}
+            onTargetBoxBorderColorChange={setTargetBoxBorderColor}
+            profilePhotoBorder={profilePhotoBorder}
+            onProfilePhotoBorderChange={setProfilePhotoBorder}
+            companyLogo={companyLogo}
+            onCompanyLogoChange={setCompanyLogo}
+            resumeText={text}
+            onResumeTextChange={setText}
+            contactInfo={contact}
+            onContactInfoChange={(info) => setContact(normalizeContactInfo(info))}
+          />
+        ) : null}
       </div>
 
       <MobileAiCoach
@@ -624,6 +705,11 @@ function ResumeEditor({
         onResumeEdit={handleAiResumeEdit}
         fabLabel="AI CV Coach"
         fabTooltip="Get help improving your CV"
+        fabClassName={
+          tab === "settings" || tab === "content" || tab === "details"
+            ? "!bottom-[5.5rem]"
+            : "!bottom-[4.5rem]"
+        }
       />
     </div>
   )
@@ -637,6 +723,7 @@ export function MobileResumes({
   onResumesChange,
   openResumeId = null,
   onOpenResumeConsumed,
+  onEditingChange,
 }: MobileResumesProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -648,6 +735,11 @@ export function MobileResumes({
     }
     onOpenResumeConsumed?.()
   }, [openResumeId, resumes, onOpenResumeConsumed])
+
+  useEffect(() => {
+    onEditingChange?.(Boolean(selectedId))
+    return () => onEditingChange?.(false)
+  }, [selectedId, onEditingChange])
 
   const sorted = useMemo(
     () =>

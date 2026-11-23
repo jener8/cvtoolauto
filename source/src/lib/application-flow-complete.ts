@@ -1,3 +1,4 @@
+import type { EvidenceAssessmentRow } from "@/lib/evidence-assessment/types"
 import type { JobApplication } from "@/lib/types"
 
 export type ApplicationFlowCompletePayload = {
@@ -8,6 +9,10 @@ export type ApplicationFlowCompletePayload = {
   jobDescriptionUrl: string
   outputLanguage: "en" | "de"
   wizardSessionId: string
+  /** Approved evidence rows from CV Creator (optional). */
+  approvedEvidence?: EvidenceAssessmentRow[]
+  /** Employer-problem summary from evidence assessment (optional). */
+  employerProblemSummary?: string
 }
 
 export function deriveApplicationName(draft: {

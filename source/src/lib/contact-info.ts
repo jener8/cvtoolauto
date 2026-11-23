@@ -1,5 +1,16 @@
+import {
+  normalizeTableAccentStyle,
+  type TableAccentStyle,
+} from "./accessible-accent-text"
 import { escapeHtmlText } from "./resume-inline-links"
 import { loadUserProfile } from "./user-profile"
+import { normalizeCareerEvolutionConfig } from "./career-evolution/markdown"
+import type { CareerEvolutionConfig } from "./career-evolution/types"
+import {
+  DEFAULT_CV_FORMAT_STYLE,
+  normalizeCvFormatStyle,
+  type CvFormatStyle,
+} from "./ai-transparency"
 import type { FolderContactInfo, ResumeVersion } from "./types"
 
 export type ResumeContactInfo = ResumeVersion["contactInfo"]
@@ -176,6 +187,9 @@ export function defaultResumeContactInfo(
     citizenship: "",
     showPortfolio: false,
     showEmploymentDuration: false,
+    careerEvolution: undefined as CareerEvolutionConfig | undefined,
+    tableAccentStyle: "subtle" as TableAccentStyle,
+    formatStyle: DEFAULT_CV_FORMAT_STYLE as CvFormatStyle,
     professionalTitle: "",
     language: "en" as const,
     targetCompany: "",
@@ -184,12 +198,19 @@ export function defaultResumeContactInfo(
     ...overrides,
   }
   const portfolios = normalizePortfolioUrls(merged.portfolios, merged.portfolio)
+  const careerEvolution =
+    merged.careerEvolution != null
+      ? normalizeCareerEvolutionConfig(merged.careerEvolution)
+      : undefined
   return {
     ...merged,
     portfolios,
     portfolio: portfolios[0] ?? "",
     showPortfolio: resolveShowPortfolio(merged, portfolios),
     showEmploymentDuration: merged.showEmploymentDuration === true,
+    careerEvolution,
+    tableAccentStyle: normalizeTableAccentStyle(merged.tableAccentStyle),
+    formatStyle: normalizeCvFormatStyle(merged.formatStyle),
   }
 }
 
@@ -238,6 +259,18 @@ export function normalizeContactInfo(
     showEmploymentDuration:
       source.showEmploymentDuration === true ||
       source.show_employment_duration === true,
+    careerEvolution:
+      source.careerEvolution != null
+        ? normalizeCareerEvolutionConfig(source.careerEvolution)
+        : source.career_evolution != null
+          ? normalizeCareerEvolutionConfig(source.career_evolution)
+          : undefined,
+    tableAccentStyle: normalizeTableAccentStyle(
+      source.tableAccentStyle ?? source.table_accent_style,
+    ),
+    formatStyle: normalizeCvFormatStyle(
+      source.formatStyle ?? source.format_style ?? source.humanFormatStyle,
+    ),
     professionalTitle: pickString(
       source.professionalTitle,
       source.professional_title,

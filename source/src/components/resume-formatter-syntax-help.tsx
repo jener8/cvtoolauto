@@ -38,9 +38,36 @@ export function ResumeFormattingSyntaxHelp({ language }: { language: "en" | "de"
       desc: "Add [columns=2] or [columns=3] after a section heading (e.g. FÄHIGKEITEN, SKILLS).",
     },
     {
+      code: "# Role A\n## Same Company\n### 2022 – Present\n- …\n# Role B\n## Same Company\n### 2019 – 2022\n- …",
+      title: "Multiple roles, one employer",
+      desc: "Use the same ## company on each role. Preview/PDF groups them under one company heading with total tenure (overlapping months counted once). Keep # / ## / ### syntax.",
+      copyable: true,
+    },
+    {
+      code: "# Founder – Responsible AI Research & Design [work=parallel-independent]\n## TrustAudit.tools\n### 2024 – Present\n- Developed a responsible AI assessment framework.",
+      title: "Parallel and Independent Work",
+      desc: "Mark an experience as independent or consulting work undertaken alongside another role. Choose whether it appears within Experience or in a separate section (Edit → Parallel work). The marker produces a small git-merge icon and a readable parallel-work label. Overlapping dates may suggest marking — never auto-applied. Section placement is a presentation choice, not a second classification.",
+      copyable: true,
+    },
+    {
       code: TABLE_EXAMPLE,
       title: "Markdown table",
       desc: "Pipe tables render as real tables in preview and PDF (two columns ≈ 30% / 70%). Good for Selected Evidence. Use **bold** for a lead phrase in evidence. Keep each cell to one clear point (~40 words) for easier scanning.",
+      copyable: true,
+    },
+    {
+      code: `TRACK: Professional Experience
+- 2016–2019 | UX Design | SolarWinds
+- 2021–2023 | UX Research & Product Design | Bundesdruckerei
+- 2023–Present | UX & AI Strategy | Bundesdruckerei
+
+TRACK: Independent Research
+- 2024–Present | Responsible AI | TrustBridge / TrustAudit.tools
+
+CONNECTION:
+Independent research informed strategic AI discussions at Bundesdruckerei.`,
+      title: "Career Evolution graph text",
+      desc: "Edit → Career Evolution. Each milestone is “dates | stage label | employer” (leading “-” optional; employer optional). CONNECTION is free text or “From -> To | note”. Same syntax as Generate.",
       copyable: true,
     },
   ]

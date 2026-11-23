@@ -54,6 +54,18 @@ const SECTION_ALIASES: Record<string, string> = {
   WERDEGANG: "EXPERIENCE",
   "WORK EXPERIENCE": "EXPERIENCE",
   "PROFESSIONAL EXPERIENCE": "EXPERIENCE",
+  "PARALLEL INDEPENDENT WORK": "PARALLEL_WORK",
+  "PARALLEL WORK": "PARALLEL_WORK",
+  "INDEPENDENT WORK": "PARALLEL_WORK",
+  "SIDE PROJECTS": "PARALLEL_WORK",
+  "NEBENBERUFLICHE TÄTIGKEIT": "PARALLEL_WORK",
+  "NEBENBERUFLICH": "PARALLEL_WORK",
+  "UNABHÄNGIGE PROJEKTE": "PARALLEL_WORK",
+  "UNABHAENGIGE PROJEKTE": "PARALLEL_WORK",
+  "CAREER EVOLUTION": "CAREER_EVOLUTION",
+  CAREEREVOLUTION: "CAREER_EVOLUTION",
+  KARRIEREENTWICKLUNG: "CAREER_EVOLUTION",
+  "KARRIERE-EVOLUTION": "CAREER_EVOLUTION",
   EDUCATION: "EDUCATION",
   AUSBILDUNG: "EDUCATION",
   SKILLS: "SKILLS",
@@ -76,7 +88,9 @@ const SECTION_ALIASES: Record<string, string> = {
 
 const SECTION_ORDER = [
   "PROFILE",
+  "CAREER_EVOLUTION",
   "EXPERIENCE",
+  "PARALLEL_WORK",
   "EDUCATION",
   "PROJECTS",
   "SKILLS",
@@ -247,7 +261,12 @@ function firstJobIndex(lines: string[]): number {
 }
 
 function jobTitleText(line: string): string {
-  return line.trim().replace(/^#\s+/, "").trim()
+  return line
+    .trim()
+    .replace(/^#\s+/, "")
+    .replace(/[\[\uFF3B【]\s*work\s*=\s*[a-z0-9_-]+\s*[\]\uFF3D】]/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 function companyText(line: string): string {
@@ -903,7 +922,9 @@ export function validateAndRepairImportedCv(
 export const IMPORT_CV_SECTION_LABELS: Record<SectionKey, string> = {
   OTHER: "Contact / header",
   PROFILE: "Profile",
+  CAREER_EVOLUTION: "Career evolution",
   EXPERIENCE: "Experience",
+  PARALLEL_WORK: "Parallel independent work",
   EDUCATION: "Education",
   PROJECTS: "Projects",
   SKILLS: "Skills",

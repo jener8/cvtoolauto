@@ -18,7 +18,8 @@ const MAX_SNAPSHOT_RESUME_TEXT = 45_000
 const MAX_DRAFT_RESUME_TEXT = 70_000
 const MAX_JOB_DESCRIPTION_CHARS = 100_000
 const MAX_COVER_LETTER_BODY_CHARS = 24_000
-const MAX_COVER_LETTER_IMAGE_CHARS = 12_000
+/** Same budget as resume logos — 12k truncated mid-base64 and broke uploaded letter logos. */
+const MAX_COVER_LETTER_IMAGE_CHARS = 100_000
 const MAX_RESUME_IMAGE_CHARS = 100_000
 
 const WIRE_VERSION = 2 as const
@@ -53,6 +54,8 @@ type WireSnapshot = {
     rc?: string
     pi?: string
     lg?: string
+    /** omitCompanyLogo — letter-only hide */
+    ol?: boolean
     an?: string
     adr?: string
     em?: string
@@ -89,6 +92,7 @@ export type CompactResumeRecord = {
     recipientCompany?: string
     profileImage?: string
     companyLogo?: string
+    omitCompanyLogo?: boolean
     applicantName?: string
     applicantAddress?: string
     applicantEmail?: string
@@ -111,6 +115,16 @@ export type LocalResumeWriteResult = {
 function truncate(value: string | undefined, max: number): string {
   if (!value) return ""
   return value.length <= max ? value : value.slice(0, max)
+}
+
+/** Keep a full data URL or drop it — never slice (corrupts base64 and looks like a removed logo). */
+function truncateImageDataUrl(value: string | undefined, max: number): string {
+  if (!value) return ""
+  if (value.length <= max) return value
+  console.warn(
+    `[resume] Cover-letter image omitted from local save (${Math.round(value.length / 1024)}KB) — compress or use a smaller file`,
+  )
+  return ""
 }
 
 function minimalContact(contact: ResumeVersion["contactInfo"]): Record<string, unknown> {
@@ -141,6 +155,9 @@ function minimalContact(contact: ResumeVersion["contactInfo"]): Record<string, u
   put("tr", c.targetRole)
   put("ja", c.jobAdvertSource)
   if (c.showEmploymentDuration === true) out.sed = true
+  if (c.careerEvolution != null) out.ce = c.careerEvolution
+  if (c.tableAccentStyle && c.tableAccentStyle !== "subtle") out.tas = c.tableAccentStyle
+  if (c.formatStyle && c.formatStyle !== "executive-compact") out.fs = c.formatStyle
   return out
 }
 
@@ -162,6 +179,9 @@ function expandContact(raw: Record<string, unknown> | undefined): ResumeVersion[
     jobAdvertSource: (raw.ja as string) ?? "",
     portfolio: (raw.po as string) ?? "",
     showEmploymentDuration: raw.sed === true,
+    careerEvolution: raw.ce,
+    tableAccentStyle: raw.tas,
+    formatStyle: raw.fs,
   })
 }
 
@@ -197,8 +217,11 @@ function compactCoverLetterMeta(
     contentEn: truncate(cl.contentEn, MAX_COVER_LETTER_BODY_CHARS) || undefined,
     contentDe: truncate(cl.contentDe, MAX_COVER_LETTER_BODY_CHARS) || undefined,
     recipientCompany: truncate(cl.recipientCompany, 200) || undefined,
-    profileImage: truncate(cl.profileImage ?? undefined, MAX_COVER_LETTER_IMAGE_CHARS) || undefined,
-    companyLogo: truncate(cl.companyLogo ?? undefined, MAX_COVER_LETTER_IMAGE_CHARS) || undefined,
+    profileImage:
+      truncateImageDataUrl(cl.profileImage ?? undefined, MAX_COVER_LETTER_IMAGE_CHARS) || undefined,
+    companyLogo:
+      truncateImageDataUrl(cl.companyLogo ?? undefined, MAX_COVER_LETTER_IMAGE_CHARS) || undefined,
+    omitCompanyLogo: cl.omitCompanyLogo === true ? true : undefined,
     applicantName: truncate(cl.applicantName, 120) || undefined,
     applicantAddress: truncate(cl.applicantAddress, 300) || undefined,
     applicantEmail: truncate(cl.applicantEmail, 120) || undefined,
@@ -266,6 +289,7 @@ function wireFromCompact(c: CompactResumeRecord): WireSnapshot {
       rc: c.coverLetterMeta.recipientCompany,
       pi: c.coverLetterMeta.profileImage,
       lg: c.coverLetterMeta.companyLogo,
+      ol: c.coverLetterMeta.omitCompanyLogo === true ? true : undefined,
       an: c.coverLetterMeta.applicantName,
       adr: c.coverLetterMeta.applicantAddress,
       em: c.coverLetterMeta.applicantEmail,
@@ -313,6 +337,7 @@ function wireToCompact(raw: unknown): CompactResumeRecord | null {
             recipientCompany: meta.rc,
             profileImage: meta.pi,
             companyLogo: meta.lg,
+            omitCompanyLogo: meta.ol === true ? true : undefined,
             applicantName: meta.an,
             applicantAddress: meta.adr,
             applicantEmail: meta.em,
@@ -341,7 +366,8 @@ export function expandCompactResume(compact: CompactResumeRecord): ResumeVersion
         hiringManager: meta.hiringManager,
         recipientCompany: meta.recipientCompany ?? "",
         profileImage: meta.profileImage ?? null,
-        companyLogo: meta.companyLogo ?? null,
+        companyLogo: meta.omitCompanyLogo === true ? null : meta.companyLogo ?? null,
+        omitCompanyLogo: meta.omitCompanyLogo === true ? true : undefined,
         applicantName: meta.applicantName ?? "",
         applicantAddress: meta.applicantAddress ?? "",
         applicantEmail: meta.applicantEmail ?? "",
@@ -514,7 +540,11 @@ function writeDraftRecord(draft: ResumeDraftRecord): LocalResumeWriteResult {
   return retry
 }
 
-/** Autosave only — overwrites single draft, never appends snapshot list. */
+/**
+ * Autosave — overwrites the single draft and updates the matching snapshot in
+ * place so CV style / contact presentation survive close → reopen (workspace
+ * hydrate reads snapshots; draft-only writes used to be lost).
+ */
 export function saveResumeDraftLocal(resume: ResumeVersion): LocalResumeWriteResult {
   enforceLocalStorageBudget()
   const compact = compactResumeForLocal(resume, MAX_DRAFT_RESUME_TEXT)
@@ -524,7 +554,24 @@ export function saveResumeDraftLocal(resume: ResumeVersion): LocalResumeWriteRes
     updatedAt: compact.updatedAt,
     compact,
   }
-  return writeDraftRecord(draft)
+  const draftResult = writeDraftRecord(draft)
+  if (!draftResult.ok) return draftResult
+
+  // Keep the same-id snapshot current (does not create a new named version).
+  const snapshotResult = saveResumeSnapshotLocal(resume)
+  if (!snapshotResult.ok) {
+    return {
+      ok: true,
+      warning:
+        snapshotResult.warning ??
+        draftResult.warning ??
+        "Draft saved; could not update the local resume snapshot.",
+    }
+  }
+  return {
+    ok: true,
+    warning: draftResult.warning ?? snapshotResult.warning,
+  }
 }
 
 /** Manual named save — appends/updates pruned snapshot list only (never autosave). */

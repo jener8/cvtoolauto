@@ -55,6 +55,7 @@ export function MobileApp({
   const [resumes, setResumes] = useState<ResumeVersion[]>([])
   const [openResumeId, setOpenResumeId] = useState<string | null>(null)
   const [openLetterResumeId, setOpenLetterResumeId] = useState<string | null>(null)
+  const [resumeEditorOpen, setResumeEditorOpen] = useState(false)
 
   const loadApps = useCallback(async () => {
     setLoadingApps(true)
@@ -182,6 +183,7 @@ export function MobileApp({
             onResumesChange={setResumes}
             openResumeId={openResumeId}
             onOpenResumeConsumed={() => setOpenResumeId(null)}
+            onEditingChange={setResumeEditorOpen}
           />
         ) : null}
         {tab === "coverLetter" ? (
@@ -197,36 +199,39 @@ export function MobileApp({
         ) : null}
       </div>
 
-      <nav
-        className="shrink-0 border-t border-zinc-200 bg-white pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1"
-        aria-label="Mobile navigation"
-      >
-        <ul className="grid grid-cols-3">
-          {TABS.map(({ id, label, icon: Icon }) => {
-            const active = tab === id
-            return (
-              <li key={id}>
-                <button
-                  type="button"
-                  onClick={() => setTab(id)}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "flex w-full flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-medium",
-                    active ? "text-teal-800" : "text-zinc-500",
-                  )}
-                >
-                  <Icon
-                    className={cn("h-5 w-5", active ? "text-teal-700" : "text-zinc-400")}
-                    strokeWidth={active ? 2 : 1.75}
-                    aria-hidden
-                  />
-                  {label}
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </nav>
+      {/* Hide phone shell tabs while the resume editor is open so Preview | Content | Details | Settings stay fully visible */}
+      {resumeEditorOpen && tab === "resume" ? null : (
+        <nav
+          className="shrink-0 border-t border-zinc-200 bg-white pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1"
+          aria-label="Mobile navigation"
+        >
+          <ul className="grid grid-cols-3">
+            {TABS.map(({ id, label, icon: Icon }) => {
+              const active = tab === id
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
+                    onClick={() => setTab(id)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex w-full flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-medium",
+                      active ? "text-teal-800" : "text-zinc-500",
+                    )}
+                  >
+                    <Icon
+                      className={cn("h-5 w-5", active ? "text-teal-700" : "text-zinc-400")}
+                      strokeWidth={active ? 2 : 1.75}
+                      aria-hidden
+                    />
+                    {label}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </nav>
+      )}
     </main>
   )
 }

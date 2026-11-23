@@ -9,6 +9,12 @@ import {
 import { chromium } from "playwright"
 import { parseResumeMarkupLine } from "@/lib/resume-markup-line"
 import { escapeHtmlText } from "@/lib/resume-inline-links"
+import { normalizeCvSectionKey } from "@/lib/import-cv-structure"
+import { stripSectionColumnModifier } from "@/lib/section-column-modifier"
+import {
+  formatParallelWorkAtsSuffix,
+  resolveExperienceWorkType,
+} from "@/lib/experience-work-modifier"
 
 export type AgentDraftExportKind = "cv" | "cover"
 export type AgentDraftExportFormat = "pdf" | "docx"
@@ -39,6 +45,7 @@ function paragraphsFromPlainText(text: string): Paragraph[] {
 function paragraphsFromCvMarkup(cvText: string): Paragraph[] {
   const lines = cvText.replace(/\r\n/g, "\n").split("\n")
   const out: Paragraph[] = []
+  let sectionIsParallelWork = false
   for (const line of lines) {
     const trimmed = line.trim()
     if (!trimmed) {
@@ -50,6 +57,8 @@ function paragraphsFromCvMarkup(cvText: string): Paragraph[] {
       continue
     }
     if (parsed.kind === "section-heading") {
+      const key = normalizeCvSectionKey(stripSectionColumnModifier(parsed.text))
+      sectionIsParallelWork = key === "PARALLEL_WORK"
       out.push(
         new Paragraph({
           text: parsed.text,
@@ -60,9 +69,14 @@ function paragraphsFromCvMarkup(cvText: string): Paragraph[] {
       continue
     }
     if (parsed.kind === "job-title") {
+      const workType = resolveExperienceWorkType({
+        lineWorkType: parsed.workType,
+        sectionIsParallelWork,
+      })
+      const text = `${parsed.text}${formatParallelWorkAtsSuffix(workType, "en")}`
       out.push(
         new Paragraph({
-          text: parsed.text,
+          text,
           heading: HeadingLevel.HEADING_1,
           spacing: { before: 280, after: 80 },
         }),
@@ -206,11 +220,16 @@ function cvMarkupToHtml(cvText: string): string {
   const lines = cvText.replace(/\r\n/g, "\n").split("\n")
   const parts: string[] = []
   let listOpen = false
+  let sectionIsParallelWork = false
   const closeList = () => {
     if (listOpen) {
       parts.push("</ul>")
       listOpen = false
     }
+  }
+  const noteSectionHeading = (title: string) => {
+    sectionIsParallelWork =
+      normalizeCvSectionKey(stripSectionColumnModifier(title)) === "PARALLEL_WORK"
   }
 
   for (const line of lines) {
@@ -226,6 +245,7 @@ function cvMarkupToHtml(cvText: string): string {
     }
     if (parsed.kind === "section-heading") {
       closeList()
+      noteSectionHeading(parsed.text)
       parts.push(`<h2>${escapeHtmlText(parsed.text)}</h2>`)
       continue
     }
@@ -236,12 +256,18 @@ function cvMarkupToHtml(cvText: string): string {
       parsed.kind === "paragraph"
     ) {
       closeList()
+      noteSectionHeading(trimmed)
       parts.push(`<h2>${escapeHtmlText(trimmed)}</h2>`)
       continue
     }
     if (parsed.kind === "job-title") {
       closeList()
-      parts.push(`<h3>${escapeHtmlText(parsed.text)}</h3>`)
+      const workType = resolveExperienceWorkType({
+        lineWorkType: parsed.workType,
+        sectionIsParallelWork,
+      })
+      const text = `${parsed.text}${formatParallelWorkAtsSuffix(workType, "en")}`
+      parts.push(`<h3>${escapeHtmlText(text)}</h3>`)
       continue
     }
     if (parsed.kind === "company") {

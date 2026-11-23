@@ -176,18 +176,31 @@ export const COVER_LETTER_EXPORT_CSS = `
   margin-bottom: 0;
 }
 #cover-letter-preview .cover-letter-logo-frame {
-  display: block !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  max-width: 120px !important;
+  max-height: 60px !important;
+  padding: 4px !important;
   overflow: visible !important;
   background: #ffffff !important;
-  padding: 6px;
-  border-radius: 4px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  line-height: 0 !important;
 }
 #cover-letter-preview .cover-letter-company-logo {
   display: block !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: 112px !important;
+  max-height: 52px !important;
   background: #ffffff !important;
   visibility: visible !important;
   opacity: 1 !important;
-  object-fit: none !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  overflow: visible !important;
+  border: 0 !important;
 }
 #cover-letter-preview .cover-letter-profile-photo {
   display: block !important;

@@ -122,17 +122,38 @@ export function parseEmploymentMonthToken(
 
 /**
  * Split a date-range line into start/end tokens.
- * Supports en/em dashes and hyphen.
+ * Must not break ISO month tokens (2016-12) on internal hyphens.
+ * Prefer en/em dashes or spaced hyphens; then year–year / ISO–ISO / ISO–Present.
  */
 export function splitEmploymentDateRange(text: string): { start: string; end: string } | null {
   const cleaned = text.replace(/\s+/g, " ").trim()
   if (!cleaned) return null
-  const parts = cleaned.split(/\s*[–—−-]\s*/)
-  if (parts.length < 2) return null
-  const start = parts[0]?.trim()
-  const end = parts.slice(1).join(" - ").trim()
-  if (!start || !end) return null
-  return { start, end }
+
+  // 1) En/em dash, " - ", or " to "
+  const fancy = cleaned.split(/\s*[–—−]\s*|\s+-\s+|\s+to\s+/i)
+  if (fancy.length >= 2) {
+    const start = fancy[0]?.trim()
+    const end = fancy.slice(1).join(" - ").trim()
+    if (start && end) return { start, end }
+  }
+
+  // 2) Year–year: 2016-2019
+  const yearYear = cleaned.match(/^(\d{4})\s*-\s*(\d{4})$/)
+  if (yearYear) return { start: yearYear[1]!, end: yearYear[2]! }
+
+  // 3) ISO–ISO (bare hyphen between complete tokens)
+  const isoIso = cleaned.match(
+    /^(\d{4}-\d{2}(?:-\d{2})?)\s*-\s*(\d{4}-\d{2}(?:-\d{2})?)$/,
+  )
+  if (isoIso) return { start: isoIso[1]!, end: isoIso[2]! }
+
+  // 4) ISO / year – Present
+  const isoPresent = cleaned.match(
+    /^(\d{4}(?:-\d{2}(?:-\d{2})?)?)\s*-\s*(present|current|now|heute|aktuell)$/i,
+  )
+  if (isoPresent) return { start: isoPresent[1]!, end: isoPresent[2]! }
+
+  return null
 }
 
 export function monthsBetweenEmployment(

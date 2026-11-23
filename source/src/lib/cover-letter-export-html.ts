@@ -33,8 +33,52 @@ const BORDER = "#e5e5e5"
 
 /** On-screen / print display size (CSS px). */
 export const COVER_LETTER_PROFILE_DISPLAY_PX = 72
-export const COVER_LETTER_EXPORT_LOGO_MAX_W = 200
-export const COVER_LETTER_EXPORT_LOGO_MAX_H = 48
+/** Letter logo box — never crop; fit with object-fit:contain inside these caps. */
+export const COVER_LETTER_LOGO_MAX_W = 120
+export const COVER_LETTER_LOGO_MAX_H = 60
+export const COVER_LETTER_LOGO_PAD_PX = 4
+/** @deprecated Use COVER_LETTER_LOGO_MAX_W */
+export const COVER_LETTER_EXPORT_LOGO_MAX_W = COVER_LETTER_LOGO_MAX_W
+/** @deprecated Use COVER_LETTER_LOGO_MAX_H */
+export const COVER_LETTER_EXPORT_LOGO_MAX_H = COVER_LETTER_LOGO_MAX_H
+
+/** Inline styles for the on-screen / print logo frame (no crop, no fixed square). */
+export function coverLetterLogoFrameStyle(): string {
+  return [
+    "display:inline-flex",
+    "align-items:center",
+    "justify-content:center",
+    `max-width:${COVER_LETTER_LOGO_MAX_W}px`,
+    `max-height:${COVER_LETTER_LOGO_MAX_H}px`,
+    `padding:${COVER_LETTER_LOGO_PAD_PX}px`,
+    "margin:0 0 6px 0",
+    "background:#ffffff",
+    "border:0",
+    "border-radius:0",
+    "overflow:visible",
+    "line-height:0",
+    "box-sizing:border-box",
+  ].join(";")
+}
+
+/** Inline styles for the logo image inside the frame. */
+export function coverLetterLogoImageStyle(widthPx?: number, heightPx?: number): string {
+  const maxInnerW = COVER_LETTER_LOGO_MAX_W - COVER_LETTER_LOGO_PAD_PX * 2
+  const maxInnerH = COVER_LETTER_LOGO_MAX_H - COVER_LETTER_LOGO_PAD_PX * 2
+  const sized =
+    widthPx && heightPx
+      ? `width:${widthPx}px;height:${heightPx}px;max-width:${maxInnerW}px;max-height:${maxInnerH}px;`
+      : `width:auto;height:auto;max-width:${maxInnerW}px;max-height:${maxInnerH}px;`
+  return [
+    "display:block",
+    sized,
+    "object-fit:contain",
+    "object-position:center",
+    "background:#ffffff",
+    "border:0",
+    "overflow:visible",
+  ].join(";")
+}
 
 /** Raster images at 3× then display at 1× so PDF capture stays sharp without excess height. */
 export const PDF_EXPORT_IMAGE_DPR = 3
@@ -139,8 +183,8 @@ export function buildCoverLetterExportHtml(data: CoverLetterExportData): string 
     const lw = data.companyLogoWidth
     const lh = data.companyLogoHeight
     recipientParts.push(
-      `<div class="cover-letter-logo-frame" style="display:block;background:#ffffff;border:1px solid ${BORDER};border-radius:6px;padding:6px;margin:0 0 6px 0;width:${lw + 12}px;">
-        <img alt="" class="cover-letter-company-logo" data-pdf-prepared="1" width="${lw}" height="${lh}" style="display:block;width:${lw}px;height:${lh}px;background:#ffffff;border:0;" />
+      `<div class="cover-letter-logo-frame" style="${coverLetterLogoFrameStyle()}">
+        <img alt="" class="cover-letter-company-logo" data-pdf-prepared="1" width="${lw}" height="${lh}" style="${coverLetterLogoImageStyle(lw, lh)}" />
       </div>`,
     )
   }
@@ -222,11 +266,10 @@ function attachExportImageSources(root: HTMLElement, data: CoverLetterExportData
       if (data.companyLogoWidth && data.companyLogoHeight) {
         logo.width = data.companyLogoWidth
         logo.height = data.companyLogoHeight
-        logo.style.width = `${data.companyLogoWidth}px`
-        logo.style.height = `${data.companyLogoHeight}px`
-        logo.style.maxWidth = "none"
-        logo.style.maxHeight = "none"
-        logo.style.objectFit = "none"
+        logo.setAttribute(
+          "style",
+          coverLetterLogoImageStyle(data.companyLogoWidth, data.companyLogoHeight),
+        )
       }
     }
   }
@@ -256,10 +299,12 @@ export async function prepareCoverLetterExportData(
 
   if (companyLogo?.trim()) {
     try {
+      const maxInnerW = COVER_LETTER_LOGO_MAX_W - COVER_LETTER_LOGO_PAD_PX * 2
+      const maxInnerH = COVER_LETTER_LOGO_MAX_H - COVER_LETTER_LOGO_PAD_PX * 2
       const flat = await flattenLogoForPdfExport(
         companyLogo.trim(),
-        COVER_LETTER_EXPORT_LOGO_MAX_W * PDF_EXPORT_IMAGE_DPR,
-        COVER_LETTER_EXPORT_LOGO_MAX_H * PDF_EXPORT_IMAGE_DPR,
+        maxInnerW * PDF_EXPORT_IMAGE_DPR,
+        maxInnerH * PDF_EXPORT_IMAGE_DPR,
         "#ffffff",
         PDF_EXPORT_IMAGE_JPEG_QUALITY,
       )
@@ -358,6 +403,29 @@ export function buildCoverLetterPrintDocument(letterHtml: string): string {
       height: 72px !important;
       max-width: 72px !important;
       max-height: 72px !important;
+    }
+    .cover-letter-logo-frame {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      max-width: ${COVER_LETTER_LOGO_MAX_W}px !important;
+      max-height: ${COVER_LETTER_LOGO_MAX_H}px !important;
+      padding: ${COVER_LETTER_LOGO_PAD_PX}px !important;
+      overflow: visible !important;
+      border: 0 !important;
+      background: #ffffff !important;
+      line-height: 0 !important;
+    }
+    img.cover-letter-company-logo {
+      display: block !important;
+      width: auto !important;
+      height: auto !important;
+      max-width: ${COVER_LETTER_LOGO_MAX_W - COVER_LETTER_LOGO_PAD_PX * 2}px !important;
+      max-height: ${COVER_LETTER_LOGO_MAX_H - COVER_LETTER_LOGO_PAD_PX * 2}px !important;
+      object-fit: contain !important;
+      object-position: center !important;
+      overflow: visible !important;
+      border: 0 !important;
     }
   </style>
 </head>

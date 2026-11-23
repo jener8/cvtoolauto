@@ -151,10 +151,12 @@ export type PdfEntryChunk = {
 
 /**
  * Split one job/education entry into paginate-able chunks:
- * - `job-head`: header lines (title/company/date/…) + the first 2 bullets (keep together)
+ * - `job-head`: header lines (title/company/date/…) + the first bullet (keep together)
  * - `job-bullet`: following bullets in groups of 2 (never a lone bullet chunk when avoidable)
- * - ≤2 bullets (or ≤3 to avoid a trailing orphan) → whole entry as `job-head`
+ * - ≤3 bullets → whole entry as `job-head` (short roles stay intact; avoids orphan bullets)
  * - No bullets → whole entry as `job-head`
+ * - 4+ bullets → head keeps title/dates + first bullet only so leftover page space can be
+ *   used instead of pushing a tall keep-together slab and leaving blank space
  *
  * Sections themselves are never atomic — only this small keep-together unit is.
  */
@@ -175,8 +177,8 @@ export function splitEntryLinesIntoPdfChunks(lines: string[]): PdfEntryChunk[] {
     return [{ kind: "job-head", lines: [...lines], continuation: false }]
   }
 
-  // Header + first 2 bullets (everything before the 3rd bullet).
-  const headEndExclusive = bulletIndexes[2]
+  // Header + first bullet only (everything before the 2nd bullet).
+  const headEndExclusive = bulletIndexes[1]!
   const chunks: PdfEntryChunk[] = [
     {
       kind: "job-head",
@@ -187,13 +189,13 @@ export function splitEntryLinesIntoPdfChunks(lines: string[]): PdfEntryChunk[] {
 
   // Remaining bullets in pairs (take 3 when 3 remain so the last page never
   // starts with a single orphan bullet).
-  let bi = 2
+  let bi = 1
   while (bi < bulletIndexes.length) {
     const remaining = bulletIndexes.length - bi
     const take = remaining <= 3 ? remaining : 2
-    const start = bulletIndexes[bi]
+    const start = bulletIndexes[bi]!
     const endBi = bi + take
-    const end = endBi < bulletIndexes.length ? bulletIndexes[endBi] : lines.length
+    const end = endBi < bulletIndexes.length ? bulletIndexes[endBi]! : lines.length
     chunks.push({
       kind: "job-bullet",
       lines: lines.slice(start, end),

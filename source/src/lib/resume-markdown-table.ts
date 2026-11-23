@@ -1,6 +1,14 @@
+import {
+  accessibleTableAccentTextColor,
+  normalizeTableAccentStyle,
+  type TableAccentStyle,
+} from "@/lib/accessible-accent-text"
 import { formattedTextToHtml } from "@/lib/resume-inline-links"
 import { normalizeResumeMarkupLine } from "@/lib/resume-markup-line"
 import { isManualPageBreakLine } from "@/lib/resume-page-breaks"
+
+export type { TableAccentStyle }
+export { normalizeTableAccentStyle }
 
 export type MarkdownTableAlign = "left" | "center" | "right" | "none"
 
@@ -20,6 +28,11 @@ export type MarkdownTableRenderOptions = {
   linkColor: string
   /** CV accent hex — soft header tint matching section titles (`#RRGGBB` or `#RRGGBBAA`). */
   accentColor?: string
+  /**
+   * Body accent styling for first/last columns.
+   * Off = black body text (ATS-safe). Default subtle.
+   */
+  tableAccentStyle?: TableAccentStyle
   /** When false, omit <thead> entirely. */
   showHeader?: boolean
   /** Subset of body rows; defaults to all rows. */
@@ -88,10 +101,12 @@ export const CV_MARKDOWN_TABLE_CSS = `
   border-bottom: 1px solid ${RULE_H};
   border-left: none;
   border-right: 1px solid ${RULE_V};
-  overflow-wrap: anywhere;
+  /* Wrap at word boundaries — never hyphenate mid-word in narrow columns. */
+  overflow-wrap: break-word;
   word-wrap: break-word;
-  word-break: break-word;
-  hyphens: auto;
+  word-break: normal;
+  hyphens: none;
+  -webkit-hyphens: none;
   line-height: 1.45;
 }
 .cv-md-table th:last-child,
@@ -103,15 +118,30 @@ export const CV_MARKDOWN_TABLE_CSS = `
   font-size: 1em;
   border-bottom: 1px solid ${RULE_H};
 }
-.cv-md-table td.cv-md-cell--criterion {
+.cv-md-table td.cv-md-cell--criterion,
+.cv-md-table td.cv-md-cell--outcome {
   font-weight: 600;
 }
 .cv-md-table td.cv-md-cell--evidence {
   font-weight: 400;
+  color: #000000;
+}
+.cv-md-table td.cv-md-cell--accent {
+  /* colour set inline from accessible accent derivation */
+}
+.cv-md-table td.cv-md-cell--strong {
+  font-weight: 700;
 }
 .cv-md-table td strong,
 .cv-md-table th strong {
   font-weight: 700;
+}
+@media print {
+  .cv-md-table td.cv-md-cell--criterion,
+  .cv-md-table td.cv-md-cell--outcome,
+  .cv-md-table td.cv-md-cell--strong {
+    font-weight: 700;
+  }
 }
 .cv-md-table--cols-2 col.cv-md-col--0 { width: 30%; }
 .cv-md-table--cols-2 col.cv-md-col--1 { width: 70%; }
@@ -269,6 +299,17 @@ function cellBorderStyle(isLastColumn: boolean): string {
   return `border-top:none;border-bottom:1px solid ${RULE_H};border-left:none;${right}`
 }
 
+function bodyCellRole(
+  columnIndex: number,
+  columnCount: number,
+): "criterion" | "evidence" | "outcome" {
+  if (columnIndex === 0) return "criterion"
+  if (columnIndex === columnCount - 1 && columnCount >= 3) return "outcome"
+  // 2-col: last column is evidence (middle/body). 3-col: middle is evidence.
+  if (columnCount === 2 && columnIndex === 1) return "evidence"
+  return "evidence"
+}
+
 function cellHtml(
   text: string,
   tag: "th" | "td",
@@ -276,29 +317,64 @@ function cellHtml(
   linkColor: string,
   options: {
     accentColor?: string
+    tableAccentStyle?: TableAccentStyle
+    accessibleAccentText?: string | null
     columnIndex: number
     columnCount: number
-    isCriterionColumn: boolean
   },
 ): string {
   const inner = formattedTextToHtml(text, { linkColor, underline: true })
   const isLast = options.columnIndex >= options.columnCount - 1
   const headerBg =
-    tag === "th" ? `background:${headerBackground(options.accentColor)};font-weight:700;` : ""
-  const bodyWeight =
-    tag === "td"
-      ? options.isCriterionColumn
-        ? "font-weight:600;"
-        : "font-weight:400;"
-      : ""
-  const className =
-    tag === "td"
-      ? options.isCriterionColumn
-        ? ' class="cv-md-cell--criterion"'
-        : ' class="cv-md-cell--evidence"'
+    tag === "th"
+      ? `background:${headerBackground(options.accentColor)};font-weight:700;color:#1a1a1a;`
       : ""
 
-  return `<${tag}${className} style="${cellBorderStyle(isLast)}vertical-align:top;text-align:left;padding:0.55em 0.7em;line-height:1.45;${alignStyle(align)}${headerBg}${bodyWeight}">${inner || "&nbsp;"}</${tag}>`
+  const style = normalizeTableAccentStyle(options.tableAccentStyle)
+  const role =
+    tag === "td"
+      ? bodyCellRole(options.columnIndex, options.columnCount)
+      : null
+
+  // Criteria (first) + outcomes (last when 3+ cols) use accessible accent.
+  // Evidence / middle descriptions stay black for readability (incl. 2-col last column).
+  const isEvidenceCol = role === "evidence"
+  const isAccentCol =
+    tag === "td" &&
+    style !== "off" &&
+    (role === "criterion" || role === "outcome")
+
+  const accentText =
+    isAccentCol && options.accessibleAccentText
+      ? options.accessibleAccentText
+      : null
+
+  const bodyWeight =
+    tag === "td"
+      ? isEvidenceCol
+        ? "font-weight:400;"
+        : style === "strong"
+          ? "font-weight:700;"
+          : "font-weight:600;"
+      : ""
+  const bodyColor =
+    tag === "td"
+      ? accentText
+        ? `color:${accentText};`
+        : "color:#000000;"
+      : ""
+
+  const classes: string[] = []
+  if (tag === "td") {
+    if (role === "criterion") classes.push("cv-md-cell--criterion")
+    else if (role === "outcome") classes.push("cv-md-cell--outcome")
+    else classes.push("cv-md-cell--evidence")
+    if (accentText) classes.push("cv-md-cell--accent")
+    if (style === "strong" && !isEvidenceCol) classes.push("cv-md-cell--strong")
+  }
+  const className = classes.length ? ` class="${classes.join(" ")}"` : ""
+
+  return `<${tag}${className} style="${cellBorderStyle(isLast)}vertical-align:top;text-align:left;padding:0.55em 0.7em;line-height:1.45;${alignStyle(align)}${headerBg}${bodyWeight}${bodyColor}">${inner || "&nbsp;"}</${tag}>`
 }
 
 /**
@@ -321,6 +397,12 @@ export function renderMarkdownTableHtml(
   const fontSize = options.fontSize || 14
   const lineHeight = options.lineHeight || 1.45
   const font = `font-size:${fontSize}px;line-height:${lineHeight};`
+  const tableAccentStyle = normalizeTableAccentStyle(options.tableAccentStyle)
+  const accessibleAccentText = accessibleTableAccentTextColor(
+    options.accentColor,
+    tableAccentStyle,
+    "#ffffff",
+  )
 
   const theadDisplay = continuation ? "display:none;" : ""
 
@@ -329,9 +411,10 @@ export function renderMarkdownTableHtml(
         .map((h, i) =>
           cellHtml(h, "th", table.alignments[i], options.linkColor, {
             accentColor: options.accentColor,
+            tableAccentStyle,
+            accessibleAccentText,
             columnIndex: i,
             columnCount: colCount,
-            isCriterionColumn: false,
           }),
         )
         .join("")}</tr></thead>`
@@ -346,9 +429,10 @@ export function renderMarkdownTableHtml(
                 .map((_, i) =>
                   cellHtml(row[i] ?? "", "td", table.alignments[i], options.linkColor, {
                     accentColor: options.accentColor,
+                    tableAccentStyle,
+                    accessibleAccentText,
                     columnIndex: i,
                     columnCount: colCount,
-                    isCriterionColumn: i === 0,
                   }),
                 )
                 .join("")}</tr>`,
@@ -358,7 +442,12 @@ export function renderMarkdownTableHtml(
         ? ""
         : "<tbody></tbody>"
 
-  return `<table class="cv-md-table${colsClass}${contClass}${headerOnlyClass}" style="width:100%;border-collapse:collapse;table-layout:fixed;border:none;${font}" role="table">${colgroupHtml(colCount)}${thead}${tbody}</table>`
+  const accentAttr =
+    tableAccentStyle !== "off"
+      ? ` data-table-accent="${tableAccentStyle}"`
+      : ` data-table-accent="off"`
+
+  return `<table class="cv-md-table${colsClass}${contClass}${headerOnlyClass}"${accentAttr} style="width:100%;border-collapse:collapse;table-layout:fixed;border:none;color:#000000;${font}" role="table">${colgroupHtml(colCount)}${thead}${tbody}</table>`
 }
 
 export type MarkdownTablePdfChunk = {

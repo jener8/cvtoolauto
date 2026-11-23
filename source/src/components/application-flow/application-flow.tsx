@@ -396,15 +396,21 @@ function ApplicationFlowInner({
 
   const closeModal = () => setActiveStep(undefined)
 
-  const buildCompletePayload = (resumeContent: string): ApplicationFlowCompletePayload => ({
-    applicationName: deriveApplicationName(draft),
-    resumeContent,
-    jobDescription: draft.jobDescription.trim(),
-    company: draft.company.trim(),
-    jobDescriptionUrl: draft.jobDescriptionUrl.trim(),
-    outputLanguage: draft.outputLanguage,
-    wizardSessionId: flowSessionKey,
-  })
+  const buildCompletePayload = (resumeContent: string): ApplicationFlowCompletePayload => {
+    const approved =
+      evidencePlan?.rows.filter((r) => r.approved && r.fit !== "not_evidenced") ?? []
+    return {
+      applicationName: deriveApplicationName(draft),
+      resumeContent,
+      jobDescription: draft.jobDescription.trim(),
+      company: draft.company.trim(),
+      jobDescriptionUrl: draft.jobDescriptionUrl.trim(),
+      outputLanguage: draft.outputLanguage,
+      wizardSessionId: flowSessionKey,
+      approvedEvidence: approved.length ? approved : undefined,
+      employerProblemSummary: evidencePlan?.employerProblemSummary,
+    }
+  }
 
   const finishWithContent = async (resumeContent: string) => {
     if (completingRef.current) return

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import { ResumePreview } from "@/components/resume-preview"
+import { contactInfoFromResumeRecord } from "@/lib/contact-info"
+import { normalizeResumeVersion } from "@/lib/resume-persistence"
 import type { ResumeVersion } from "@/lib/types"
 import { getSupabaseClient } from "@/lib/supabase/client"
 
@@ -27,7 +29,21 @@ export default function PrintResumePage() {
         if (error) throw error
 
         if (data) {
-          setVersion(data as ResumeVersion)
+          const row = data as Record<string, unknown>
+          setVersion(
+            normalizeResumeVersion({
+              id: String(row.id),
+              name: String(row.name ?? "Resume"),
+              resumeText: String(row.resume_text ?? row.resumeText ?? ""),
+              profileImage: (row.profile_image ?? row.profileImage) as string | null | undefined,
+              companyLogo: (row.company_logo ?? row.companyLogo) as string | null | undefined,
+              timestamp: new Date(String(row.created_at ?? Date.now())).getTime(),
+              contactInfo: contactInfoFromResumeRecord(row),
+              accentColor: row.accent_color as string | undefined,
+              accentColorHex: (row.accent_color_hex ?? row.accent_color) as string | undefined,
+              folderId: row.folder_id as string | undefined,
+            }),
+          )
         }
       } catch (error) {
         console.error("Error loading resume:", error)

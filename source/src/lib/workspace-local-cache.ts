@@ -6,7 +6,9 @@ import { normalizeJobApplication } from "@/lib/application-outcome"
 import { repairApplicationResumeLinks } from "@/lib/repair-application-resume-links"
 import { mergeLegacyCoverLettersIntoResumes } from "@/lib/resume-cover-letter"
 import {
+  mergeResumesWithDraft,
   migrateLocalResumeStorageIfNeeded,
+  readResumeDraftAsVersion,
   readResumeSnapshotsForFolder,
   readResumeSnapshotsLocal,
   expandCompactResume,
@@ -65,7 +67,16 @@ export function loadWorkspaceFromLocalCache(folderId: string): WorkspaceLocalSna
   for (const version of [...versionsInFolder, ...linkedVersions]) {
     versionsById.set(version.id, version)
   }
-  const versions = [...versionsById.values()]
+  // Merge the autosave draft so presentation fields (e.g. CV style) survive
+  // close → reopen without requiring a named snapshot save.
+  const draft = readResumeDraftAsVersion()
+  const draftApplies =
+    Boolean(draft) && (draft!.folderId ?? "") === (folderId ?? "")
+  const versions = mergeResumesWithDraft(
+    [...versionsById.values()],
+    [],
+    draftApplies ? draft : null,
+  )
 
   const linkedCoverLetterIds = new Set(
     applications.map((app) => app.coverLetterId?.trim()).filter(Boolean) as string[],

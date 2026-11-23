@@ -2316,6 +2316,29 @@
     box-shadow: none;
   }
 
+  /* PDF quality presets inside the dark Export popover */
+  .formatter-popover .quality-seg {
+    background: #2a2a2a;
+  }
+  .formatter-popover .quality-seg-btn {
+    color: #9a9892;
+  }
+  .formatter-popover .quality-seg-btn.active {
+    background: #3a3a3a;
+    color: #e8e6e1;
+    box-shadow: none;
+  }
+  .formatter-popover .quality-seg-btn:hover:not(.active) {
+    color: #c7c5bf;
+  }
+  .formatter-popover .quality-desc {
+    color: #9a9892;
+    font-size: 11px;
+  }
+  .formatter-popover .file-size-row {
+    color: #9a9892;
+  }
+
   .formatter-export-row {
     display: flex;
     align-items: center;
@@ -2470,6 +2493,364 @@
     font-size: 10px;
     color: var(--formatter-text-secondary);
     line-height: 1.45;
+  }
+
+  .formatter-career-evolution__intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .formatter-career-evolution__capabilities {
+    list-style: none;
+    margin: 0 0 8px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .formatter-career-evolution__capability {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .formatter-career-evolution__capability .formatter-dark-input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .formatter-career-evolution__capability-controls {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0;
+    flex-shrink: 0;
+  }
+
+  .formatter-career-evolution__icon-btn {
+    padding: 2px 4px !important;
+    min-height: 0 !important;
+    line-height: 1 !important;
+  }
+
+  .formatter-career-evolution__icon-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .formatter-career-evolution__capability-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .formatter-career-evolution__cap-suggestions {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 0.5px solid #2e2e2e;
+  }
+
+  .formatter-career-evolution__messages {
+    margin: 0 0 8px;
+    padding-left: 1.1rem;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .formatter-career-evolution__messages--error {
+    color: #f0a0a0;
+  }
+
+  .formatter-career-evolution__messages--warn {
+    color: #e0c080;
+  }
+
+  .formatter-career-evolution__pending-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .formatter-career-evolution__pending-preview {
+    margin: 0 0 8px;
+    padding: 8px;
+    max-height: 140px;
+    overflow: auto;
+    border-radius: 5px;
+    border: 0.5px solid #3a3a3a;
+    background: #1f1f1f;
+    color: #c7c5bf;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+  }
+
+  .formatter-career-evolution__status {
+    margin: 8px 0 0;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .formatter-career-evolution__status--success {
+    color: #8fd4a0;
+  }
+
+  .formatter-career-evolution__status--error {
+    color: #f0a0a0;
+  }
+
+  .formatter-career-evolution__status--warn {
+    color: #e0c080;
+  }
+
+  .formatter-career-evolution__status--info {
+    color: #c7c5bf;
+  }
+
+  .formatter-career-evolution__milestone {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 0;
+    border-bottom: 0.5px solid #2e2e2e;
+    min-width: 0;
+  }
+
+  .formatter-career-evolution__milestone-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .formatter-career-evolution__milestone-actions {
+    display: inline-flex;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .formatter-career-evolution__dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .formatter-career-evolution__connection {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    margin: 0 0 6px;
+    padding: 8px;
+    border-radius: 5px;
+    border: 0.5px solid #3a3a3a;
+    background: #2a2a2a;
+    color: #c7c5bf;
+    cursor: pointer;
+  }
+
+  .formatter-career-evolution__connection--on {
+    border-color: #0f7b6c;
+    background: rgba(15, 123, 108, 0.12);
+  }
+
+  .formatter-experience-roles__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .formatter-experience-roles__item {
+    position: relative;
+    z-index: 1;
+    padding: 8px;
+    border-radius: 6px;
+    border: 0.5px solid #3a3a3a;
+    background: #252525;
+    pointer-events: auto;
+  }
+
+  .formatter-experience-roles__item .formatter-style-item {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+  }
+
+  .formatter-experience-roles__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .formatter-experience-roles__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #e8e6e1;
+    line-height: 1.35;
+  }
+
+  .formatter-experience-roles__meta {
+    font-size: 10px;
+    color: #9a9892;
+    margin-top: 2px;
+  }
+
+  .formatter-experience-roles__suggest {
+    margin: 0 0 8px;
+    font-size: 10px;
+    line-height: 1.4;
+    color: #e0c080;
+  }
+
+  .formatter-experience-roles__error {
+    margin: 0 0 8px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #f0a0a0;
+  }
+
+  .formatter-experience-roles__options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .formatter-experience-roles__options + .formatter-experience-roles__options {
+    margin-top: 8px;
+  }
+
+  .formatter-experience-roles__group-label {
+    margin: 0 0 2px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #9a9892;
+  }
+
+  .formatter-ce-layout-gallery {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .formatter-ce-layout-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    margin: 0;
+    padding: 8px;
+    border-radius: 6px;
+    border: 0.5px solid #3a3a3a;
+    background: #252525;
+    color: #c7c5bf;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .formatter-ce-layout-card--active {
+    border-color: #0f7b6c;
+    background: rgba(15, 123, 108, 0.12);
+  }
+
+  .formatter-ce-layout-card__preview {
+    flex-shrink: 0;
+    width: 72px;
+    height: 36px;
+    border-radius: 4px;
+    background: #1a1a1a;
+    border: 0.5px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .formatter-ce-layout-card__preview svg {
+    display: block;
+  }
+
+  .formatter-ce-layout-card__body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .formatter-ce-layout-card__title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .formatter-ce-layout-card__name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #e8e6e1;
+  }
+
+  .formatter-ce-layout-card__badge {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(15, 123, 108, 0.25);
+    color: #7ecece;
+  }
+
+  .formatter-ce-layout-card__desc {
+    font-size: 10px;
+    line-height: 1.35;
+    color: #9a9892;
+  }
+
+  .career-evolution-figure {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+    max-height: 45mm;
+    margin: 4px 0 8px;
+    overflow: visible;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    break-before: auto;
+    break-after: auto;
+  }
+
+  .career-evolution-figure[data-ce-density="standard"] {
+    max-height: 52mm;
+  }
+
+  .career-evolution-figure svg {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .career-evolution-figure__alt {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .formatter-syntax-help {
@@ -2694,6 +3075,132 @@
     padding: 8px !important;
     resize: vertical;
     box-shadow: none !important;
+  }
+
+  .formatter-career-evolution__milestone-labels {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .formatter-career-evolution__milestone-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .formatter-career-evolution__milestone-label-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: #c7c5bf;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .formatter-career-evolution__milestone-label-origin {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #8a8882;
+  }
+
+  .formatter-career-evolution__milestone-label-origin[data-origin="user"] {
+    color: #7ecece;
+  }
+
+  .formatter-career-evolution__label-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .formatter-career-evolution__label-preview {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(126, 206, 206, 0.28);
+    border-radius: 8px;
+    background: rgba(126, 206, 206, 0.06);
+  }
+
+  .formatter-career-evolution__label-preview-list {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 11px;
+    color: #d8d6d0;
+  }
+
+  .formatter-career-evolution__label-preview-list strong {
+    display: block;
+    color: #f0eeea;
+    font-weight: 600;
+  }
+
+  .formatter-career-evolution__alignment-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 6px;
+    align-items: start;
+    min-width: 0;
+  }
+
+  .formatter-career-evolution__alignment-arrow {
+    padding-top: 8px;
+    color: #7ecece;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .formatter-career-evolution__alignment-match {
+    grid-column: 1 / -1;
+    font-size: 10px;
+    color: #9a9892;
+    margin-top: -2px;
+  }
+
+  .formatter-career-evolution__alignment-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* After transparent Markdown overlay rule so specificity/order cannot hide CE text */
+  .formatter-career-evolution__editor {
+    min-height: 180px;
+    max-height: 320px;
+    width: 100%;
+    margin: 0 0 8px;
+    padding: 8px !important;
+    border: 0.5px solid #3a3a3a !important;
+    border-radius: 5px;
+    background: #1f1f1f !important;
+    color: #e8e6e1 !important;
+    -webkit-text-fill-color: #e8e6e1 !important;
+    caret-color: #e8e6e1 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+    resize: vertical;
+    box-shadow: none !important;
+    opacity: 1 !important;
+  }
+
+  .formatter-career-evolution__editor::placeholder {
+    color: #6f6d68 !important;
+    -webkit-text-fill-color: #6f6d68 !important;
   }
 
   .cv-center--v2 {
@@ -4060,6 +4567,78 @@
 }
 
 /* ============================================================
+   PARALLEL WORK BADGE (Experience headings)
+============================================================ */
+.cv-parallel-work-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.cv-parallel-work-badge svg {
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   CAREER EVOLUTION GRAPH (CV preview + PDF)
+============================================================ */
+.career-evolution-figure {
+  display: block;
+  position: relative;
+  max-width: 100%;
+  width: 100%;
+  max-height: 45mm;
+  margin: 4px 0 8px;
+  overflow: visible;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  break-before: auto;
+  break-after: auto;
+}
+.career-evolution-figure[data-ce-density="standard"] {
+  max-height: 52mm;
+}
+.career-evolution-figure svg {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+/* Dates are formatted (full/compact/auto) — never ellipsis-clipped */
+.career-evolution-figure text,
+[data-career-evolution-section="1"] text,
+[data-pdf-block="career-evolution"] text {
+  text-overflow: clip;
+  overflow: visible;
+  white-space: nowrap;
+}
+.career-evolution-figure__alt {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* Section may flow with the page; the figure/pdf-block stay together. */
+[data-career-evolution-section="1"] {
+  max-width: 100%;
+  page-break-inside: auto;
+  break-inside: auto;
+}
+[data-pdf-block="career-evolution"] {
+  max-width: 100%;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* ============================================================
    A4 PAGE
 ============================================================ */
 
@@ -4190,9 +4769,89 @@
   .pdf-resume-block[data-pdf-block="skill-item"],
   .pdf-resume-block[data-pdf-block="education-entry"],
   .pdf-resume-block[data-pdf-block="table-row"],
-  .pdf-resume-block[data-pdf-block="table-head"] {
+  .pdf-resume-block[data-pdf-block="table-head"],
+  .pdf-resume-block[data-pdf-block="career-evolution"],
+  .career-evolution-figure {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  /*
+    Career Evolution must appear in browser Print → Save as PDF.
+    Do not clamp SVG height in print — Parallel / Standard graphs exceed 45mm
+    and were clipped or omitted when combined with overflow on .pdf-page.
+    Do NOT set height:auto on the SVG — Chromium print can collapse it to 0.
+  */
+  .career-evolution-figure,
+  [data-career-evolution-section="1"],
+  .pdf-resume-block[data-pdf-block="career-evolution"] {
+    display: block !important;
+    visibility: visible !important;
+    overflow: visible !important;
+    max-height: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .career-evolution-figure svg {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /*
+    Live preview print: CvPreviewScaledPaper uses transform:scale + a JS height.
+    Printing with the transform left blank sheets and dropped the SVG; overflow
+    hidden on .formatter-workspace clipped everything below the viewport.
+  */
+  .cv-inner,
+  .cv-preview-inner {
+    transform: none !important;
+  }
+
+  .cv-paper,
+  .cv-preview-paper,
+  .cv-paper-wrap {
+    height: auto !important;
+    width: 210mm !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .editor-body,
+  .editor-body--v2,
+  .formatter-main,
+  .formatter-workspace,
+  .cv-center,
+  .cv-center--v2,
+  .resume-print-surface {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  /* Hide app + formatter chrome when printing the live preview. */
+  .app-sidebar,
+  .app-sidebar__toggle,
+  .formatter-sidebar-wrap,
+  .formatter-sidebar,
+  .formatter-main-topbar,
+  .formatter-popover,
+  .preview-header,
+  .formatter-workspace-dim,
+  .ai-assistant-fab,
+  .no-print {
+    display: none !important;
   }
 }
 
@@ -4226,6 +4885,30 @@
 .pdf-resume-block[data-pdf-block="education-entry"] {
   break-inside: avoid;
   page-break-inside: avoid;
+}
+
+/* Multi-role employer groups: heading + thin accent rail per role (print/PDF). */
+.cv-employer-heading {
+  break-after: avoid-page;
+  page-break-after: avoid;
+}
+
+.cv-role-rail {
+  box-sizing: border-box;
+}
+
+.cv-role-rail > p:first-child {
+  margin-top: 0 !important;
+}
+
+/* Keep role title with its dates inside the rail. */
+.cv-role-rail > p:first-child + p {
+  break-before: avoid-page;
+  page-break-before: avoid;
+}
+
+.pdf-job-continuation .cv-role-rail {
+  margin-top: 0;
 }
 
 /*
@@ -4303,8 +4986,12 @@
   border-bottom: 1px solid #d4cec4;
   border-left: none;
   border-right: 1px solid #e4dfd7;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  /* Wrap at word boundaries — never hyphenate mid-word in narrow columns. */
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+  -webkit-hyphens: none;
   line-height: 1.45;
 }
 .cv-md-table th:last-child,
@@ -4314,15 +5001,27 @@
 .cv-md-table thead th {
   font-weight: 700;
 }
-.cv-md-table td.cv-md-cell--criterion {
+.cv-md-table td.cv-md-cell--criterion,
+.cv-md-table td.cv-md-cell--outcome {
   font-weight: 600;
 }
 .cv-md-table td.cv-md-cell--evidence {
   font-weight: 400;
+  color: #000000;
+}
+.cv-md-table td.cv-md-cell--strong {
+  font-weight: 700;
 }
 .cv-md-table td strong,
 .cv-md-table th strong {
   font-weight: 700;
+}
+@media print {
+  .cv-md-table td.cv-md-cell--criterion,
+  .cv-md-table td.cv-md-cell--outcome,
+  .cv-md-table td.cv-md-cell--strong {
+    font-weight: 700;
+  }
 }
 .cv-md-table--cols-2 col.cv-md-col--0 { width: 30%; }
 .cv-md-table--cols-2 col.cv-md-col--1 { width: 70%; }

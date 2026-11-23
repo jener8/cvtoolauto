@@ -20,7 +20,7 @@ function jobLines(bulletCount: number, title = "Engineer"): string[] {
   return lines
 }
 
-// --- splitEntryLinesIntoPdfChunks: header + first 2 bullets, then pairs ---
+// --- splitEntryLinesIntoPdfChunks: header + first bullet, then pairs ---
 {
   const one = splitEntryLinesIntoPdfChunks(jobLines(1))
   assert.equal(one.length, 1)
@@ -30,12 +30,20 @@ function jobLines(bulletCount: number, title = "Engineer"): string[] {
   assert.equal(three.length, 1, "≤3 bullets stay as one job-head (no orphan bullet)")
   assert.equal(three[0].kind, "job-head")
 
+  const four = splitEntryLinesIntoPdfChunks(jobLines(4))
+  // head (1 bullet) + remaining 3 as one chunk (avoid orphan)
+  assert.equal(four.length, 2)
+  assert.equal(four[0].kind, "job-head")
+  assert.equal(four[0].lines.filter((l) => l.trim().startsWith("-")).length, 1)
+  assert.equal(four[1].kind, "job-bullet")
+  assert.equal(four[1].lines.filter((l) => l.trim().startsWith("-")).length, 3)
+
   const six = splitEntryLinesIntoPdfChunks(jobLines(6))
-  // head (2 bullets) + pair (2) + pair (2) = 3 chunks
+  // head (1 bullet) + pair (2) + remaining 3 = 3 chunks
   assert.equal(six.length, 3)
   assert.equal(six[0].kind, "job-head")
   assert.equal(six[0].continuation, false)
-  assert.equal(six[0].lines.filter((l) => l.trim().startsWith("-")).length, 2)
+  assert.equal(six[0].lines.filter((l) => l.trim().startsWith("-")).length, 1)
   for (let i = 1; i < six.length; i++) {
     assert.equal(six[i].kind, "job-bullet")
     assert.equal(six[i].continuation, true)
@@ -44,9 +52,11 @@ function jobLines(bulletCount: number, title = "Engineer"): string[] {
   assert.deepEqual(six.flatMap((c) => c.lines), jobLines(6))
 
   const five = splitEntryLinesIntoPdfChunks(jobLines(5))
-  // head (2) + remaining 3 as one chunk (avoid orphan)
-  assert.equal(five.length, 2)
-  assert.equal(five[1].lines.filter((l) => l.trim().startsWith("-")).length, 3)
+  // head (1) + remaining 4 → pair (2) + pair (2)
+  assert.equal(five.length, 3)
+  assert.equal(five[0].lines.filter((l) => l.trim().startsWith("-")).length, 1)
+  assert.equal(five[1].lines.filter((l) => l.trim().startsWith("-")).length, 2)
+  assert.equal(five[2].lines.filter((l) => l.trim().startsWith("-")).length, 2)
 }
 
 // --- Scenario: ~35% space left; split job fills page 1 better than atomic ---

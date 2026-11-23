@@ -21,6 +21,9 @@ import {
   ImageIcon,
   SeparatorHorizontal,
   ExternalLink,
+  GitMerge,
+  GitBranch,
+  Table2,
 } from "lucide-react"
 import { captureTextareaSelection } from "@/lib/assistant-selection-context"
 import {
@@ -52,6 +55,9 @@ import { AiHowItWorksContent } from "@/components/ai-how-it-works-dialog"
 import { AiLiteracyGuideContent } from "@/components/ai-literacy-guide-dialog"
 import { PrivacyCentreContent } from "@/components/privacy-centre-dialog"
 import { ResumeTranslateOverlay } from "@/components/resume-translate-overlay"
+import { CareerEvolutionPanel } from "@/components/career-evolution-panel"
+import { ExperienceRolesPanel } from "@/components/experience-roles-panel"
+import { loadCareerProfilePrefs } from "@/lib/career-profile/storage"
 
 export type FormatterTab = "export" | "edit" | "settings" | "help"
 export type EditPopoverId =
@@ -61,8 +67,11 @@ export type EditPopoverId =
   | "company-logo"
   | "job-advert"
   | "accent-color"
+  | "table-accent"
   | "target-box-style"
   | "resume-content"
+  | "experience-roles"
+  | "career-evolution"
 export type TrustPopoverId =
   | "trust-transparency"
   | "trust-how-ai"
@@ -80,6 +89,9 @@ export type FormatterContactInfo = {
   portfolio: string
   portfolios: string[]
   showPortfolio: boolean
+  showEmploymentDuration?: boolean
+  careerEvolution?: import("@/lib/career-evolution/types").CareerEvolutionConfig
+  tableAccentStyle?: import("@/lib/accessible-accent-text").TableAccentStyle
   professionalTitle: string
   name: string
   language: "en" | "de"
@@ -130,6 +142,8 @@ type ResumeFormatterSidebarProps = {
   companyLogo: string | null
   resumeText: string
   handleResumeTextChange: (e: ChangeEvent<HTMLTextAreaElement>) => void
+  /** Replace full resume text (Career Evolution builder, etc.). */
+  onResumeTextReplace?: (next: string) => void
   handleResumeTextKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void
   resumeHighlightRef: RefObject<HTMLPreElement | null>
   renderHighlightedResumeText: (text: string) => ReactNode
@@ -138,6 +152,7 @@ type ResumeFormatterSidebarProps = {
   onCopyPrompt: () => void
   bgSwatches: { name: string; hex: string }[]
   borderSwatches: { name: string; hex: string }[]
+  jobDescription?: string
 }
 
 export function ResumeFormatterSidebar(props: ResumeFormatterSidebarProps) {
@@ -182,9 +197,11 @@ export function ResumeFormatterSidebar(props: ResumeFormatterSidebarProps) {
     companyLogo,
     resumeText,
     handleResumeTextChange,
+    onResumeTextReplace,
     handleResumeTextKeyDown,
     resumeHighlightRef,
     renderHighlightedResumeText,
+    jobDescription = "",
     formattingPrompt,
     copied,
     onCopyPrompt,
@@ -359,6 +376,13 @@ export function ResumeFormatterSidebar(props: ResumeFormatterSidebarProps) {
               onClick={() => openRow("accent-color")}
             />
             <FormatterSidebarRow
+              icon={Table2}
+              title="Table accent styling"
+              subtitle="Selected Evidence columns"
+              active={activePopover === "table-accent"}
+              onClick={() => openRow("table-accent")}
+            />
+            <FormatterSidebarRow
               icon={Layout}
               title="Target box style"
               subtitle="Background & border colour"
@@ -374,6 +398,24 @@ export function ResumeFormatterSidebar(props: ResumeFormatterSidebarProps) {
               subtitle="Profile, experience, education"
               active={activePopover === "resume-content"}
               onClick={() => openRow("resume-content")}
+            />
+            <FormatterSidebarRow
+              icon={GitBranch}
+              title={contactInfo.language === "de" ? "Parallele Arbeit" : "Parallel work"}
+              subtitle={
+                contactInfo.language === "de"
+                  ? "Beziehung und Darstellung wählen"
+                  : "Relationship and layout for parallel roles"
+              }
+              active={activePopover === "experience-roles"}
+              onClick={() => openRow("experience-roles")}
+            />
+            <FormatterSidebarRow
+              icon={GitMerge}
+              title="Career Evolution"
+              subtitle="Optional graph · formatted text editor"
+              active={activePopover === "career-evolution"}
+              onClick={() => openRow("career-evolution")}
             />
           </FormatterSidebarGroup>
         </div>
@@ -774,6 +816,62 @@ export function ResumeFormatterSidebar(props: ResumeFormatterSidebarProps) {
       </FormatterPopoverShell>
 
       <FormatterPopoverShell
+        open={activePopover === "table-accent"}
+        onClose={onClosePopover}
+        title="Table accent styling"
+      >
+        <p className="formatter-popover-hint">
+          {contactInfo.language === "de"
+            ? "Hebt Kriterien und Ergebnisse in Markdown-Tabellen (z. B. Selected Evidence) mit einer lesbaren Variante der Akzentfarbe hervor. Längere Evidenztexte bleiben schwarz."
+            : "Highlights criteria and outcomes in Markdown tables (e.g. Selected Evidence) with a readable accent variant. Longer evidence text stays black."}
+        </p>
+        <div className="formatter-style-list" role="radiogroup" aria-label="Table accent styling">
+          {(
+            [
+              {
+                id: "off" as const,
+                name: "Off",
+                desc: "All table body text remains black",
+              },
+              {
+                id: "subtle" as const,
+                name: "Subtle",
+                desc: "Accessible accent on criteria and outcomes (default)",
+              },
+              {
+                id: "strong" as const,
+                name: "Strong",
+                desc: "Stronger emphasis on key values",
+              },
+            ] as const
+          ).map((opt) => {
+            const active = (contactInfo.tableAccentStyle || "subtle") === opt.id
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                className={cn(
+                  "formatter-style-item",
+                  active && "formatter-style-item--active",
+                )}
+                onClick={() =>
+                  setContactInfo({ ...contactInfo, tableAccentStyle: opt.id })
+                }
+              >
+                <span className="formatter-style-item__radio" aria-hidden />
+                <span className="min-w-0">
+                  <span className="formatter-style-item__name">{opt.name}</span>
+                  <span className="formatter-style-item__desc">{opt.desc}</span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </FormatterPopoverShell>
+
+      <FormatterPopoverShell
         open={activePopover === "target-box-style"}
         onClose={onClosePopover}
         title="Target box style"
@@ -841,6 +939,46 @@ export function ResumeFormatterSidebar(props: ResumeFormatterSidebarProps) {
           Use # for titles, ## for companies, ### for dates, - for bullets, and [Label](url) for links.
         </p>
       </FormatterPopoverShell>
+
+      <FormatterPopoverShell
+        open={activePopover === "experience-roles"}
+        onClose={onClosePopover}
+        title={contactInfo.language === "de" ? "Parallele Arbeit" : "Parallel work"}
+        className="formatter-popover--wide"
+      >
+        <ExperienceRolesPanel
+          resumeText={resumeText}
+          onResumeTextChange={(next) => onResumeTextReplace?.(next)}
+          language={contactInfo.language === "de" ? "de" : "en"}
+        />
+      </FormatterPopoverShell>
+
+      <FormatterPopoverShell
+        open={activePopover === "career-evolution"}
+        onClose={onClosePopover}
+        title="Career Evolution"
+        className="formatter-popover--wide"
+      >
+        <div className="formatter-career-evolution__intro">
+          <GitMerge className="h-4 w-4 shrink-0 text-[#c7c5bf]" aria-hidden />
+          <p className="formatter-popover-hint" style={{ margin: 0 }}>
+            Optional graph of how experiences come together. Own formatted text editor — independent
+            of the main CV Markdown. Accent colour matches your CV.
+          </p>
+        </div>
+        <CareerEvolutionPanel
+          resumeText={resumeText}
+          onResumeTextChange={(next) => onResumeTextReplace?.(next)}
+          contactInfo={contactInfo}
+          setContactInfo={setContactInfo}
+          targetRole={contactInfo.targetRole || targetRoleDisplay}
+          targetCompany={contactInfo.targetCompany}
+          jobDescription={jobDescription}
+          careerPositioning={loadCareerProfilePrefs().currentPositioning}
+          language={contactInfo.language === "de" ? "de" : "en"}
+        />
+      </FormatterPopoverShell>
+
       <ResumeTranslateOverlay
         open={isTranslatingLanguage}
         targetLanguage={translatingToLanguage}

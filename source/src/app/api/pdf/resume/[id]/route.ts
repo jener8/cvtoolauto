@@ -20,6 +20,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const presetConfig = PDF_EXPORT_PRESETS[preset]
     const includeTransparency = searchParams.get("transparency") === "1"
     const includeMetadata = searchParams.get("metadata") !== "0"
+    // Live editor selection — bridges autosave debounce so PDF matches preview.
+    // Export page still prefers persisted contactInfo.formatStyle when this is absent.
+    const formatStyle = searchParams.get("formatStyle")
 
     // Generate a signed token for server-side access
     const userId = "authenticated-user"
@@ -33,6 +36,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       metadata: includeMetadata ? "1" : "0",
     })
     if (includeTransparency) exportQuery.set("transparency", "1")
+    if (formatStyle) exportQuery.set("formatStyle", formatStyle)
     const exportUrl = `${baseUrl}/export/resume/${resumeId}?${exportQuery.toString()}`
 
     console.log("[v0] Launching Playwright to generate PDF with selectable text")

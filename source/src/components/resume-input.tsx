@@ -13,6 +13,7 @@ import {
   normalizeContactInfo,
   withJobAdvertFromApplication,
 } from "@/lib/contact-info";
+import type { ContactInfo } from "@/lib/types";
 import {
   compressLogoToDataUrl,
   compressProfilePhotoToDataUrl,
@@ -306,23 +307,6 @@ interface ResumeInputProps {
   targetRoleDisplay?: string;
 }
 
-interface ContactInfo {
-  email: string;
-  linkedin: string;
-  phone: string;
-  address: string;
-  citizenship: string;
-  portfolio: string;
-  portfolios: string[];
-  showPortfolio: boolean;
-  professionalTitle: string;
-  name: string;
-  language: "en" | "de";
-  targetCompany: string;
-  targetRole: string;
-  jobAdvertSource: string;
-}
-
 export default function ResumeInput({
   initialVersion,
   onSave,
@@ -432,10 +416,8 @@ export default function ResumeInput({
     handleKeyDown: handleResumeTextKeyDown,
   } = useUndoableText(initialVersion?.resumeText || "");
   const lastSyncedResumeTextRef = useRef(initialVersion?.resumeText || "");
-
-  useEffect(() => {
-    lastSyncedResumeTextRef.current = resumeText;
-  }, [resumeText]);
+  /** Tracks last external prop value — only reset local text when the parent value actually changes. */
+  const prevExternalResumeTextRef = useRef(initialVersion?.resumeText || "");
 
   /** Normalize job-first pastes in the change handler (not a useEffect) to avoid parent sync loops. */
   const handleResumeTextChange = useCallback(
@@ -538,7 +520,12 @@ export default function ResumeInput({
     const external = JSON.stringify(aligned);
     if (external === lastSyncedContactInfoRef.current) return;
     lastSyncedContactInfoRef.current = external;
-    setContactInfo(aligned);
+    // Avoid setState when only referential identity changed — CE short-label
+    // edits sync through onResumeUpdate and must not oscillate with parent.
+    setContactInfo((prev) => {
+      if (JSON.stringify(normalizeContactInfo(prev)) === external) return prev;
+      return aligned;
+    });
   }, [
     JSON.stringify(initialVersion?.contactInfo),
     initialVersion?.resumeText,
@@ -547,6 +534,10 @@ export default function ResumeInput({
 
   useEffect(() => {
     const external = initialVersion?.resumeText ?? "";
+    // Only react when the parent prop itself changes — never wipe local edits
+    // because resetResumeText / persistLanguageCache identities churned.
+    if (external === prevExternalResumeTextRef.current) return;
+    prevExternalResumeTextRef.current = external;
     if (external === lastSyncedResumeTextRef.current) return;
     lastSyncedResumeTextRef.current = external;
     resetResumeText(external);
@@ -575,12 +566,19 @@ export default function ResumeInput({
     setContactInfo((prev) =>
       prev.language === bodyLanguage ? prev : { ...prev, language: bodyLanguage },
     );
-  }, [
-    initialVersion?.resumeText,
-    initialVersion?.id,
-    persistLanguageCache,
-    resetResumeText,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only sync on external resume text / version id
+  }, [initialVersion?.resumeText, initialVersion?.id]);
+
+  // Keep lastSynced aligned with local text after local edits (Parallel work, etc.)
+  useEffect(() => {
+    lastSyncedResumeTextRef.current = resumeText;
+    // When local edits flow up via onResumeUpdate → parent → initialVersion,
+    // prevExternal will catch up on the next external change. Advance it when
+    // parent already mirrors local so a later identical prop doesn't no-op wrongly.
+    if (initialVersion?.resumeText === resumeText) {
+      prevExternalResumeTextRef.current = resumeText;
+    }
+  }, [resumeText, initialVersion?.resumeText]);
 
   // Align switcher + cache with the actual body language (fixes mismatched metadata).
   useEffect(() => {
@@ -1325,6 +1323,13 @@ PROFIL
       companyLogo={companyLogo}
       resumeText={resumeText}
       handleResumeTextChange={handleResumeTextChange}
+      onResumeTextReplace={(next) => {
+        lastSyncedResumeTextRef.current = next;
+        // Local-originated replace — parent will echo via onResumeUpdate; don't
+        // treat the upcoming prop as a foreign overwrite.
+        prevExternalResumeTextRef.current = next;
+        resetResumeText(next);
+      }}
       handleResumeTextKeyDown={handleResumeTextKeyDown}
       resumeHighlightRef={resumeHighlightRef}
       renderHighlightedResumeText={renderHighlightedResumeText}
@@ -1333,6 +1338,7 @@ PROFIL
       onCopyPrompt={copyPromptToClipboard}
       bgSwatches={bgSwatches}
       borderSwatches={borderSwatches}
+      jobDescription={jobDescription}
     />
   );
 }

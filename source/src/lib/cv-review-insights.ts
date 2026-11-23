@@ -4,6 +4,10 @@ import {
   summaryBucket,
 } from "@/lib/cv-section-authorship"
 import { normalizeCvSectionKey } from "@/lib/import-cv-structure"
+import {
+  findOverlappingEmployerPairs,
+  splitExperienceJobEntries,
+} from "@/lib/experience-organization"
 import { parseResumeText, type ParsedResumeSection } from "@/lib/parse-resume-text"
 import {
   parseTwoColumnSectionItems,
@@ -455,7 +459,9 @@ export function buildCvReviewInsights(
     }
   }
 
-  // Same parser as preview / PDF
+  // Same parser as preview / PDF — score from standard CV Markdown only.
+  // contactInfo.careerEvolution is ignored so toggling the graph cannot change the score.
+  void resume?.contactInfo?.careerEvolution
   const sections = parseResumeText(text)
   const factors: CvScoreFactor[] = []
   const suggestions: CvReviewSuggestion[] = []
@@ -492,11 +498,14 @@ export function buildCvReviewInsights(
 
   // Experience
   const hasExperience = sections.some((s) => sectionKey(s) === "EXPERIENCE")
+  const hasParallelWork = sections.some((s) => sectionKey(s) === "PARALLEL_WORK")
   if (hasExperience) {
     score += 14
     factors.push({
       label: "Experience section",
-      detail: "Work history section detected via CV parser",
+      detail: hasParallelWork
+        ? "Work history detected; Parallel Independent Work section also present"
+        : "Work history section detected via CV parser",
       points: 14,
       maxPoints: 14,
     })
@@ -508,6 +517,23 @@ export function buildCvReviewInsights(
       maxPoints: 14,
     })
     suggestions.push({ text: "Add a clear experience section", tone: "warning" })
+  }
+
+  // Overlapping employers in EXPERIENCE — hint only; never auto-move
+  if (hasExperience && !hasParallelWork) {
+    const expSection = sections.find((s) => sectionKey(s) === "EXPERIENCE")
+    if (expSection) {
+      const overlaps = findOverlappingEmployerPairs(
+        splitExperienceJobEntries(expSection.content),
+      )
+      if (overlaps.length > 0) {
+        const sample = overlaps[0]!
+        suggestions.push({
+          text: `Overlapping dates for ${sample.a} and ${sample.b}. If one is concurrent independent or consulting work, open Edit → Parallel work and mark that activity (not the main employment). Overlaps are never auto-classified.`,
+          tone: "warning",
+        })
+      }
+    }
   }
 
   // Skills

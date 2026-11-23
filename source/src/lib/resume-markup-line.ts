@@ -8,6 +8,10 @@ import {
   stripSectionColumnModifier,
   type SectionColumnCount,
 } from "@/lib/section-column-modifier"
+import {
+  parseExperienceWorkModifier,
+  type ExperienceWorkType,
+} from "@/lib/experience-work-modifier"
 
 /** Normalize unicode lookalikes before heading / bullet detection. */
 export function normalizeResumeMarkupLine(line: string): string {
@@ -52,7 +56,7 @@ export function isCvSectionHeadingLabel(text: string): boolean {
 export type ResumeMarkupLine =
   | { kind: "page-break" }
   | { kind: "section-heading"; text: string; level: 1 | 2 | 3; columns: SectionColumnCount }
-  | { kind: "job-title"; text: string }
+  | { kind: "job-title"; text: string; workType: ExperienceWorkType }
   | { kind: "company"; text: string }
   | { kind: "date"; text: string }
   | { kind: "bullet"; text: string }
@@ -94,7 +98,10 @@ export function parseResumeMarkupLine(line: string): ResumeMarkupLine {
     }
     if (heading.level === 3) return { kind: "date", text: heading.text }
     if (heading.level === 2) return { kind: "company", text: heading.text }
-    return { kind: "job-title", text: stripSectionColumnModifier(heading.text).trim() }
+    const work = parseExperienceWorkModifier(
+      stripSectionColumnModifier(heading.text).trim(),
+    )
+    return { kind: "job-title", text: work.text, workType: work.workType }
   }
 
   if (trimmed.startsWith("-") || trimmed.startsWith("•")) {

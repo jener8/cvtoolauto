@@ -41,9 +41,10 @@ export const PDF_EXPORT_PRESETS: Record<PdfExportPreset, PdfExportPresetConfig> 
     id: "ats",
     label: "ATS Optimized (Recommended)",
     shortLabel: "ATS Optimized",
-    description: "Designed for online job applications. Produces smaller PDFs while maintaining readability and accessibility.",
+    description:
+      "For online applications. Excludes the Career Evolution graph so ATS parsers read only standard CV text — skills, experience, dates and achievements stay intact.",
     tooltip:
-      "Designed for online job applications. Produces smaller PDFs while maintaining readability and accessibility.",
+      "Optimized for applicant tracking systems. Omits the Career Evolution visualisation while keeping the full standard CV content (profile, evidence, experience, skills). Use Standard or High Quality when a human recruiter should see the graph.",
     targetCvOnlyBytes: 2 * 1024 * 1024,
     targetWithCoverLetterBytes: 3 * 1024 * 1024,
     rasterScales: [2, 1.75, 1.5, 1.25, 1],
@@ -67,8 +68,10 @@ export const PDF_EXPORT_PRESETS: Record<PdfExportPreset, PdfExportPresetConfig> 
     id: "standard",
     label: "Standard Quality",
     shortLabel: "Standard",
-    description: "Balanced quality and file size for general sharing.",
-    tooltip: "Balanced quality and file size for general sharing and email attachments.",
+    description:
+      "Balanced quality for human readers. Includes the Career Evolution graph when enabled under Edit.",
+    tooltip:
+      "Balanced quality and file size for general sharing. Keeps the Career Evolution graph when it is turned on — best for human-readable applications.",
     targetCvOnlyBytes: 4 * 1024 * 1024,
     targetWithCoverLetterBytes: 5 * 1024 * 1024,
     rasterScales: [2.5, 2, 1.75, 1.5],
@@ -92,8 +95,10 @@ export const PDF_EXPORT_PRESETS: Record<PdfExportPreset, PdfExportPresetConfig> 
     id: "high",
     label: "High Quality",
     shortLabel: "High Quality",
-    description: "Maximum visual fidelity. Larger files — best for print or portfolio use.",
-    tooltip: "Maximum visual fidelity with minimal compression. Best for print or portfolio use.",
+    description:
+      "Maximum visual fidelity for print or portfolio use. Includes the Career Evolution graph when enabled.",
+    tooltip:
+      "Maximum visual fidelity with minimal compression. Includes the Career Evolution graph when enabled — for human readers, not ATS-first uploads.",
     targetCvOnlyBytes: 8 * 1024 * 1024,
     targetWithCoverLetterBytes: 10 * 1024 * 1024,
     rasterScales: [3, 2.5, 2],

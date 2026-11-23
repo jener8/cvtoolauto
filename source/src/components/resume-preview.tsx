@@ -92,6 +92,29 @@ import {
 import { isPdfDebugEnabled } from "@/lib/pdf-debug"
 import { normalizeCvSectionKey } from "@/lib/import-cv-structure"
 import { formatEmploymentDateWithDuration } from "@/lib/employment-duration"
+import {
+  buildEmployerGroupRoleBlocks,
+  formatEmployerDisplayName,
+  hasEmployerHeading,
+  isMultiRoleEmployerGroup,
+  orderExperienceRoleDisplayLines,
+  organizeExperienceLines,
+  overallEmploymentDateLabel,
+  type ExperienceEmployerGroup,
+} from "@/lib/experience-organization"
+import {
+  formatParallelWorkAtsSuffix,
+  renderParallelWorkBadgeHtml,
+  resolveExperienceWorkType,
+} from "@/lib/experience-work-modifier"
+import {
+  isCareerEvolutionSectionTitle,
+  placeCareerEvolutionInSections,
+  renderCareerEvolutionSvgHtml,
+  resolveCareerEvolutionConfig,
+  shouldRenderCareerEvolutionInPdf,
+  stripCareerEvolutionFromHtml,
+} from "@/lib/career-evolution"
 import { parseResumeText } from "@/lib/parse-resume-text"
 import { stripSectionColumnModifier } from "@/lib/section-column-modifier"
 import { ExportMetadataPreviewPanel } from "@/components/export-metadata-preview-panel"
@@ -99,10 +122,13 @@ import {
   AI_TOOL_NAME,
   appendExportTransparencyToHtml,
   buildExportMetadataComments,
+  DEFAULT_CV_FORMAT_STYLE,
   getTransparencyStatementBodyParagraphs,
   getTransparencyStatementVisibility,
+  normalizeCvFormatStyle,
   resolveExportProvenance,
   TRANSPARENCY_STATEMENT_COPY,
+  type CvFormatStyle,
 } from "@/lib/ai-transparency"
 import { PdfExportControls } from "@/components/pdf-export-controls"
 import { optimizeDomForPdfExport } from "@/lib/pdf-export-optimize"
@@ -522,21 +548,21 @@ const ensureRGBColor = (color: string): string => {
 }
 
 type ViewMode = "human" | "ats-styled" | "ats-text"
-type HumanFormatStyle = "current" | "executive-compact" | "modern-spacious"
+type HumanFormatStyle = CvFormatStyle
 
 // Style configurations for each Human format style
 const formatStyles = {
   current: {
-    lineHeight: 1.6,
-    sectionSpacing: 24,
-    baseFontSize: 14,
+    lineHeight: 1.55,
+    sectionSpacing: 18,
+    baseFontSize: 13,
     headerStyle: "uppercase" as const,
     headerWeight: "bold",
-    bulletIndent: 20,
+    bulletIndent: 18,
     dividerWidth: 2,
-    containerPadding: 48,
-    sectionHeaderMargin: "24px 0 12px 0",
-    bulletMargin: 8,
+    containerPadding: 40,
+    sectionHeaderMargin: "18px 0 10px 0",
+    bulletMargin: 6,
     titleDateLayout: "stacked" as const,
   },
   "executive-compact": {
@@ -553,16 +579,17 @@ const formatStyles = {
     titleDateLayout: "inline" as const,
   },
   "modern-spacious": {
-    lineHeight: 1.8,
-    sectionSpacing: 32,
-    baseFontSize: 12,
+    // Clean clarity without oversized empty space — distinct from dense Executive.
+    lineHeight: 1.55,
+    sectionSpacing: 18,
+    baseFontSize: 11.5,
     headerStyle: "lowercase" as const,
-    headerWeight: "300",
-    bulletIndent: 24,
-    dividerWidth: 3,
-    containerPadding: 56,
-    sectionHeaderMargin: "32px 0 16px 0",
-    bulletMargin: 12,
+    headerWeight: "500",
+    bulletIndent: 18,
+    dividerWidth: 1.5,
+    containerPadding: 40,
+    sectionHeaderMargin: "18px 0 10px 0",
+    bulletMargin: 7,
     titleDateLayout: "stacked" as const,
   },
 }
@@ -627,8 +654,25 @@ export function ResumePreview({
   const [estimatedPdfBytes, setEstimatedPdfBytes] = useState<number | null>(null)
   /** Human (Visual) only — View Mode selector removed from UI. */
   const viewMode = "human" as ViewMode
-  const [humanFormatStyle, setHumanFormatStyle] =
-    useState<HumanFormatStyle>("executive-compact")
+  /**
+   * CV style is persisted on contactInfo.formatStyle so editor preview and
+   * server PDF export (#resume-root / variant="export") share one source of truth.
+   * Do not keep a separate ephemeral default here — that forced Executive Compact on export.
+   */
+  const humanFormatStyle = normalizeCvFormatStyle(
+    displayVersion.contactInfo.formatStyle ?? DEFAULT_CV_FORMAT_STYLE,
+  )
+  const setHumanFormatStyle = useCallback(
+    (id: HumanFormatStyle) => {
+      const nextStyle = normalizeCvFormatStyle(id)
+      if (nextStyle === humanFormatStyle) return
+      version.onContactInfoChange?.({
+        ...displayVersion.contactInfo,
+        formatStyle: nextStyle,
+      })
+    },
+    [displayVersion.contactInfo, humanFormatStyle, version],
+  )
   const [pdfSurfaceHtml, setPdfSurfaceHtml] = useState<string | null>(null)
   const [pdfPaginationReady, setPdfPaginationReady] = useState(false)
   const [pdfPaginationHadOverflow, setPdfPaginationHadOverflow] = useState(false)
@@ -864,11 +908,18 @@ export function ResumePreview({
     resumeId: string,
     preset: PdfExportPreset,
     filename: string,
-    options: { includeTransparencyPage: boolean; includeExportMetadata: boolean },
+    options: {
+      includeTransparencyPage: boolean
+      includeExportMetadata: boolean
+      formatStyle: HumanFormatStyle
+    },
   ) => {
     const params = new URLSearchParams({ preset })
     if (options.includeTransparencyPage) params.set("transparency", "1")
     params.set("metadata", options.includeExportMetadata ? "1" : "0")
+    // Always pass the editor's selected CV style so server export matches preview
+    // even if autosave has not yet written contactInfo.formatStyle.
+    params.set("formatStyle", options.formatStyle)
     const response = await fetch(`/api/pdf/resume/${resumeId}?${params.toString()}`)
     if (!response.ok) {
       const detail = await response.text().catch(() => "")
@@ -904,6 +955,7 @@ export function ResumePreview({
           await downloadResumeViaApi(version.id, preset, downloadName, {
             includeTransparencyPage,
             includeExportMetadata,
+            formatStyle: humanFormatStyle,
           })
           toast({
             title: "PDF Downloaded",
@@ -933,6 +985,22 @@ export function ResumePreview({
       tempContainer.appendChild(clone)
 
       await optimizeDomForPdfExport(clone, preset)
+
+      // ATS Optimized: strip Career Evolution so parsers only see standard CV text.
+      if (preset === "ats") {
+        clone
+          .querySelectorAll(
+            '[data-career-evolution-section], [data-pdf-block="career-evolution"], .career-evolution-figure',
+          )
+          .forEach((el) => el.remove())
+        clone.querySelectorAll("h2").forEach((heading) => {
+          const t = (heading.textContent || "").trim().toUpperCase()
+          if (t === "CAREER EVOLUTION" || t.includes("KARRIEREENTWICKLUNG")) {
+            heading.remove()
+          }
+        })
+        clone.innerHTML = stripCareerEvolutionFromHtml(clone.innerHTML)
+      }
 
       // Replace OKLCH colors
       const walkAndReplaceColors = (el: HTMLElement) => {
@@ -1087,12 +1155,49 @@ export function ResumePreview({
             .pdf-block-keep-together,
             .pdf-resume-block[data-pdf-block="job-head"],
             .pdf-resume-block[data-pdf-block="skill-item"],
-            .pdf-resume-block[data-pdf-block="education-entry"] {
+            .pdf-resume-block[data-pdf-block="education-entry"],
+            .pdf-resume-block[data-pdf-block="career-evolution"],
+            .career-evolution-figure {
               break-inside: avoid;
               page-break-inside: avoid;
             }
             .pdf-job-continuation ul { margin-top: 0 !important; padding-top: 0 !important; }
             .pdf-job-continuation--page-start { padding-top: 0.35em; }
+
+            /* Career Evolution must print (SVG + accent fills). Do not clip Parallel.
+               Do NOT set height:auto on the SVG — Chromium print can collapse
+               width:100% + height:auto SVGs to 0 when viewBox sizing fails. */
+            .career-evolution-figure,
+            [data-career-evolution-section="1"],
+            .pdf-resume-block[data-pdf-block="career-evolution"] {
+              display: block !important;
+              visibility: visible !important;
+              overflow: visible !important;
+              max-height: none !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .career-evolution-figure svg {
+              display: block !important;
+              visibility: visible !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              max-height: none !important;
+              overflow: visible !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .career-evolution-figure__alt {
+              position: absolute;
+              width: 1px;
+              height: 1px;
+              padding: 0;
+              margin: -1px;
+              overflow: hidden;
+              clip: rect(0, 0, 0, 0);
+              white-space: nowrap;
+              border: 0;
+            }
 
             ${CV_TWO_COLUMN_LIST_CSS}
             ${CV_MARKDOWN_TABLE_CSS}
@@ -1353,7 +1458,7 @@ export function ResumePreview({
   downloadWordRef.current = downloadWordImpl
   const downloadWord = useCallback(() => downloadWordRef.current(), [])
 
-  const viewSections = parseResumeText(version.resumeText).map((section) => ({
+  const parsedViewSections = parseResumeText(version.resumeText).map((section) => ({
     ...section,
     // Never show `[columns=n]` in the printed heading — layout uses section.columns.
     title: stripSectionColumnModifier(section.title),
@@ -1453,7 +1558,10 @@ export function ResumePreview({
 
   const renderUniversalMarkdownLines = (
     lines: string[],
-    options?: { showEmploymentDuration?: boolean },
+    options?: {
+      showEmploymentDuration?: boolean
+      sectionIsParallelWork?: boolean
+    },
   ): string => {
     const style = formatStyles[humanFormatStyle]
     // Use hexAccentColor directly for consistent color rendering
@@ -1466,6 +1574,7 @@ export function ResumePreview({
       })
     const durationLang = displayVersion.contactInfo.language === "de" ? "de" : "en"
     const appendDuration = options?.showEmploymentDuration === true
+    const workLang = displayVersion.contactInfo.language === "de" ? "de" : "en"
 
     let html = ""
     let inBulletList = false
@@ -1526,7 +1635,17 @@ export function ResumePreview({
         }
         const titleFontSize = style.baseFontSize + 4
         const textTransform = style.headerStyle === "uppercase" ? "uppercase" : "none"
-        html += `<p style="font-size: ${titleFontSize}px; font-weight: ${style.headerWeight}; margin: ${style.sectionSpacing / 2}px 0 ${style.bulletMargin}px 0; color: ${accentColorForHTML}; text-transform: ${textTransform}; line-height: ${style.lineHeight};">${inlineHtml(parsed.text)}</p>`
+        const workType = resolveExperienceWorkType({
+          lineWorkType: parsed.workType,
+          sectionIsParallelWork: options?.sectionIsParallelWork === true,
+        })
+        const badge = renderParallelWorkBadgeHtml({
+          workType,
+          accentColor: accentColorForHTML,
+          language: workLang,
+          fontSizePx: titleFontSize,
+        })
+        html += `<p style="font-size: ${titleFontSize}px; font-weight: ${style.headerWeight}; margin: ${style.sectionSpacing / 2}px 0 ${style.bulletMargin}px 0; color: ${accentColorForHTML}; text-transform: ${textTransform}; line-height: ${style.lineHeight};">${inlineHtml(parsed.text)}${badge}</p>`
         continue
       }
 
@@ -1579,6 +1698,11 @@ export function ResumePreview({
       lineHeight: style.lineHeight || 1.45,
       linkColor: hexAccentColor,
       accentColor: hexAccentColor,
+      tableAccentStyle:
+        displayVersion.contactInfo.tableAccentStyle === "off" ||
+        displayVersion.contactInfo.tableAccentStyle === "strong"
+          ? displayVersion.contactInfo.tableAccentStyle
+          : "subtle",
     }
   }
 
@@ -1588,7 +1712,10 @@ export function ResumePreview({
 
   const renderUniversalMarkdown = (
     lines: string[],
-    options?: { showEmploymentDuration?: boolean },
+    options?: {
+      showEmploymentDuration?: boolean
+      sectionIsParallelWork?: boolean
+    },
   ): string => {
     const renderLines = (chunk: string[]) => renderUniversalMarkdownLines(chunk, options)
     return renderHtmlWithMarkdownTables(
@@ -1667,7 +1794,10 @@ export function ResumePreview({
 
   const renderExperienceHTML = (
     lines: string[],
-    options?: { showEmploymentDuration?: boolean },
+    options?: {
+      showEmploymentDuration?: boolean
+      sectionIsParallelWork?: boolean
+    },
   ): string => {
     return renderUniversalMarkdown(lines, options)
   }
@@ -1687,6 +1817,7 @@ export function ResumePreview({
     "education-entry",
     "table-head",
     "table-row",
+    "career-evolution",
   ])
 
   const wrapPdfBlock = (kind: string, html: string, continuation = false) => {
@@ -1748,17 +1879,110 @@ export function ResumePreview({
     return `<div class="resume-section-block" style="margin-bottom: ${sectionMargin};">${parts.join("")}</div>`
   }
 
+  /**
+   * Shared Experience role chrome — thin accent rail for every role (multi- and
+   * single-employer). Not Bundesdruckerei-specific.
+   */
+  const wrapExperienceRoleRail = (body: string): string => {
+    if (!body.trim()) return ""
+    return `<div class="cv-role-rail" data-cv-role-rail="1" style="border-left:2px solid ${hexAccentColor};padding:0 0 0 10px;margin:4px 0 8px 0;">${body}</div>`
+  }
+
+  /**
+   * Employer name (and overall tenure for multi-role groups) — always ABOVE and
+   * OUTSIDE the green role rail. Shared for single- and multi-role employers.
+   */
+  const renderEmployerHeadingHtml = (group: ExperienceEmployerGroup): string => {
+    const style = formatStyles[humanFormatStyle]
+    const name = formatEmployerDisplayName(group.company)
+    if (!name) return ""
+    const durationLang = displayVersion.contactInfo.language === "de" ? "de" : "en"
+    // Multi-role: show overall employment span under the employer (not inside the rail).
+    // Single-role: name only — role dates stay inside the rail to avoid duplication.
+    const tenure = isMultiRoleEmployerGroup(group)
+      ? overallEmploymentDateLabel(group, durationLang)
+      : null
+    const nameSize = style.baseFontSize + 2
+    const tenureSize = Math.max(9, style.baseFontSize - 0.5)
+    return `<div class="cv-employer-heading" data-cv-employer-heading="1" style="margin:0 0 6px 0;padding:0;">
+      <p style="font-size:${nameSize}px;font-weight:700;margin:0;color:#000000;line-height:${style.lineHeight};">${escapeHtmlText(name)}</p>
+      ${
+        tenure
+          ? `<p style="font-size:${tenureSize}px;font-weight:400;margin:2px 0 0 0;color:#666666;line-height:${style.lineHeight};">${escapeHtmlText(tenure)}</p>`
+          : ""
+      }
+    </div>`
+  }
+
+  /**
+   * One Experience role rail. Optional employer heading is prepended to the first
+   * job-head chunk so pagination never orphans the heading at the page bottom.
+   */
+  const pushExperienceRolePdfChunks = (
+    parts: string[],
+    roleLines: string[],
+    renderJob: (lines: string[]) => string,
+    wrapBody: (body: string) => string,
+    options?: { employerHeadingHtml?: string },
+  ): number => {
+    const chunks = splitEntryLinesIntoPdfChunks(roleLines)
+    const heading = options?.employerHeadingHtml?.trim() || ""
+    let headingPlaced = !heading
+    let pushed = 0
+
+    for (const chunk of chunks) {
+      const roleHtml = wrapExperienceRoleRail(renderJob(chunk.lines))
+      if (!roleHtml.trim()) continue
+      const includeHeading = !headingPlaced
+      const body = wrapBody(includeHeading ? `${heading}${roleHtml}` : roleHtml)
+      if (!body.trim()) continue
+      if (includeHeading) headingPlaced = true
+      const kind = chunk.kind === "job-head" || includeHeading ? "job-head" : chunk.kind
+      parts.push(wrapPdfBlock(kind, body, chunk.continuation && !includeHeading))
+      pushed += 1
+    }
+    return pushed
+  }
+
+  /**
+   * Employer heading outside the rail (when company known); each role in a rail
+   * with title → dates → bullets. Same hierarchy for single- and multi-role.
+   */
+  const pushEmployerGroupPdfChunks = (
+    parts: string[],
+    group: ExperienceEmployerGroup,
+    renderJob: (lines: string[]) => string,
+    wrapBody: (body: string) => string,
+  ): number => {
+    const roleBlocks = buildEmployerGroupRoleBlocks(group)
+    if (roleBlocks.length === 0) return 0
+
+    const heading = hasEmployerHeading(group) ? renderEmployerHeadingHtml(group) : ""
+    let pushed = 0
+    let headingAttached = false
+    for (const roleLines of roleBlocks) {
+      pushed += pushExperienceRolePdfChunks(parts, roleLines, renderJob, wrapBody, {
+        employerHeadingHtml: !headingAttached && heading ? heading : undefined,
+      })
+      headingAttached = true
+    }
+    return pushed
+  }
+
   const renderExperiencePdfBlocks = (
     sectionTitleHTML: string,
     content: string[],
     renderJob: (lines: string[]) => string,
     sectionMargin: string,
     wrapJobBody?: (body: string) => string,
+    options?: { showEmploymentDuration?: boolean; organizeByEmployer?: boolean },
   ): string => {
     const wrapBody = wrapJobBody ?? ((body: string) => body)
     const segments = splitContentIntoSegments(content)
     const parts: string[] = []
     let sectionTitlePlaced = false
+    const organize = options?.organizeByEmployer !== false
+    const durationLang = displayVersion.contactInfo.language === "de" ? "de" : "en"
 
     const ensureTitle = () => {
       if (!sectionTitlePlaced && sectionTitleHTML) {
@@ -1785,13 +2009,27 @@ export function ResumePreview({
           continue
         }
 
-        const jobs = splitExperienceLinesIntoJobs(piece.lines)
-        for (const jobLines of jobs) {
-          // Keep section title as its own block (orphan-title rule). Job bodies
-          // split into job-head (header + first 2 bullets) + bullet pairs so
-          // Berufserfahrung can start filling leftover space under PROFILE.
+        // Always organise when enabled so every role (single or multi) uses the
+        // shared ExperienceRole rail — not only multi-role employers.
+        if (organize) {
+          const groups = organizeExperienceLines(piece.lines, { language: durationLang })
+          for (const group of groups) {
+            const staging: string[] = []
+            const count = pushEmployerGroupPdfChunks(staging, group, renderJob, wrapBody)
+            if (count === 0) continue
+            ensureTitle()
+            parts.push(...staging)
+          }
+          continue
+        }
+
+        const jobBlocks = splitExperienceLinesIntoJobs(piece.lines).map((jobLines) =>
+          orderExperienceRoleDisplayLines(jobLines),
+        )
+
+        for (const jobLines of jobBlocks) {
           const staging: string[] = []
-          const count = pushEntryPdfChunks(staging, jobLines, renderJob, wrapBody)
+          const count = pushExperienceRolePdfChunks(staging, jobLines, renderJob, wrapBody)
           if (count === 0) continue
           ensureTitle()
           parts.push(...staging)
@@ -1959,72 +2197,108 @@ export function ResumePreview({
     }
 
     // ====== FORMAT 1: PROFILE-ENHANCED DESIGN ======
+    // Compact header (photo ~70px, name ~26pt); professional summary stays visually prominent.
     if (humanFormatStyle === "current") {
-      const profileImageSize = 124
-      const nameFontSize = 32
-      const contactFontSize = 13
-      const titleFontSize = 16
-      const sectionHeaderSize = 16
-      
+      const profileImageSize = 70
+      const nameFontSize = 26
+      const contactFontSize = 9.5
+      const titleFontSize = 12
+      const sectionHeaderSize = 13
+
       const profileImageHTML = renderProfileAvatarHtml({
         sizePx: profileImageSize,
         borderWidthPx: 1.5,
         borderRadius: "50%",
       })
-      
+
+      const contactChips: string[] = []
+      if (displayVersion.contactInfo.email) {
+        contactChips.push(
+          `<span style="white-space: nowrap;">${labels.email}: ${displayVersion.contactInfo.email}</span>`,
+        )
+      }
+      if (displayVersion.contactInfo.phone) {
+        contactChips.push(
+          `<span style="white-space: nowrap;">${labels.phone}: ${displayVersion.contactInfo.phone}</span>`,
+        )
+      }
+      if (displayVersion.contactInfo.address) {
+        contactChips.push(
+          `<span>${labels.location}: ${displayVersion.contactInfo.address}</span>`,
+        )
+      }
+      if (displayVersion.contactInfo.linkedin) {
+        const href = displayVersion.contactInfo.linkedin.startsWith("http")
+          ? displayVersion.contactInfo.linkedin
+          : `https://${displayVersion.contactInfo.linkedin}`
+        contactChips.push(
+          `<span style="white-space: nowrap;">${labels.linkedin}: <a href="${href}" target="_blank" rel="noopener noreferrer" style="color: ${hexAccentColor}; text-decoration: underline;">LinkedIn</a></span>`,
+        )
+      }
+      if (displayVersion.contactInfo.citizenship) {
+        contactChips.push(
+          `<span style="white-space: nowrap;">${labels.citizenship}: ${displayVersion.contactInfo.citizenship}</span>`,
+        )
+      }
+      const portfolioUrls = visiblePortfolioUrls(displayVersion.contactInfo)
+      if (portfolioUrls.length) {
+        contactChips.push(
+          `<span>${labels.portfolio}: ${portfolioLinksJoinedHtml(portfolioUrls, hexAccentColor)}</span>`,
+        )
+      }
+
       const headerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: ${style.sectionSpacing}px;">
-          <div style="display: flex; gap: 24px; align-items: center;">
-            ${profileImageHTML}
-            <div>
-              <h1 style="font-size: ${nameFontSize}px; font-weight: bold; margin: 0 0 8px 0; color: #000000; line-height: ${style.lineHeight};">${name}</h1>
-              ${professionalTitle ? `<p style="font-size: ${titleFontSize}px; font-weight: 600; margin: 0 0 16px 0; color: ${hexAccentColor}; line-height: ${style.lineHeight};">${professionalTitle}</p>` : ""}
-              ${displayVersion.contactInfo.address ? `<p style="font-size: ${contactFontSize}px; margin: 4px 0; color: #000000; line-height: ${style.lineHeight};">${labels.location}: ${displayVersion.contactInfo.address}</p>` : ""}
-              ${displayVersion.contactInfo.email ? `<p style="font-size: ${contactFontSize}px; margin: 4px 0; color: #000000; line-height: ${style.lineHeight};">${labels.email}: ${displayVersion.contactInfo.email}</p>` : ""}
-              ${displayVersion.contactInfo.linkedin ? `<p style="font-size: ${contactFontSize}px; margin: 4px 0; color: #000000; line-height: ${style.lineHeight};">${labels.linkedin}: <a href="${displayVersion.contactInfo.linkedin.startsWith("http") ? displayVersion.contactInfo.linkedin : `https://${displayVersion.contactInfo.linkedin}`}" target="_blank" style="color: ${hexAccentColor}; text-decoration: underline;">${displayVersion.contactInfo.linkedin}</a></p>` : ""}
-              ${displayVersion.contactInfo.phone ? `<p style="font-size: ${contactFontSize}px; margin: 4px 0; color: #000000; line-height: ${style.lineHeight};">${labels.phone}: ${displayVersion.contactInfo.phone}</p>` : ""}
-              ${displayVersion.contactInfo.citizenship ? `<p style="font-size: ${contactFontSize}px; margin: 4px 0; color: #000000; line-height: ${style.lineHeight};">${labels.citizenship}: ${displayVersion.contactInfo.citizenship}</p>` : ""}
-              ${(() => {
-                const portfolioUrls = visiblePortfolioUrls(displayVersion.contactInfo)
-                return portfolioUrls.length
-                  ? `<p style="font-size: ${contactFontSize}px; margin: 4px 0; color: #000000; line-height: ${style.lineHeight};">${labels.portfolio}: ${portfolioLinksJoinedHtml(portfolioUrls, hexAccentColor)}</p>`
-                  : ""
-              })()}
-            </div>
+        <div data-cv-header="profile-enhanced" style="display: flex; gap: 14px; align-items: flex-start; margin: 0 0 12px 0; padding: 0 0 10px 0; border-bottom: 1.5px solid ${hexAccentColor}; min-height: 0; max-height: 34mm;">
+          ${profileImageHTML ? `<div style="flex-shrink: 0; line-height: 0;">${profileImageHTML}</div>` : ""}
+          <div style="flex: 1; min-width: 0;">
+            <h1 style="font-size: ${nameFontSize}px; font-weight: 600; margin: 0 0 2px 0; color: #000000; line-height: 1.15; letter-spacing: -0.01em; overflow-wrap: anywhere; word-break: normal; hyphens: auto;">${name}</h1>
+            ${professionalTitle ? `<p style="font-size: ${titleFontSize}px; font-weight: 600; margin: 0 0 6px 0; color: ${hexAccentColor}; line-height: 1.3;">${professionalTitle}</p>` : ""}
+            ${
+              contactChips.length
+                ? `<div style="display: flex; flex-wrap: wrap; gap: 3px 12px; align-items: baseline; font-size: ${contactFontSize}px; line-height: 1.35; color: #333333;">${contactChips.join("")}</div>`
+                : ""
+            }
           </div>
         </div>
       `
-      
+
       const targetBgColor = version.targetBoxBgColor || "#f8f9fa"
       const targetBorderColor = version.targetBoxBorderColor || hexAccentColor
-      const targetLogoHTML = renderTargetBannerLogoHtml(80, 60)
-      
+      const targetLogoHTML = renderTargetBannerLogoHtml(64, 44)
+
       const applicationTargetHTML =
         displayVersion.contactInfo.targetCompany || displayVersion.contactInfo.targetRole
           ? `
-        <div style="margin-bottom: ${style.sectionSpacing}px; padding: 16px; background-color: ${targetBgColor}; border-left: 4px solid ${targetBorderColor}; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+        <div style="margin-bottom: 12px; padding: 10px 12px; background-color: ${targetBgColor}; border-left: 3px solid ${targetBorderColor}; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
           <div style="flex: 1; min-width: 0;">
             ${renderTargetCompanyRoleHeadingHtml({
               company: displayVersion.contactInfo.targetCompany,
               role: displayVersion.contactInfo.targetRole,
-              companyStyle: "font-size: 18px; font-weight: bold; color: #000000;",
+              companyStyle: "font-size: 14px; font-weight: bold; color: #000000;",
               roleStyle: `font-size: ${titleFontSize}px; font-weight: 600; color: ${hexAccentColor};`,
-              separatorStyle: "font-size: 18px; font-weight: bold; color: #000000;",
+              separatorStyle: "font-size: 14px; font-weight: bold; color: #000000;",
             })}
           </div>
           ${targetLogoHTML}
         </div>
       `
           : ""
-      
+
       const columnStyle = `font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-size: ${style.baseFontSize}px; line-height: ${style.lineHeight}; color: #000000; background: transparent; padding: 0;`
 
       const sectionsHTML = sections
         .filter((section) => section.title !== "" && !isPageBreakSectionTitle(section.title))
         .map((section) => {
+          const isProfile = isProfileSection(section.title)
           const sectionTitleHTML = section.title
-            ? `<h2 style="font-size: ${sectionHeaderSize}px; font-weight: bold; text-transform: uppercase; margin: ${style.sectionHeaderMargin}; padding-bottom: 8px; border-bottom: 2px solid ${hexAccentColor}; color: #000000;">${section.title}</h2>`
+            ? isProfile
+              ? `<h2 style="font-size: ${sectionHeaderSize + 1}px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin: 10px 0 8px 0; padding: 0 0 6px 0; border-bottom: 2px solid ${hexAccentColor}; color: #000000;">${section.title}</h2>`
+              : `<h2 style="font-size: ${sectionHeaderSize}px; font-weight: bold; text-transform: uppercase; margin: ${style.sectionHeaderMargin}; padding-bottom: 6px; border-bottom: 2px solid ${hexAccentColor}; color: #000000;">${section.title}</h2>`
             : ""
+
+          if (isCareerEvolutionSection(section.title)) {
+            return renderCareerEvolutionSectionHtml(sectionTitleHTML, section.content)
+          }
 
           if (isExperienceSection(section.title)) {
             return renderExperiencePdfBlocks(
@@ -2032,7 +2306,17 @@ export function ResumePreview({
               section.content,
               renderEmploymentAwareExperience(section.title),
               `${style.sectionSpacing}px`,
+              undefined,
+              experiencePdfOptions(section.title),
             )
+          }
+
+          // Profile summary: readable, visually distinct block under the compact header.
+          // Must use wrapPdfBlock — auto-pagination only packs [data-pdf-block] nodes.
+          if (isProfile) {
+            const body = renderProfileHTML(section.content)
+            const tinted = `<div data-profile-summary="1" style="padding: 10px 12px; background-color: ${hexAccentColor}0F; border-radius: 4px;">${sectionTitleHTML}<div style="font-size: 12.5px; line-height: 1.5; color: #1a1a1a;">${body}</div></div>`
+            return `<div class="resume-section-block" style="margin-bottom: ${style.sectionSpacing}px;">${wrapPdfBlock("profile-summary", tinted)}</div>`
           }
 
           return renderNonExperiencePdfSection(
@@ -2082,7 +2366,7 @@ export function ResumePreview({
       }
       
       const headerHTML = `
-        <div style="margin-bottom: 16px;">
+        <div data-cv-header="executive-compact" style="margin-bottom: 16px;">
           <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 8px;">
             ${profileImageHTML}
             <div>
@@ -2125,12 +2409,18 @@ export function ResumePreview({
             ? `<h2 style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin: 12px 0 8px 0; padding: 4px 8px; background-color: ${hexAccentColor}20; color: #000000; border-left: 3px solid ${hexAccentColor};">${section.title}</h2>`
             : ""
 
+          if (isCareerEvolutionSection(section.title)) {
+            return renderCareerEvolutionSectionHtml(sectionTitleHTML, section.content)
+          }
+
           if (isExperienceSection(section.title)) {
             return renderExperiencePdfBlocks(
               sectionTitleHTML,
               section.content,
               renderEmploymentAwareExperience(section.title),
               "12px",
+              undefined,
+              experiencePdfOptions(section.title),
             )
           }
 
@@ -2148,76 +2438,95 @@ export function ResumePreview({
     }
     
     // ====== FORMAT 3: MODERN SPACIOUS ======
-    // Avatar: Large (120px), circular, centered above name
-    // Company logo: beside target company / role in the application banner
-    // Name: Extra large, thin weight, lowercase
-    // Job title tagline: Left-aligned below name, bold, black
-    // Contact info: Vertical list on right side of header, no icons
-    // Section headers: Lowercase, thick colored underline below
+    // Clean contemporary header: ~70px photo, ~28pt name, compact contact wrap,
+    // thin accent divider — clarity without oversized empty space.
+    // Section headers stay lowercase with accent underline (distinct from other styles).
     // Bullet points: Colored squares
-    
+
     const profileImageHTML = renderProfileAvatarHtml({
-      sizePx: 120,
-      borderWidthPx: 2,
+      sizePx: 72,
+      borderWidthPx: 1.5,
       borderRadius: "50%",
     })
-    
-    // Build contact items for vertical list (no icons)
+
     const contactItems: string[] = []
-    if (displayVersion.contactInfo.email) contactItems.push(`<p style="margin: 6px 0; font-size: 12px; color: #333333;">${displayVersion.contactInfo.email}</p>`)
-    if (displayVersion.contactInfo.phone) contactItems.push(`<p style="margin: 6px 0; font-size: 12px; color: #333333;">${displayVersion.contactInfo.phone}</p>`)
-    if (displayVersion.contactInfo.address) contactItems.push(`<p style="margin: 6px 0; font-size: 12px; color: #333333;">${displayVersion.contactInfo.address}</p>`)
-    if (displayVersion.contactInfo.linkedin) contactItems.push(`<p style="margin: 6px 0; font-size: 12px;"><a href="${displayVersion.contactInfo.linkedin.startsWith("http") ? displayVersion.contactInfo.linkedin : `https://${displayVersion.contactInfo.linkedin}`}" target="_blank" style="color: ${hexAccentColor}; text-decoration: none;">${displayVersion.contactInfo.linkedin}</a></p>`)
+    if (displayVersion.contactInfo.email) {
+      contactItems.push(
+        `<span style="white-space: nowrap;">${displayVersion.contactInfo.email}</span>`,
+      )
+    }
+    if (displayVersion.contactInfo.phone) {
+      contactItems.push(
+        `<span style="white-space: nowrap;">${displayVersion.contactInfo.phone}</span>`,
+      )
+    }
+    if (displayVersion.contactInfo.address) {
+      contactItems.push(`<span>${displayVersion.contactInfo.address}</span>`)
+    }
+    if (displayVersion.contactInfo.linkedin) {
+      const href = displayVersion.contactInfo.linkedin.startsWith("http")
+        ? displayVersion.contactInfo.linkedin
+        : `https://${displayVersion.contactInfo.linkedin}`
+      contactItems.push(
+        `<span style="white-space: nowrap;"><a href="${href}" target="_blank" rel="noopener noreferrer" style="color: ${hexAccentColor}; text-decoration: none;">LinkedIn</a></span>`,
+      )
+    }
     const portfolioUrls = visiblePortfolioUrls(displayVersion.contactInfo)
     if (portfolioUrls.length > 0) {
       contactItems.push(
-        `<p style="margin: 6px 0; font-size: 12px;">${portfolioLinksJoinedHtml(portfolioUrls, hexAccentColor, "color: " + hexAccentColor + "; text-decoration: none;")}</p>`,
+        `<span>${portfolioLinksJoinedHtml(portfolioUrls, hexAccentColor, "color: " + hexAccentColor + "; text-decoration: none;")}</span>`,
       )
     }
-    
+
     const headerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: ${style.sectionSpacing}px; padding-bottom: ${style.sectionSpacing}px; border-bottom: 4px solid ${hexAccentColor};">
-        <div style="display: flex; flex-direction: column; align-items: flex-start;">
-          <div style="text-align: center; margin-bottom: 16px;">
-            ${profileImageHTML}
-          </div>
-          <h1 style="font-size: 42px; font-weight: 300; margin: 0 0 8px 0; color: #000000; line-height: 1.1;">${name.toLowerCase()}</h1>
-          ${professionalTitle ? `<p style="font-size: 18px; font-weight: 700; margin: 0; color: #000000; line-height: 1.4;">${professionalTitle}</p>` : ""}
+      <div data-cv-header="modern-spacious" style="display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: center; margin: 0 0 12px 0; padding: 0 0 10px 0; border-bottom: 1.5px solid ${hexAccentColor}; min-height: 0; max-height: 34mm;">
+        ${profileImageHTML ? `<div style="flex-shrink: 0; line-height: 0;">${profileImageHTML}</div>` : ""}
+        <div style="flex: 1 1 220px; min-width: 0;">
+          <h1 style="font-size: 28px; font-weight: 500; margin: 0 0 2px 0; color: #000000; line-height: 1.12; letter-spacing: -0.015em; overflow-wrap: anywhere; word-break: normal;">${name.toLowerCase()}</h1>
+          ${professionalTitle ? `<p style="font-size: 13px; font-weight: 600; margin: 0 0 6px 0; color: #111111; line-height: 1.3;">${professionalTitle}</p>` : ""}
+          ${
+            contactItems.length
+              ? `<div style="display: flex; flex-wrap: wrap; gap: 3px 14px; align-items: baseline; font-size: 9.5px; line-height: 1.35; color: #444444;">${contactItems.join("")}</div>`
+              : ""
+          }
         </div>
-        ${contactItems.length > 0 ? `<div style="text-align: right; padding-left: 32px;">${contactItems.join("")}</div>` : ""}
       </div>
     `
-    
+
     const targetBgColor = version.targetBoxBgColor || "#fafafa"
     const targetBorderColor = version.targetBoxBorderColor || hexAccentColor
-    const targetLogoHTML = renderTargetBannerLogoHtml(96, 64)
-    
+    const targetLogoHTML = renderTargetBannerLogoHtml(72, 48)
+
     const applicationTargetHTML =
       displayVersion.contactInfo.targetCompany || displayVersion.contactInfo.targetRole
         ? `
-      <div style="margin-bottom: ${style.sectionSpacing}px; padding: 20px; background-color: ${targetBgColor}; border-left: 4px solid ${targetBorderColor}; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+      <div style="margin-bottom: 14px; padding: 10px 14px; background-color: ${targetBgColor}; border-left: 3px solid ${targetBorderColor}; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
         <div style="flex: 1; min-width: 0;">
           ${renderTargetCompanyRoleHeadingHtml({
             company: displayVersion.contactInfo.targetCompany,
             role: displayVersion.contactInfo.targetRole,
-            companyStyle: "font-size: 20px; font-weight: 300; color: #000000;",
-            roleStyle: "font-size: 16px; font-weight: 700; color: #000000;",
-            separatorStyle: "font-size: 20px; font-weight: 300; color: #000000;",
+            companyStyle: "font-size: 15px; font-weight: 400; color: #000000;",
+            roleStyle: "font-size: 13px; font-weight: 600; color: #000000;",
+            separatorStyle: "font-size: 15px; font-weight: 400; color: #000000;",
           })}
         </div>
         ${targetLogoHTML}
       </div>
     `
         : ""
-    
+
     const columnStyle = `font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-size: ${style.baseFontSize}px; line-height: ${style.lineHeight}; color: #000000; background: transparent; padding: 0;`
 
     const sectionsHTML = sections
       .filter((section) => section.title !== "" && !isPageBreakSectionTitle(section.title))
       .map((section) => {
         const sectionTitleHTML = section.title
-          ? `<h2 style="font-size: 14px; font-weight: 300; text-transform: lowercase; margin: 24px 0 16px 0; padding-bottom: 8px; border-bottom: 4px solid ${hexAccentColor}; color: #000000; display: inline-block;">${section.title.toLowerCase()}</h2>`
+          ? `<h2 style="font-size: 13px; font-weight: 500; text-transform: lowercase; margin: 16px 0 10px 0; padding-bottom: 5px; border-bottom: 2px solid ${hexAccentColor}; color: #000000; display: inline-block;">${section.title.toLowerCase()}</h2>`
           : ""
+
+        if (isCareerEvolutionSection(section.title)) {
+          return renderCareerEvolutionSectionHtml(sectionTitleHTML, section.content)
+        }
 
         if (isExperienceSection(section.title)) {
           return renderExperiencePdfBlocks(
@@ -2226,6 +2535,7 @@ export function ResumePreview({
             renderEmploymentAwareExperience(section.title),
             `${style.sectionSpacing}px`,
             (body) => `<div style="clear: both;">${body}</div>`,
+            experiencePdfOptions(section.title),
           )
         }
 
@@ -2250,24 +2560,34 @@ export function ResumePreview({
   // Helper functions for section type detection
   const isExperienceSection = (title: string): boolean => {
     const key = normalizeCvSectionKey(title)
-    if (key === "EXPERIENCE" || key === "PROJECTS") return true
+    if (key === "EXPERIENCE" || key === "PARALLEL_WORK" || key === "PROJECTS") return true
     const normalized = title.toUpperCase().trim()
     return (
       normalized.includes("ERFAHRUNG") ||
       normalized.includes("EXPERIENCE") ||
       normalized.includes("WERDEGANG") ||
       normalized.includes("PROJEKTE") ||
-      normalized.includes("PROJECTS")
+      normalized.includes("PROJECTS") ||
+      normalized.includes("PARALLEL") ||
+      normalized.includes("INDEPENDENT WORK") ||
+      normalized.includes("NEBENBERUF")
     )
   }
 
-  /** Employment only — not projects (duration toggle applies here). */
+  /** Employment + parallel independent work — not projects (duration toggle applies). */
   const isEmploymentExperienceSection = (title: string): boolean => {
     const key = normalizeCvSectionKey(title)
     if (key === "PROJECTS") return false
-    if (key === "EXPERIENCE") return true
+    if (key === "EXPERIENCE" || key === "PARALLEL_WORK") return true
     const normalized = title.toUpperCase().trim()
     if (normalized.includes("PROJEKT") || normalized.includes("PROJECT")) return false
+    if (
+      normalized.includes("PARALLEL") ||
+      normalized.includes("INDEPENDENT WORK") ||
+      normalized.includes("NEBENBERUF")
+    ) {
+      return true
+    }
     return (
       normalized.includes("ERFAHRUNG") ||
       normalized.includes("EXPERIENCE") ||
@@ -2276,12 +2596,106 @@ export function ResumePreview({
     )
   }
 
+  const sectionIsParallelWorkTitle = (title: string): boolean => {
+    const key = normalizeCvSectionKey(stripSectionColumnModifier(title))
+    if (key === "PARALLEL_WORK") return true
+    const normalized = stripSectionColumnModifier(title).toUpperCase().trim()
+    return (
+      normalized.includes("PARALLEL") ||
+      normalized.includes("INDEPENDENT WORK") ||
+      normalized.includes("NEBENBERUF")
+    )
+  }
+
   const renderEmploymentAwareExperience = (sectionTitle: string) => (lines: string[]) =>
     renderExperienceHTML(lines, {
       showEmploymentDuration:
         displayVersion.contactInfo.showEmploymentDuration === true &&
         isEmploymentExperienceSection(sectionTitle),
+      sectionIsParallelWork: sectionIsParallelWorkTitle(sectionTitle),
     })
+
+  const experiencePdfOptions = (sectionTitle: string) => ({
+    showEmploymentDuration:
+      displayVersion.contactInfo.showEmploymentDuration === true &&
+      isEmploymentExperienceSection(sectionTitle),
+    organizeByEmployer: isEmploymentExperienceSection(sectionTitle),
+    sectionIsParallelWork: sectionIsParallelWorkTitle(sectionTitle),
+  })
+
+  const isCareerEvolutionSection = (title: string): boolean =>
+    isCareerEvolutionSectionTitle(title)
+
+  const careerEvolutionConfig = resolveCareerEvolutionConfig(
+    displayVersion.contactInfo.careerEvolution,
+    displayVersion.resumeText || "",
+  )
+
+  // ATS Optimized PDF omits the graph; Standard/High keep it when visible.
+  // Preview on screen still shows the graph when enabled (human readers).
+  const renderCareerEvolutionForExport = shouldRenderCareerEvolutionInPdf(
+    pdfExportPreset,
+    careerEvolutionConfig,
+  )
+  const hasCareerEvolutionPreviewContent =
+    careerEvolutionConfig.milestones.length > 0 ||
+    (careerEvolutionConfig.layout === "alignment" &&
+      ((careerEvolutionConfig.alignments?.length || 0) > 0 ||
+        Boolean(careerEvolutionConfig.alignmentSourceText?.trim()))) ||
+    (careerEvolutionConfig.layout === "convergence" &&
+      (careerEvolutionConfig.capabilities || []).filter((c) =>
+        Boolean(c.label?.trim()),
+      ).length >= 2)
+  const renderCareerEvolutionForPreview =
+    variant === "export"
+      ? renderCareerEvolutionForExport
+      : careerEvolutionConfig.visible === true && hasCareerEvolutionPreviewContent
+
+  const viewSections = placeCareerEvolutionInSections(
+    parsedViewSections,
+    renderCareerEvolutionForPreview
+      ? careerEvolutionConfig
+      : { ...careerEvolutionConfig, visible: false },
+    () => ({
+      title: "CAREER EVOLUTION",
+      content: [] as string[],
+    }),
+  )
+
+  const renderCareerEvolutionSectionHtml = (sectionTitleHTML: string, _content: string[]) => {
+    if (!renderCareerEvolutionForPreview) {
+      return ""
+    }
+    // Ignore markdown body — graph comes only from contactInfo config (never re-parse TRACK text here).
+    void _content
+    let svg = ""
+    try {
+      svg = renderCareerEvolutionSvgHtml(careerEvolutionConfig, {
+        accentColor: hexAccentColor,
+        language: displayVersion.contactInfo.language === "de" ? "de" : "en",
+        // Fit within typical A4 content column (~170mm usable ≈ 480 CSS px).
+        width: 480,
+        resumeText: displayVersion.resumeText || "",
+      })
+    } catch (err) {
+      // Defense in depth — renderCareerEvolutionSvgHtml already catches internally.
+      console.error("[career-evolution] preview render failed:", err)
+      const message =
+        err instanceof Error ? err.message : "Career Evolution graph could not be rendered."
+      svg = `<div class="career-evolution-error-fallback" role="alert" style="margin:8px 0;padding:10px 12px;border:1px solid #d4a017;border-radius:4px;background:#fffbeb;color:#5c4a00;font-size:12px;line-height:1.4;"><p style="margin:0 0 4px;font-weight:600;">Career Evolution could not be displayed.</p><p style="margin:0;">${escapeHtml(message)}</p></div>`
+    }
+    if (!svg) return ""
+    const titleBlock = sectionTitleHTML
+      ? wrapPdfBlock("section-title", sectionTitleHTML)
+      : ""
+    // Single pdf block — figure itself must not also carry data-pdf-block.
+    // Section wrapper must NOT use break-inside:avoid: that forced the whole
+    // title+graph onto the next sheet and left a blank band after Selected
+    // Evidence when print metrics differed slightly from JS pagination.
+    // Keep-together lives on the figure / pdf-block only.
+    const body = wrapPdfBlock("career-evolution", svg)
+    return `<div class="resume-section-block" data-career-evolution-section="1" style="margin:2px 0 8px;overflow:visible;max-width:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact;">${titleBlock}${body}</div>`
+  }
   
   const isEducationSection = (title: string): boolean => {
     const key = normalizeCvSectionKey(title)
@@ -2375,7 +2789,10 @@ export function ResumePreview({
 
     const renderATSMarkdownLines = (
       lines: string[],
-      options?: { showEmploymentDuration?: boolean },
+      options?: {
+        showEmploymentDuration?: boolean
+        sectionIsParallelWork?: boolean
+      },
     ): string => {
       const inlineHtml = (text: string) =>
         formattedTextToHtml(text, {
@@ -2383,6 +2800,7 @@ export function ResumePreview({
           underline: true,
         })
       const durationLang = displayVersion.contactInfo.language === "de" ? "de" : "en"
+      const workLang = displayVersion.contactInfo.language === "de" ? "de" : "en"
       const appendDuration = options?.showEmploymentDuration === true
 
       let html = ""
@@ -2415,7 +2833,18 @@ export function ResumePreview({
           continue
         }
 
-        if (parsed.kind === "job-title" || parsed.kind === "section-heading") {
+        if (parsed.kind === "job-title") {
+          if (inBulletList) { html += "</ul>"; inBulletList = false }
+          const workType = resolveExperienceWorkType({
+            lineWorkType: parsed.workType,
+            sectionIsParallelWork: options?.sectionIsParallelWork === true,
+          })
+          const suffix = formatParallelWorkAtsSuffix(workType, workLang)
+          html += `<p style="font-size: 13px; font-weight: 600; margin: 12px 0 4px 0; color: #333333;">${inlineHtml(parsed.text)}${suffix ? escapeHtmlText(suffix) : ""}</p>`
+          continue
+        }
+
+        if (parsed.kind === "section-heading") {
           if (inBulletList) { html += "</ul>"; inBulletList = false }
           html += `<p style="font-size: 13px; font-weight: 600; margin: 12px 0 4px 0; color: #333333;">${inlineHtml(parsed.text)}</p>`
           continue
@@ -2437,7 +2866,10 @@ export function ResumePreview({
 
     const renderATSMarkdown = (
       lines: string[],
-      options?: { showEmploymentDuration?: boolean },
+      options?: {
+        showEmploymentDuration?: boolean
+        sectionIsParallelWork?: boolean
+      },
     ): string =>
       renderHtmlWithMarkdownTables(
         lines,
@@ -2456,6 +2888,9 @@ export function ResumePreview({
             fontSize: 13,
             lineHeight: 1.45,
             linkColor: hexAccentColor,
+            // ATS Optimized: plain readable text — no colour reliance
+            tableAccentStyle: "off",
+            accentColor: hexAccentColor,
           }),
       )
 
@@ -2464,6 +2899,7 @@ export function ResumePreview({
         showEmploymentDuration:
           displayVersion.contactInfo.showEmploymentDuration === true &&
           isEmploymentExperienceSection(sectionTitle),
+        sectionIsParallelWork: sectionIsParallelWorkTitle(sectionTitle),
       })
 
     const columnStyle =
@@ -2476,12 +2912,19 @@ export function ResumePreview({
           ? `<h2 style="font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 20px 0 8px 0; padding-bottom: 4px; border-bottom: 1px solid ${hexAccentColor}; color: ${hexAccentColor};">${section.title}</h2>`
           : ""
 
+        if (isCareerEvolutionSection(section.title)) {
+          // ATS-styled mode never relies on the graph — omit entirely.
+          return ""
+        }
+
         if (isExperienceSection(section.title)) {
           return renderExperiencePdfBlocks(
             sectionTitleHTML,
             section.content,
             renderATSEmploymentAware(section.title),
             "16px",
+            undefined,
+            experiencePdfOptions(section.title),
           )
         }
 
@@ -2534,9 +2977,13 @@ export function ResumePreview({
 
     const renderPlainTextLines = (
       lines: string[],
-      options?: { showEmploymentDuration?: boolean },
+      options?: {
+        showEmploymentDuration?: boolean
+        sectionIsParallelWork?: boolean
+      },
     ): string => {
       const durationLang = displayVersion.contactInfo.language === "de" ? "de" : "en"
+      const workLang = displayVersion.contactInfo.language === "de" ? "de" : "en"
       const appendDuration = options?.showEmploymentDuration === true
       let html = ""
 
@@ -2551,8 +2998,13 @@ export function ResumePreview({
           text = appendDuration
             ? formatEmploymentDateWithDuration(parsed.text, { language: durationLang })
             : parsed.text
+        } else if (parsed.kind === "job-title") {
+          const workType = resolveExperienceWorkType({
+            lineWorkType: parsed.workType,
+            sectionIsParallelWork: options?.sectionIsParallelWork === true,
+          })
+          text = `${parsed.text}${formatParallelWorkAtsSuffix(workType, workLang)}`
         } else if (
-          parsed.kind === "job-title" ||
           parsed.kind === "company" ||
           parsed.kind === "section-heading" ||
           parsed.kind === "paragraph"
@@ -2569,7 +3021,10 @@ export function ResumePreview({
 
     const renderPlainText = (
       lines: string[],
-      options?: { showEmploymentDuration?: boolean },
+      options?: {
+        showEmploymentDuration?: boolean
+        sectionIsParallelWork?: boolean
+      },
     ): string =>
       renderHtmlWithMarkdownTables(
         lines,
@@ -2600,6 +3055,7 @@ export function ResumePreview({
         showEmploymentDuration:
           displayVersion.contactInfo.showEmploymentDuration === true &&
           isEmploymentExperienceSection(sectionTitle),
+        sectionIsParallelWork: sectionIsParallelWorkTitle(sectionTitle),
       })
 
     const columnStyle =
@@ -2612,12 +3068,19 @@ export function ResumePreview({
           ? `<h2 style="font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 16px 0 8px 0; color: #000000;">${section.title}</h2>`
           : ""
 
+        if (isCareerEvolutionSection(section.title)) {
+          // Plain ATS text mode: exclude graph; standard CV content is sufficient.
+          return ""
+        }
+
         if (isExperienceSection(section.title)) {
           return renderExperiencePdfBlocks(
             sectionTitleHTML,
             section.content,
             renderPlainEmploymentAware(section.title),
             "12px",
+            undefined,
+            experiencePdfOptions(section.title),
           )
         }
 
@@ -2758,7 +3221,13 @@ export function ResumePreview({
     version.targetBoxBgColor,
     version.targetBoxBorderColor,
     // Stable snapshot — `displayVersion.contactInfo` may be a new object identity each render.
+    // Includes careerEvolution.layout so layout radio changes re-paginate immediately.
     JSON.stringify(displayVersion.contactInfo),
+    displayVersion.contactInfo?.careerEvolution?.layout,
+    displayVersion.contactInfo?.careerEvolution?.density,
+    displayVersion.contactInfo?.careerEvolution?.position,
+    displayVersion.contactInfo?.careerEvolution?.visible,
+    displayVersion.contactInfo?.careerEvolution?.showParallelWork,
   ])
 
   const paginationHelp =
@@ -2804,12 +3273,12 @@ export function ResumePreview({
     {
       id: "current" as const,
       name: "Profile-enhanced design",
-      desc: "Prominent summary section at the top",
+      desc: "Compact header with a stronger professional summary",
     },
     {
       id: "modern-spacious" as const,
       name: "Modern spacious",
-      desc: "More breathing room, easier to scan",
+      desc: "Clean typography with controlled breathing room",
     },
   ]
 
@@ -3113,6 +3582,8 @@ export function ResumePreview({
         onDownloadWord={downloadWord}
         isDownloadingPdf={isDownloadingPDF}
         estimatedPdfBytes={estimatedPdfBytes}
+        pdfExportPreset={pdfExportPreset}
+        onPdfExportPresetChange={setPdfExportPreset}
         includeExportMetadata={includeExportMetadata}
         onIncludeExportMetadataChange={setIncludeExportMetadata}
         includeTransparencyPage={includeTransparencyPage}

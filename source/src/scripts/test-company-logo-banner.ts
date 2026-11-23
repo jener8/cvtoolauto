@@ -31,8 +31,8 @@ function buildTargetBanner(opts: {
     opts.style === "executive-compact"
       ? { w: 64, h: 40 }
       : opts.style === "modern-spacious"
-        ? { w: 96, h: 64 }
-        : { w: 80, h: 60 }
+        ? { w: 72, h: 48 }
+        : { w: 64, h: 44 }
 
   const logo = renderTargetBannerLogoHtml(opts.companyLogo, sizes.w, sizes.h)
   return `<div class="target-banner">${opts.targetCompany} / ${opts.targetRole}${logo}</div>`

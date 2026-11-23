@@ -65,8 +65,9 @@ export function parseResumeInlineSegments(text: string): ResumeInlineSegment[] {
   return segments.length > 0 ? segments : [{ type: "text", value: text }]
 }
 
-export function escapeHtmlText(text: string): string {
-  return text
+export function escapeHtmlText(text: string | null | undefined): string {
+  if (text == null) return ""
+  return String(text)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
